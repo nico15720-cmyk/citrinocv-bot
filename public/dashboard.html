@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Citrino — Dashboard</title>
+  <style>
+    :root {
+      --verde: #5a7a5a;
+      --verde-claro: #8fbc8f;
+      --crema: #f5f0e8;
+      --crema-oscura: #ede5d0;
+      --texto: #2c3e2d;
+      --gris: #7a8a7a;
+      --rojo: #c0392b;
+      --naranja: #e67e22;
+      --azul: #2980b9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--crema);
+      color: var(--texto);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--verde);
+      color: white;
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    header span {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ---- CARDS PRINCIPALES ---- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.4rem 1.2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+
+    .card .numero {
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .card .label {
+      font-size: 0.8rem;
+      color: var(--gris);
+      margin-top: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card.verde .numero { color: var(--verde); }
+    .card.azul .numero  { color: var(--azul); }
+    .card.naranja .numero { color: var(--naranja); }
+    .card.rojo .numero  { color: var(--rojo); }
+
+    /* ---- FILA INFERIOR ---- */
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 640px) {
+      .row-2 { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      color: var(--verde);
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--crema-oscura);
+      padding-bottom: 0.5rem;
+    }
+
+    /* ---- BARRAS DE CANAL ---- */
+    .canal-bar {
+      margin-bottom: 0.8rem;
+    }
+
+    .canal-bar .info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .canal-bar .barra {
+      height: 8px;
+      background: var(--crema-oscura);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .canal-bar .fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s ease;
+    }
+
+    .fill.wa  { background: #25d366; }
+    .fill.fb  { background: #1877f2; }
+    .fill.ig  { background: #e1306c; }
+
+    /* ---- EMBUDO ---- */
+    .embudo {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .paso {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .paso .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .paso .nombre-paso {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+
+    .paso .valor {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .dot.lead     { background: var(--naranja); }
+    .dot.agendado { background: var(--azul); }
+    .dot.vino     { background: var(--verde-claro); }
+    .dot.novino   { background: var(--rojo); }
+    .dot.cancelado { background: var(--gris); }
+
+    /* ---- INGRESOS ---- */
+    .ingresos-box {
+      background: var(--crema);
+      border-radius: 8px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+
+    .ingresos-box .monto {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--verde);
+    }
+
+    .ingresos-box .sub {
+      font-size: 0.75rem;
+      color: var(--gris);
+      margin-top: 0.3rem;
+    }
+
+    /* ---- LOADING / ERROR ---- */
+    .loading {
+      text-align: center;
+      color: var(--gris);
+      padding: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .error-msg {
+      background: #fde8e8;
+      border: 1px solid #f5c6c6;
+      color: var(--rojo);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .refresh-btn {
+      background: var(--verde);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+
+    .refresh-btn:hover { background: #4a6a4a; }
+
+    .last-update {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--gris);
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 Citrino — Dashboard</h1>
+  <div>
+    <button class="refresh-btn" onclick="cargarStats()">↻ Actualizar</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="error-container"></div>
+  <div id="last-update" class="last-update"></div>
+
+  <!-- CARGANDO -->
+  <div id="loading" class="loading">Cargando datos... 🌿</div>
+
+  <!-- CONTENIDO -->
+  <div id="contenido" style="display:none">
+
+    <!-- STATS PRINCIPALES -->
+    <div class="stats-grid">
+      <div class="card verde">
+        <div class="numero" id="stat-total">—</div>
+        <div class="label">Total contactos</div>
+      </div>
+      <div class="card naranja">
+        <div class="numero" id="stat-leads">—</div>
+        <div class="label">Leads activos</div>
+      </div>
+      <div class="card azul">
+        <div class="numero" id="stat-agendados">—</div>
+        <div class="label">Agendados</div>
+      </div>
+      <div class="card verde">
+        <div class="numero" id="stat-vinieron">—</div>
+        <div class="label">Vinieron</div>
+      </div>
+      <div class="card rojo">
+        <div class="numero" id="stat-novinieron">—</div>
+        <div class="label">No vinieron</div>
+      </div>
+      <div class="card azul">
+        <div class="numero" id="stat-conversion">—</div>
+        <div class="label">Conversión</div>
+      </div>
+      <div class="card verde">
+        <div class="numero" id="stat-cuponera">—</div>
+        <div class="label">Con cuponera</div>
+      </div>
+    </div>
+
+    <div class="row-2">
+
+      <!-- EMBUDO -->
+      <div class="panel">
+        <h2>📊 Embudo de conversión</h2>
+        <div class="embudo">
+          <div class="paso">
+            <div class="dot lead"></div>
+            <div class="nombre-paso">Leads</div>
+            <div class="valor" id="emb-leads">—</div>
+          </div>
+          <div class="paso">
+            <div class="dot agendado"></div>
+            <div class="nombre-paso">Agendados</div>
+            <div class="valor" id="emb-agendados">—</div>
+          </div>
+          <div class="paso">
+            <div class="dot vino"></div>
+            <div class="nombre-paso">Vinieron</div>
+            <div class="valor" id="emb-vinieron">—</div>
+          </div>
+          <div class="paso">
+            <div class="dot novino"></div>
+            <div class="nombre-paso">No vinieron</div>
+            <div class="valor" id="emb-novinieron">—</div>
+          </div>
+          <div class="paso">
+            <div class="dot cancelado"></div>
+            <div class="nombre-paso">Cancelados</div>
+            <div class="valor" id="emb-cancelados">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem">
+          <div class="ingresos-box">
+            <div class="monto" id="ingresos">$—</div>
+            <div class="sub">Ingresos estimados (UYU)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CANALES -->
+      <div class="panel">
+        <h2>📱 Canales de origen</h2>
+        <div id="canales-container">
+          <div class="canal-bar">
+            <div class="info">
+              <span>💬 WhatsApp</span>
+              <span id="canal-wa-n">—</span>
+            </div>
+            <div class="barra"><div class="fill wa" id="canal-wa-bar" style="width:0%"></div></div>
+          </div>
+          <div class="canal-bar">
+            <div class="info">
+              <span>📘 Facebook</span>
+              <span id="canal-fb-n">—</span>
+            </div>
+            <div class="barra"><div class="fill fb" id="canal-fb-bar" style="width:0%"></div></div>
+          </div>
+          <div class="canal-bar">
+            <div class="info">
+              <span>📸 Instagram</span>
+              <span id="canal-ig-n">—</span>
+            </div>
+            <div class="barra"><div class="fill ig" id="canal-ig-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div style="margin-top:2rem">
+          <div style="font-size:0.85rem; color:var(--gris); margin-bottom:0.5rem">Tasa de agendamiento</div>
+          <div style="font-size:2rem; font-weight:700; color:var(--azul)" id="tasa-agendamiento">—</div>
+          <div style="font-size:0.75rem; color:var(--gris)">del total de contactos</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+async function cargarStats() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("contenido").style.display = "none";
+  document.getElementById("error-container").innerHTML = "";
+
+  try {
+    const res = await fetch("/api/stats");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+
+    if (d.error) throw new Error(d.error);
+
+    // Stats principales
+    document.getElementById("stat-total").textContent = d.total ?? 0;
+    document.getElementById("stat-leads").textContent = d.leads ?? 0;
+    document.getElementById("stat-agendados").textContent = d.agendados ?? 0;
+    document.getElementById("stat-vinieron").textContent = d.vinieron ?? 0;
+    document.getElementById("stat-novinieron").textContent = d.noVinieron ?? 0;
+    document.getElementById("stat-conversion").textContent = `${d.tasaConversion ?? 0}%`;
+    document.getElementById("stat-cuponera").textContent = d.conCuponera ?? 0;
+
+    // Embudo
+    document.getElementById("emb-leads").textContent = d.leads ?? 0;
+    document.getElementById("emb-agendados").textContent = d.agendados ?? 0;
+    document.getElementById("emb-vinieron").textContent = d.vinieron ?? 0;
+    document.getElementById("emb-novinieron").textContent = d.noVinieron ?? 0;
+    document.getElementById("emb-cancelados").textContent = d.cancelados ?? 0;
+
+    // Ingresos
+    const ingresos = d.ingresosEstimados ?? 0;
+    document.getElementById("ingresos").textContent = `$${ingresos.toLocaleString("es-UY")}`;
+
+    // Tasa de agendamiento
+    document.getElementById("tasa-agendamiento").textContent = `${d.tasaAgendamiento ?? 0}%`;
+
+    // Canales
+    const canal = d.porCanal || {};
+    const totalCanales = (canal.whatsapp || 0) + (canal.facebook || 0) + (canal.instagram || 0) || 1;
+
+    const wa = canal.whatsapp || 0;
+    const fb = canal.facebook || 0;
+    const ig = canal.instagram || 0;
+
+    document.getElementById("canal-wa-n").textContent = wa;
+    document.getElementById("canal-fb-n").textContent = fb;
+    document.getElementById("canal-ig-n").textContent = ig;
+
+    document.getElementById("canal-wa-bar").style.width = `${Math.round((wa / totalCanales) * 100)}%`;
+    document.getElementById("canal-fb-bar").style.width = `${Math.round((fb / totalCanales) * 100)}%`;
+    document.getElementById("canal-ig-bar").style.width = `${Math.round((ig / totalCanales) * 100)}%`;
+
+    // Última actualización
+    document.getElementById("last-update").textContent =
+      `Última actualización: ${new Date().toLocaleTimeString("es-UY")}`;
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("contenido").style.display = "block";
+
+  } catch (err) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("error-container").innerHTML = `
+      <div class="error-msg">
+        ❌ Error al cargar los datos: ${err.message}<br/>
+        <small>Verificá que el servidor esté corriendo y que Google Sheets esté configurado.</small>
+      </div>`;
+    document.getElementById("contenido").style.display = "block";
+  }
+}
+
+// Cargar al inicio
+cargarStats();
+
+// Auto-refresh cada 5 minutos
+setInterval(cargarStats, 5 * 60 * 1000);
+</script>
+</body>
+</html>
