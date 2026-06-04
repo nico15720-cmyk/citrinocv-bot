@@ -292,10 +292,11 @@ app.get("/admin", (req, res) => {
 // CLIENTE TIPO — análisis agregado de perfiles aprendidos
 // ============================================================
 // Changelog de cambios aplicados por WhatsApp
-app.get("/api/changelog", (req, res) => {
+app.get("/api/changelog", async (req, res) => {
   try {
     const { leerChangelog } = require("./bot/self-fix");
-    res.json(leerChangelog());
+    const log = await leerChangelog();
+    res.json(log);
   } catch (e) {
     res.json([]);
   }

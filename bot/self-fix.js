@@ -5,52 +5,147 @@
 // ============================================================
 
 const Anthropic = require("@anthropic-ai/sdk");
-const fs = require("fs");
-const path = require("path");
-const { enviarMensaje } = require("./sender");
+const { sheets: googleSheets } = require("@googleapis/sheets");
+const { GoogleAuth } = require("google-auth-library");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const OWNER = process.env.OWNER_WHATSAPP;
-const CONFIG_PATH = path.join(__dirname, "../config-dynamic.json");
-const CHANGELOG_PATH = path.join(__dirname, "../changelog.json");
+const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
+const SHEET_CONFIG = "Config";
+const SHEET_CHANGELOG = "Changelog";
+
+// Cache en memoria para no consultar Sheets en cada request
+let configCache = null;
+let changelogCache = null;
+let cacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+function getSheets() {
+  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth = new GoogleAuth({ credentials, scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
+  return googleSheets({ version: "v4", auth });
+}
 
 // ============================================================
-// LEER / ESCRIBIR CONFIG DINÁMICA
+// LEER / ESCRIBIR CONFIG DINÁMICA (persistida en Google Sheets)
 // ============================================================
-function leerConfig() {
+async function leerConfig() {
+  if (configCache && Date.now() - cacheTime < CACHE_TTL) return configCache;
   try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_CONFIG}!A:B`,
+    });
+    const rows = res.data.values || [];
+    const config = {};
+    for (const row of rows.slice(1)) {
+      if (row[0]) config[row[0]] = row[1] || "";
     }
-  } catch {}
-  return {};
+    configCache = config;
+    cacheTime = Date.now();
+    return config;
+  } catch {
+    return configCache || {};
+  }
 }
 
-function guardarConfig(config) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf8");
-}
-
-function leerChangelog() {
+async function guardarConfig(clave, valor) {
   try {
-    if (fs.existsSync(CHANGELOG_PATH)) {
-      return JSON.parse(fs.readFileSync(CHANGELOG_PATH, "utf8"));
+    const sheets = getSheets();
+    // Buscar si ya existe la clave
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_CONFIG}!A:A`,
+    });
+    const rows = res.data.values || [];
+    const idx = rows.findIndex(r => r[0] === clave);
+
+    if (idx >= 1) {
+      // Actualizar fila existente
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_CONFIG}!B${idx + 1}`,
+        valueInputOption: "RAW",
+        resource: { values: [[valor]] },
+      });
+    } else {
+      // Agregar nueva fila
+      if (rows.length <= 1) {
+        // Crear header si no existe
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${SHEET_CONFIG}!A1:B1`,
+          valueInputOption: "RAW",
+          resource: { values: [["Clave", "Valor"]] },
+        });
+      }
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_CONFIG}!A:B`,
+        valueInputOption: "RAW",
+        resource: { values: [[clave, valor]] },
+      });
     }
-  } catch {}
-  return [];
+    configCache = null; // invalidar cache
+  } catch (err) {
+    console.error("❌ Error guardando config:", err.message);
+  }
 }
 
-function agregarChangelog(entrada) {
-  const log = leerChangelog();
-  log.unshift({ ...entrada, fecha: new Date().toISOString() });
-  // Mantener últimas 50 entradas
-  fs.writeFileSync(CHANGELOG_PATH, JSON.stringify(log.slice(0, 50), null, 2), "utf8");
+async function leerChangelog() {
+  if (changelogCache && Date.now() - cacheTime < CACHE_TTL) return changelogCache;
+  try {
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_CHANGELOG}!A:E`,
+    });
+    const rows = (res.data.values || []).slice(1);
+    changelogCache = rows.map(r => ({
+      fecha: r[0] || "",
+      tipo: r[1] || "",
+      descripcion: r[2] || "",
+      clave: r[3] || "",
+      valor: r[4] || "",
+    })).reverse();
+    return changelogCache;
+  } catch {
+    return changelogCache || [];
+  }
+}
+
+async function agregarChangelog(entrada) {
+  try {
+    const sheets = getSheets();
+    const rows = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_CHANGELOG}!A1:A1`,
+    });
+    if (!rows.data.values?.length) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_CHANGELOG}!A1:E1`,
+        valueInputOption: "RAW",
+        resource: { values: [["Fecha", "Tipo", "Descripción", "Clave", "Valor"]] },
+      });
+    }
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_CHANGELOG}!A:E`,
+      valueInputOption: "RAW",
+      resource: { values: [[new Date().toISOString(), entrada.tipo || "", entrada.descripcion || "", entrada.clave || "", entrada.valor || ""]] },
+    });
+    changelogCache = null;
+  } catch (err) {
+    console.error("❌ Error en changelog:", err.message);
+  }
 }
 
 // ============================================================
 // EXPORTAR CONFIG PARA QUE CONVERSATION.JS LA USE
 // ============================================================
-function getConfigDinamica() {
-  return leerConfig();
+async function getConfigDinamica() {
+  return await leerConfig();
 }
 
 // ============================================================
@@ -91,14 +186,11 @@ Config actual: ${JSON.stringify(configActual)}`,
 
     if (!resultado.es_cambio) return null;
 
-    // Aplicar el cambio a la config
-    const configNueva = { ...configActual };
-    configNueva[resultado.clave] = resultado.valor;
-    configNueva._ultima_actualizacion = new Date().toISOString();
-    guardarConfig(configNueva);
+    // Aplicar el cambio a la config en Google Sheets
+    await guardarConfig(resultado.clave, resultado.valor);
 
     // Registrar en changelog
-    agregarChangelog({
+    await agregarChangelog({
       tipo: resultado.tipo,
       descripcion: resultado.descripcion,
       clave: resultado.clave,
@@ -119,8 +211,9 @@ Config actual: ${JSON.stringify(configActual)}`,
 // CONSTRUIR CONTEXTO DINÁMICO PARA EL SYSTEM PROMPT
 // Se llama desde conversation.js para enriquecer el prompt
 // ============================================================
+// Versión sync que usa el cache (no bloquea el request)
 function buildContextoDinamico() {
-  const config = leerConfig();
+  const config = configCache || {};
   if (Object.keys(config).length === 0) return "";
 
   const partes = [];

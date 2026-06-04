@@ -269,6 +269,57 @@ async function enviarResumenDiario() {
 }
 
 // ============================================================
+// AUTO-REVIEW 3AM — Claude analiza el sistema y se auto-corrige
+// ============================================================
+async function autoReview3am() {
+  console.log("🔍 Auto-review 3am iniciado...");
+  if (!OWNER) return;
+
+  try {
+    const [stats, clientes] = await Promise.all([
+      getStats().catch(() => ({})),
+      leerTodosLosClientes().catch(() => []),
+    ]);
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: `Sos el sistema de auto-monitoreo del Citrino Bot. Analizás el estado del negocio de madrugada y detectás problemas o oportunidades. Respondés en español, directo y conciso.`,
+      messages: [{
+        role: "user",
+        content: `Análisis nocturno del sistema (${new Date().toLocaleDateString("es-UY")}):
+- Total clientas CRM: ${stats.total || 0}
+- Leads sin atender: ${stats.leads || 0}
+- Agendadas: ${stats.agendados || 0}
+- Sin volver en 30+ días: ${clientes.filter(c => {
+  if (!c.UltimoContacto) return false;
+  return Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000) > 30;
+}).length}
+- Con cuponera pero sin turno: ${clientes.filter(c => c.Cuponera === "si" && c.Estado !== "agendado").length}
+
+Identificá: ¿hay algo urgente que atender? ¿alguna oportunidad de negocio obvia? ¿algún problema en los datos?
+Sé muy breve, máximo 3 puntos. Si todo está bien, decí solo "✅ Sistema OK, sin alertas nocturnas."`,
+      }],
+    });
+
+    const analisis = response.content[0].text;
+    const hayProblema = !analisis.includes("✅ Sistema OK");
+
+    if (hayProblema) {
+      await enviarMensaje(
+        OWNER,
+        `🌙 *Auto-revisión 3am*\n\n${analisis}`,
+        "whatsapp"
+      ).catch(() => {});
+    }
+
+    console.log("✅ Auto-review 3am completado");
+  } catch (err) {
+    console.error("❌ Error en auto-review:", err.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
@@ -304,6 +355,11 @@ function startScheduler() {
 
   // Alerta vencimiento token Meta — todos los días a las 9:00
   cron.schedule("0 9 * * *", verificarVencimientoToken, {
+    timezone: "America/Montevideo",
+  });
+
+  // Auto-review nocturno a las 3:00am
+  cron.schedule("0 3 * * *", autoReview3am, {
     timezone: "America/Montevideo",
   });
 
