@@ -16,6 +16,9 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Health check para Railway
+app.get("/health", (req, res) => res.status(200).send("OK"));
+
 // ============================================================
 // WEBHOOK VERIFICATION
 // ============================================================
