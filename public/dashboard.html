@@ -1,447 +1,506 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citrino — Dashboard</title>
-  <style>
-    :root {
-      --verde: #5a7a5a;
-      --verde-claro: #8fbc8f;
-      --crema: #f5f0e8;
-      --crema-oscura: #ede5d0;
-      --texto: #2c3e2d;
-      --gris: #7a8a7a;
-      --rojo: #c0392b;
-      --naranja: #e67e22;
-      --azul: #2980b9;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--crema);
-      color: var(--texto);
-      min-height: 100vh;
-    }
-
-    header {
-      background: var(--verde);
-      color: white;
-      padding: 1.2rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    header h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-    }
-
-    header span {
-      font-size: 0.85rem;
-      opacity: 0.8;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 2rem auto;
-      padding: 0 1.5rem;
-    }
-
-    /* ---- CARDS PRINCIPALES ---- */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.4rem 1.2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      text-align: center;
-    }
-
-    .card .numero {
-      font-size: 2.4rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .card .label {
-      font-size: 0.8rem;
-      color: var(--gris);
-      margin-top: 0.4rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .card.verde .numero { color: var(--verde); }
-    .card.azul .numero  { color: var(--azul); }
-    .card.naranja .numero { color: var(--naranja); }
-    .card.rojo .numero  { color: var(--rojo); }
-
-    /* ---- FILA INFERIOR ---- */
-    .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    @media (max-width: 640px) {
-      .row-2 { grid-template-columns: 1fr; }
-    }
-
-    .panel {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    .panel h2 {
-      font-size: 1rem;
-      color: var(--verde);
-      margin-bottom: 1rem;
-      border-bottom: 2px solid var(--crema-oscura);
-      padding-bottom: 0.5rem;
-    }
-
-    /* ---- BARRAS DE CANAL ---- */
-    .canal-bar {
-      margin-bottom: 0.8rem;
-    }
-
-    .canal-bar .info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      margin-bottom: 0.3rem;
-    }
-
-    .canal-bar .barra {
-      height: 8px;
-      background: var(--crema-oscura);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .canal-bar .fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.8s ease;
-    }
-
-    .fill.wa  { background: #25d366; }
-    .fill.fb  { background: #1877f2; }
-    .fill.ig  { background: #e1306c; }
-
-    /* ---- EMBUDO ---- */
-    .embudo {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-
-    .paso {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-    }
-
-    .paso .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .paso .nombre-paso {
-      flex: 1;
-      font-size: 0.9rem;
-    }
-
-    .paso .valor {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .dot.lead     { background: var(--naranja); }
-    .dot.agendado { background: var(--azul); }
-    .dot.vino     { background: var(--verde-claro); }
-    .dot.novino   { background: var(--rojo); }
-    .dot.cancelado { background: var(--gris); }
-
-    /* ---- INGRESOS ---- */
-    .ingresos-box {
-      background: var(--crema);
-      border-radius: 8px;
-      padding: 1.2rem;
-      text-align: center;
-    }
-
-    .ingresos-box .monto {
-      font-size: 2rem;
-      font-weight: 700;
-      color: var(--verde);
-    }
-
-    .ingresos-box .sub {
-      font-size: 0.75rem;
-      color: var(--gris);
-      margin-top: 0.3rem;
-    }
-
-    /* ---- LOADING / ERROR ---- */
-    .loading {
-      text-align: center;
-      color: var(--gris);
-      padding: 3rem;
-      font-size: 1.1rem;
-    }
-
-    .error-msg {
-      background: #fde8e8;
-      border: 1px solid #f5c6c6;
-      color: var(--rojo);
-      padding: 1rem 1.5rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-    }
-
-    .refresh-btn {
-      background: var(--verde);
-      color: white;
-      border: none;
-      padding: 0.5rem 1.2rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      transition: background 0.2s;
-    }
-
-    .refresh-btn:hover { background: #4a6a4a; }
-
-    .last-update {
-      text-align: right;
-      font-size: 0.75rem;
-      color: var(--gris);
-      margin-bottom: 1rem;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16a34a">
+<title>Citrino Control</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh;padding-bottom:72px}
+/* TOPBAR */
+.topbar{background:#fff;padding:12px 16px;border-bottom:1px solid #e8e8e8;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:17px;font-weight:700;color:#16a34a;letter-spacing:-.3px}
+.logo span{color:#1a1a1a;font-weight:500}
+.topright{display:flex;align-items:center;gap:10px}
+.status-wrap{display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280}
+.dot{width:7px;height:7px;border-radius:50%;background:#16a34a}
+.dot.off{background:#ef4444}
+.dot.pausa{background:#f59e0b;animation:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.dot.on{animation:blink 2s infinite}
+/* TOGGLE */
+.tog{display:flex;align-items:center;gap:6px}
+.tog-label{font-size:11px;font-weight:500;color:#6b7280}
+.switch{position:relative;width:42px;height:24px;cursor:pointer;display:block}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.track{position:absolute;inset:0;background:#d1d5db;border-radius:12px;transition:.25s}
+input:checked+.track{background:#16a34a}
+.thumb{position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+input:checked~.thumb{left:21px}
+/* PANELS */
+.panel{display:none}
+.panel.show{display:block}
+/* TABS */
+.segtabs{display:flex;background:#ebebeb;border-radius:10px;margin:12px 16px 0;padding:3px;gap:2px}
+.segtab{flex:1;padding:7px 0;font-size:12px;font-weight:500;text-align:center;border-radius:8px;cursor:pointer;color:#6b7280;border:none;background:transparent;transition:.15s}
+.segtab.a{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+/* CHIPS */
+.chips{display:flex;gap:6px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:5px 12px;border-radius:20px;border:1px solid #e5e5e5;font-size:12px;color:#6b7280;white-space:nowrap;cursor:pointer;background:#fff;flex-shrink:0;transition:.1s}
+.chip.a{background:#16a34a;border-color:#16a34a;color:#fff}
+/* STAT CARDS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+.sc{background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #efefef}
+.sc-n{font-size:24px;font-weight:600;line-height:1}
+.sc-n.g{color:#16a34a}
+.sc-n.b{color:#2563eb}
+.sc-n.o{color:#d97706}
+.sc-l{font-size:11px;color:#888;margin-top:3px}
+/* CLIENT LIST */
+.clist{padding:0 16px 8px}
+.cc{background:#fff;border-radius:12px;padding:12px;border:1px solid #efefef;margin-bottom:8px}
+.cc-top{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av0{background:#dbeafe;color:#1d4ed8}
+.av1{background:#fce7f3;color:#9d174d}
+.av2{background:#fef3c7;color:#92400e}
+.av3{background:#f3f4f6;color:#6b7280}
+.av4{background:#dcfce7;color:#166534}
+.av5{background:#ede9fe;color:#5b21b6}
+.ci{flex:1;min-width:0}
+.cn{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cr{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.bdg{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap}
+.bvip{background:#dbeafe;color:#1e40af}
+.bhot{background:#fce7f3;color:#9d174d}
+.bwrm{background:#fef3c7;color:#92400e}
+.bcld{background:#f3f4f6;color:#6b7280}
+.bnew{background:#dcfce7;color:#166534}
+.bvno{background:#ede9fe;color:#5b21b6}
+.stars{display:flex;gap:2px}
+.s{font-size:13px;color:#d1d5db;cursor:pointer;line-height:1}
+.s.on{color:#f59e0b}
+.cbtns{display:flex;gap:6px;margin-top:9px;padding-top:9px;border-top:1px solid #f5f5f5}
+.cb{padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;display:flex;align-items:center;gap:3px;transition:.1s}
+.cbwa{background:#dcfce7;color:#166534}
+.cbnota{background:#f3f4f6;color:#374151}
+.cbag{background:#dbeafe;color:#1e40af}
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e8e8e8;display:flex;padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:100}
+.bt{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px 0;color:#9ca3af;font-size:10px;font-weight:500;background:none;border:none;transition:.1s}
+.bt.a{color:#16a34a}
+.bti{font-size:24px;line-height:1}
+/* CAMPANA */
+.card{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #efefef;margin:10px 16px 0}
+.fl{font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+select,textarea,input[type=text]{width:100%;padding:9px 12px;border:1px solid #e5e5e5;border-radius:8px;font-size:14px;background:#fff;color:#1a1a1a;outline:none;font-family:inherit}
+select:focus,textarea:focus{border-color:#16a34a}
+textarea{resize:none;min-height:90px}
+.sbtn{width:100%;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;background:#16a34a;color:#fff;margin-top:10px}
+.sbtn:active{opacity:.85}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sgb{padding:10px 8px;border-radius:10px;border:2px solid #e8e8e8;background:#fff;cursor:pointer;text-align:center;transition:.15s}
+.sgb.sel{border-color:#16a34a;background:#f0fdf4}
+.sgi{font-size:18px;display:block;margin-bottom:2px}
+.sgn{font-size:11px;font-weight:600;color:#374151}
+.sgc{font-size:10px;color:#888}
+/* CONFIG */
+.mo{padding:12px;border-radius:10px;border:2px solid #e8e8e8;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.15s}
+.mo.sel{border-color:#16a34a;background:#f0fdf4}
+.moi{font-size:22px}
+.moname{font-size:14px;font-weight:500}
+.modesc{font-size:11px;color:#888;margin-top:1px}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-height:85vh;overflow-y:auto}
+.mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.mtitle{font-size:16px;font-weight:600}
+.mclose{font-size:22px;cursor:pointer;color:#888;background:none;border:none;line-height:1;padding:0}
+.mrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.mrow:last-child{border-bottom:none}
+.mk{color:#888}
+.mv{font-weight:500;text-align:right;max-width:60%;word-break:break-word}
+.empty{text-align:center;padding:28px 16px;color:#9ca3af;font-size:13px}
+.sec{padding:10px 16px 0}
+.sectl{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+</style>
 </head>
 <body>
 
-<header>
-  <h1>🌿 Citrino — Dashboard</h1>
+<div class="topbar">
   <div>
-    <button class="refresh-btn" onclick="cargarStats()">↻ Actualizar</button>
-  </div>
-</header>
-
-<div class="container">
-  <div id="error-container"></div>
-  <div id="last-update" class="last-update"></div>
-
-  <!-- CARGANDO -->
-  <div id="loading" class="loading">Cargando datos... 🌿</div>
-
-  <!-- CONTENIDO -->
-  <div id="contenido" style="display:none">
-
-    <!-- STATS PRINCIPALES -->
-    <div class="stats-grid">
-      <div class="card verde">
-        <div class="numero" id="stat-total">—</div>
-        <div class="label">Total contactos</div>
-      </div>
-      <div class="card naranja">
-        <div class="numero" id="stat-leads">—</div>
-        <div class="label">Leads activos</div>
-      </div>
-      <div class="card azul">
-        <div class="numero" id="stat-agendados">—</div>
-        <div class="label">Agendados</div>
-      </div>
-      <div class="card verde">
-        <div class="numero" id="stat-vinieron">—</div>
-        <div class="label">Vinieron</div>
-      </div>
-      <div class="card rojo">
-        <div class="numero" id="stat-novinieron">—</div>
-        <div class="label">No vinieron</div>
-      </div>
-      <div class="card azul">
-        <div class="numero" id="stat-conversion">—</div>
-        <div class="label">Conversión</div>
-      </div>
-      <div class="card verde">
-        <div class="numero" id="stat-cuponera">—</div>
-        <div class="label">Con cuponera</div>
-      </div>
+    <div class="logo">Citrino <span>Control</span></div>
+    <div class="status-wrap">
+      <div class="dot on" id="dot"></div>
+      <span id="stxt">Cargando...</span>
     </div>
+  </div>
+  <div class="topright">
+    <span id="modeLbl" style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:#dcfce7;color:#166534;cursor:pointer" onclick="openModeModal()">Auto</span>
+    <label class="switch tog" onclick="">
+      <input type="checkbox" id="tog" checked onchange="toggleBot()">
+      <div class="track"></div>
+      <div class="thumb"></div>
+    </label>
+  </div>
+</div>
 
-    <div class="row-2">
+<!-- PANEL CLIENTES -->
+<div class="panel show" id="pClientes">
+  <div class="segtabs">
+    <button class="segtab a" onclick="setTab(this,'todos')">Todos</button>
+    <button class="segtab" onclick="setTab(this,'leads')">Leads</button>
+    <button class="segtab" onclick="setTab(this,'vip')">VIP</button>
+    <button class="segtab" onclick="setTab(this,'cuponera')">Cuponeras</button>
+  </div>
+  <div class="chips">
+    <div class="chip a" onclick="setFiltro(this,'todos')">Todos</div>
+    <div class="chip" onclick="setFiltro(this,'hot')">🔥 Hot leads</div>
+    <div class="chip" onclick="setFiltro(this,'inactivos')">+30 días sin volver</div>
+    <div class="chip" onclick="setFiltro(this,'vino')">Vinieron</div>
+    <div class="chip" onclick="setFiltro(this,'nueva')">Nuevas</div>
+  </div>
+  <div class="clist" id="clist"><div class="empty">Cargando...</div></div>
+</div>
 
-      <!-- EMBUDO -->
-      <div class="panel">
-        <h2>📊 Embudo de conversión</h2>
-        <div class="embudo">
-          <div class="paso">
-            <div class="dot lead"></div>
-            <div class="nombre-paso">Leads</div>
-            <div class="valor" id="emb-leads">—</div>
-          </div>
-          <div class="paso">
-            <div class="dot agendado"></div>
-            <div class="nombre-paso">Agendados</div>
-            <div class="valor" id="emb-agendados">—</div>
-          </div>
-          <div class="paso">
-            <div class="dot vino"></div>
-            <div class="nombre-paso">Vinieron</div>
-            <div class="valor" id="emb-vinieron">—</div>
-          </div>
-          <div class="paso">
-            <div class="dot novino"></div>
-            <div class="nombre-paso">No vinieron</div>
-            <div class="valor" id="emb-novinieron">—</div>
-          </div>
-          <div class="paso">
-            <div class="dot cancelado"></div>
-            <div class="nombre-paso">Cancelados</div>
-            <div class="valor" id="emb-cancelados">—</div>
-          </div>
-        </div>
-
-        <div style="margin-top: 1.5rem">
-          <div class="ingresos-box">
-            <div class="monto" id="ingresos">$—</div>
-            <div class="sub">Ingresos estimados (UYU)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CANALES -->
-      <div class="panel">
-        <h2>📱 Canales de origen</h2>
-        <div id="canales-container">
-          <div class="canal-bar">
-            <div class="info">
-              <span>💬 WhatsApp</span>
-              <span id="canal-wa-n">—</span>
-            </div>
-            <div class="barra"><div class="fill wa" id="canal-wa-bar" style="width:0%"></div></div>
-          </div>
-          <div class="canal-bar">
-            <div class="info">
-              <span>📘 Facebook</span>
-              <span id="canal-fb-n">—</span>
-            </div>
-            <div class="barra"><div class="fill fb" id="canal-fb-bar" style="width:0%"></div></div>
-          </div>
-          <div class="canal-bar">
-            <div class="info">
-              <span>📸 Instagram</span>
-              <span id="canal-ig-n">—</span>
-            </div>
-            <div class="barra"><div class="fill ig" id="canal-ig-bar" style="width:0%"></div></div>
-          </div>
-        </div>
-
-        <div style="margin-top:2rem">
-          <div style="font-size:0.85rem; color:var(--gris); margin-bottom:0.5rem">Tasa de agendamiento</div>
-          <div style="font-size:2rem; font-weight:700; color:var(--azul)" id="tasa-agendamiento">—</div>
-          <div style="font-size:0.75rem; color:var(--gris)">del total de contactos</div>
-        </div>
-      </div>
-
+<!-- PANEL STATS -->
+<div class="panel" id="pStats">
+  <div class="stats" id="statGrid">
+    <div class="sc"><div class="sc-n" id="st">–</div><div class="sc-l">Total clientes</div></div>
+    <div class="sc"><div class="sc-n g" id="sv">–</div><div class="sc-l">Vinieron</div></div>
+    <div class="sc"><div class="sc-n b" id="sa">–</div><div class="sc-l">Agendadas</div></div>
+    <div class="sc"><div class="sc-n o" id="sl">–</div><div class="sc-l">Leads</div></div>
+    <div class="sc"><div class="sc-n" id="sc2">–</div><div class="sc-l">Con cuponera</div></div>
+    <div class="sc"><div class="sc-n g" id="si">–</div><div class="sc-l">Ingresos est.</div></div>
+  </div>
+  <div class="sec">
+    <div class="sectl">Por canal</div>
+    <div class="stats" id="canalGrid"></div>
+  </div>
+  <div class="sec" style="padding-bottom:12px">
+    <div class="sectl">Resumen</div>
+    <div class="card" style="padding:10px 14px;margin:0">
+      <div id="resumenIA" style="font-size:13px;color:#374151;line-height:1.6">Cargando análisis...</div>
     </div>
   </div>
 </div>
 
+<!-- PANEL CAMPAÑA -->
+<div class="panel" id="pCampana">
+  <div style="padding:12px 16px 0"><div class="sectl">Segmento</div></div>
+  <div style="padding:0 16px">
+    <div class="sg">
+      <div class="sgb sel" onclick="setSeg(this,'leads')"><span class="sgi">🎯</span><div class="sgn">Leads</div><div class="sgc" id="cL">–</div></div>
+      <div class="sgb" onclick="setSeg(this,'vip')"><span class="sgi">⭐</span><div class="sgn">VIP</div><div class="sgc" id="cV">–</div></div>
+      <div class="sgb" onclick="setSeg(this,'cuponera')"><span class="sgi">🎫</span><div class="sgn">Cuponeras</div><div class="sgc" id="cC">–</div></div>
+      <div class="sgb" onclick="setSeg(this,'inactivos')"><span class="sgi">😴</span><div class="sgn">Inactivos</div><div class="sgc" id="cI">–</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <label class="fl">Mensaje</label>
+    <textarea id="msgTxt" placeholder="Ej: ¡Hola! Esta semana tenemos turnos disponibles ✨ ¿Te agendamos?"></textarea>
+    <div style="font-size:12px;color:#888;margin-top:6px" id="prevCamp"></div>
+    <button class="sbtn" onclick="enviarCamp()">📤 Enviar campaña</button>
+  </div>
+</div>
+
+<!-- PANEL CONFIG -->
+<div class="panel" id="pConfig">
+  <div class="card">
+    <div class="sectl" style="margin-bottom:10px">Modo del bot</div>
+    <div class="mo sel" id="moAuto" onclick="setModo('auto')"><span class="moi">🤖</span><div><div class="moname">Automático</div><div class="modesc">Marta responde todo</div></div></div>
+    <div class="mo" id="moPausa" onclick="setModo('pausa')"><span class="moi">⏸️</span><div><div class="moname">Pausado</div><div class="modesc">Lee mensajes, no responde</div></div></div>
+    <div class="mo" id="moOff" onclick="setModo('off')"><span class="moi">🔴</span><div><div class="moname">Apagado</div><div class="modesc">Ignora todos los mensajes</div></div></div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <div class="sectl" style="margin-bottom:8px">Accesos rápidos</div>
+    <a href="/admin" style="display:block;padding:9px 0;font-size:13px;color:#2563eb;border-bottom:1px solid #f5f5f5;text-decoration:none">Panel admin completo →</a>
+    <a href="/api/stats" style="display:block;padding:9px 0;font-size:13px;color:#2563eb;text-decoration:none">Stats JSON →</a>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="bt a" id="bnC" onclick="showPanel('pClientes','bnC')"><span class="bti">👥</span>Clientes</button>
+  <button class="bt" id="bnS" onclick="showPanel('pStats','bnS')"><span class="bti">📊</span>Stats</button>
+  <button class="bt" id="bnCa" onclick="showPanel('pCampana','bnCa')"><span class="bti">📤</span>Campaña</button>
+  <button class="bt" id="bnCo" onclick="showPanel('pConfig','bnCo')"><span class="bti">⚙️</span>Config</button>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="overlay" id="mCli" onclick="if(event.target===this)closeCli()">
+  <div class="modal">
+    <div class="mhead"><span class="mtitle" id="mCliNombre">–</span><button class="mclose" onclick="closeCli()">✕</button></div>
+    <div id="mCliBody"></div>
+  </div>
+</div>
+
+<!-- MODAL MODO -->
+<div class="overlay" id="mModo" onclick="if(event.target===this)closeModeModal()">
+  <div class="modal">
+    <div class="mhead"><span class="mtitle">Modo del bot</span><button class="mclose" onclick="closeModeModal()">✕</button></div>
+    <div class="mo" onclick="setModo('auto');closeModeModal()"><span class="moi">🤖</span><div><div class="moname">Automático</div><div class="modesc">Marta responde todo</div></div></div>
+    <div class="mo" onclick="setModo('pausa');closeModeModal()"><span class="moi">⏸️</span><div><div class="moname">Pausado</div><div class="modesc">Lee mensajes, no responde — vos tomás el chat</div></div></div>
+    <div class="mo" onclick="setModo('off');closeModeModal()"><span class="moi">🔴</span><div><div class="moname">Apagado</div><div class="modesc">Ignora todos los mensajes</div></div></div>
+  </div>
+</div>
+
 <script>
-async function cargarStats() {
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("contenido").style.display = "none";
-  document.getElementById("error-container").innerHTML = "";
+let clientes=[], tab='todos', filtro='todos', seg='leads', modo='auto';
 
-  try {
-    const res = await fetch("/api/stats");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const d = await res.json();
-
-    if (d.error) throw new Error(d.error);
-
-    // Stats principales
-    document.getElementById("stat-total").textContent = d.total ?? 0;
-    document.getElementById("stat-leads").textContent = d.leads ?? 0;
-    document.getElementById("stat-agendados").textContent = d.agendados ?? 0;
-    document.getElementById("stat-vinieron").textContent = d.vinieron ?? 0;
-    document.getElementById("stat-novinieron").textContent = d.noVinieron ?? 0;
-    document.getElementById("stat-conversion").textContent = `${d.tasaConversion ?? 0}%`;
-    document.getElementById("stat-cuponera").textContent = d.conCuponera ?? 0;
-
-    // Embudo
-    document.getElementById("emb-leads").textContent = d.leads ?? 0;
-    document.getElementById("emb-agendados").textContent = d.agendados ?? 0;
-    document.getElementById("emb-vinieron").textContent = d.vinieron ?? 0;
-    document.getElementById("emb-novinieron").textContent = d.noVinieron ?? 0;
-    document.getElementById("emb-cancelados").textContent = d.cancelados ?? 0;
-
-    // Ingresos
-    const ingresos = d.ingresosEstimados ?? 0;
-    document.getElementById("ingresos").textContent = `$${ingresos.toLocaleString("es-UY")}`;
-
-    // Tasa de agendamiento
-    document.getElementById("tasa-agendamiento").textContent = `${d.tasaAgendamiento ?? 0}%`;
-
-    // Canales
-    const canal = d.porCanal || {};
-    const totalCanales = (canal.whatsapp || 0) + (canal.facebook || 0) + (canal.instagram || 0) || 1;
-
-    const wa = canal.whatsapp || 0;
-    const fb = canal.facebook || 0;
-    const ig = canal.instagram || 0;
-
-    document.getElementById("canal-wa-n").textContent = wa;
-    document.getElementById("canal-fb-n").textContent = fb;
-    document.getElementById("canal-ig-n").textContent = ig;
-
-    document.getElementById("canal-wa-bar").style.width = `${Math.round((wa / totalCanales) * 100)}%`;
-    document.getElementById("canal-fb-bar").style.width = `${Math.round((fb / totalCanales) * 100)}%`;
-    document.getElementById("canal-ig-bar").style.width = `${Math.round((ig / totalCanales) * 100)}%`;
-
-    // Última actualización
-    document.getElementById("last-update").textContent =
-      `Última actualización: ${new Date().toLocaleTimeString("es-UY")}`;
-
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("contenido").style.display = "block";
-
-  } catch (err) {
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("error-container").innerHTML = `
-      <div class="error-msg">
-        ❌ Error al cargar los datos: ${err.message}<br/>
-        <small>Verificá que el servidor esté corriendo y que Google Sheets esté configurado.</small>
-      </div>`;
-    document.getElementById("contenido").style.display = "block";
-  }
+// ─── INIT ───────────────────────────────────────────────────
+async function init(){
+  await Promise.all([loadEstado(), loadClientes(), loadStats()]);
+  updateSegCounts();
+  loadResumenIA();
 }
 
-// Cargar al inicio
-cargarStats();
+// ─── ESTADO BOT ─────────────────────────────────────────────
+async function loadEstado(){
+  try{
+    const d=await fetch('/api/control/estado').then(r=>r.json());
+    modo=d.modo; applyEstado(d);
+  }catch(e){ setStatus(false,'Sin conexión'); }
+}
 
-// Auto-refresh cada 5 minutos
-setInterval(cargarStats, 5 * 60 * 1000);
+function applyEstado(d){
+  document.getElementById('tog').checked=d.activo;
+  const lbl=document.getElementById('modeLbl');
+  lbl.textContent={auto:'Auto',pausa:'Pausa',off:'Apagado'}[d.modo]||'Auto';
+  lbl.style.background=d.activo?'#dcfce7':'#fee2e2';
+  lbl.style.color=d.activo?'#166534':'#991b1b';
+  setStatus(d.activo, d.activo?'Bot activo': d.modo==='pausa'?'Bot pausado':'Bot apagado');
+  ['Auto','Pausa','Off'].forEach(m=>{
+    const el=document.getElementById('mo'+m);
+    if(el) el.className='mo'+(d.modo===m.toLowerCase()||
+      (m==='Off'&&d.modo==='off')||
+      (m==='Auto'&&d.modo==='auto')||
+      (m==='Pausa'&&d.modo==='pausa')?' sel':'');
+  });
+}
+
+function setStatus(on,txt){
+  const d=document.getElementById('dot');
+  d.className='dot'+(on?' on':' off');
+  document.getElementById('stxt').textContent=txt;
+}
+
+async function toggleBot(){
+  const on=document.getElementById('tog').checked;
+  await setModo(on?'auto':'off');
+}
+
+async function setModo(m){
+  modo=m;
+  const d=await fetch('/api/control/modo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:m})}).then(r=>r.json());
+  applyEstado(d);
+}
+
+function openModeModal(){ document.getElementById('mModo').classList.add('open'); }
+function closeModeModal(){ document.getElementById('mModo').classList.remove('open'); }
+
+// ─── CLIENTES ───────────────────────────────────────────────
+async function loadClientes(){
+  try{
+    const raw=await fetch('/api/clientes').then(r=>r.json());
+    clientes=raw.map(enrich);
+    renderClientes();
+  }catch(e){ document.getElementById('clist').innerHTML='<div class="empty">Error cargando clientes</div>'; }
+}
+
+function enrich(c){
+  const dias=c.UltimoContacto?Math.floor((Date.now()-new Date(c.UltimoContacto))/86400000):999;
+  const ses=parseInt(c['Ses.Rest.'])||0;
+  const score=scoreOf(c,dias,ses);
+  const cat=catOf(score,c,dias);
+  return{...c,dias,score,cat};
+}
+
+function scoreOf(c,dias,ses){
+  let s=0;
+  if(c.Estado==='vino')s+=3; else if(c.Estado==='agendado')s+=2; else if(c.Estado==='lead')s+=1;
+  if(c.Cuponera==='si')s+=2;
+  if(dias<7)s+=2; else if(dias<30)s+=1;
+  if(ses>0)s+=1;
+  return Math.min(5,Math.round(s/2));
+}
+
+function catOf(score,c,dias){
+  if(score>=4)return 'vip';
+  if(c.Estado==='lead'&&score>=3)return 'hot';
+  if(c.Estado==='vino')return 'vino';
+  if(c.Estado==='lead')return 'warm';
+  return 'cold';
+}
+
+function renderClientes(){
+  let list=[...clientes];
+  if(tab==='leads')list=list.filter(c=>c.Estado==='lead');
+  else if(tab==='vip')list=list.filter(c=>c.score>=4);
+  else if(tab==='cuponera')list=list.filter(c=>c.Cuponera==='si');
+  if(filtro==='hot')list=list.filter(c=>c.cat==='hot');
+  else if(filtro==='inactivos')list=list.filter(c=>c.dias>30);
+  else if(filtro==='vino')list=list.filter(c=>c.Estado==='vino');
+  else if(filtro==='nueva')list=list.filter(c=>c.dias<7);
+  list.sort((a,b)=>b.score-a.score);
+  if(!list.length){document.getElementById('clist').innerHTML='<div class="empty">Sin clientes en esta vista</div>';return;}
+  document.getElementById('clist').innerHTML=list.map(cHTML).join('');
+}
+
+function cHTML(c){
+  const avI=['av0','av1','av2','av3','av4','av5'];
+  const avMap={vip:'av0',hot:'av1',warm:'av2',cold:'av3',nueva:'av4',vino:'av5'};
+  const av=avMap[c.cat]||'av3';
+  const ini=(c.Nombre||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+  const bdgMap={vip:'bvip VIP ⭐',hot:'bhot Hot 🔥',warm:'bwrm Tibia',cold:'bcld Fría',vino:'bvno Vino ✓'};
+  const bdg=bdgMap[c.cat]||'bcld –';
+  const [bc,bt]=bdg.split(' ').reduce((a,x,i)=>i===0?[x,'']:[a[0],a[1]+' '+x],['','']);
+  const stars=[1,2,3,4,5].map(n=>`<span class="s${n<=c.score?' on':''}" onclick="event.stopPropagation();setStar('${c.ID||c.Teléfono}',${n},this)">${n<=c.score?'★':'☆'}</span>`).join('');
+  const sub=[c.Servicio,c.dias<999?`hace ${c.dias}d`:''].filter(Boolean).join(' · ')||'Sin actividad';
+  const id=c.ID||c.Teléfono||'';
+  const nom=(c.Nombre||'').replace(/'/g,"\\'");
+  return`<div class="cc" onclick="openCli('${id}')">
+<div class="cc-top">
+  <div class="av ${av}">${ini}</div>
+  <div class="ci"><div class="cn">${c.Nombre||id||'–'}</div><div class="cs">${sub}</div></div>
+  <div class="cr"><span class="bdg ${bc}">${bt.trim()}</span><div class="stars">${stars}</div></div>
+</div>
+<div class="cbtns">
+  <button class="cb cbwa" onclick="event.stopPropagation();sendWA('${id}','${nom}')">📱 WhatsApp</button>
+  <button class="cb cbnota" onclick="event.stopPropagation();addNota('${id}')">📝 Nota</button>
+  ${c.Estado!=='agendado'?`<button class="cb cbag" onclick="event.stopPropagation()">📅 Agendar</button>`:''}
+</div></div>`;
+}
+
+async function setStar(id,n,el){
+  await fetch(`/api/clientes/${id}/score`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({score:n})});
+  const row=el.closest('.stars');
+  row.querySelectorAll('.s').forEach((s,i)=>{s.textContent=i<n?'★':'☆';s.className='s'+(i<n?' on':'');});
+}
+
+function openCli(id){
+  const c=clientes.find(x=>x.ID===id||x.Teléfono===id);
+  if(!c)return;
+  document.getElementById('mCliNombre').textContent=c.Nombre||id;
+  const avMap={vip:'av0',hot:'av1',warm:'av2',cold:'av3',vino:'av5'};
+  const av=avMap[c.cat]||'av3';
+  const ini=(c.Nombre||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+  const id2=c.ID||c.Teléfono||'';
+  const nom=(c.Nombre||'').replace(/'/g,"\\'");
+  document.getElementById('mCliBody').innerHTML=`
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+  <div class="av ${av}" style="width:46px;height:46px;font-size:15px">${ini}</div>
+  <div><div style="font-size:15px;font-weight:600">${c.Nombre||'–'}</div><div style="font-size:12px;color:#888">${c.Teléfono||''}</div></div>
+</div>
+<div>${['Estado','Canal','Servicio'].concat(c.Cuponera==='si'?['Cuponera']:[]).map(k=>{
+  let v=c[k]||'–';
+  if(k==='Cuponera')v=`✅ Sí (${c['Ses.Rest.']} sesiones restantes)`;
+  return`<div class="mrow"><span class="mk">${k}</span><span class="mv">${v}</span></div>`;
+}).join('')}
+<div class="mrow"><span class="mk">Último contacto</span><span class="mv">${c.UltimoContacto?new Date(c.UltimoContacto).toLocaleDateString('es-UY'):'–'}</span></div>
+${c.Notas?`<div class="mrow"><span class="mk">Notas</span><span class="mv" style="font-size:12px">${c.Notas.slice(0,100)}</span></div>`:''}
+</div>
+<div style="display:flex;gap:8px;margin-top:14px">
+  <button class="cb cbwa" style="flex:1;justify-content:center;padding:9px 0" onclick="sendWA('${id2}','${nom}')">📱 Enviar WhatsApp</button>
+  <button class="cb cbnota" style="flex:1;justify-content:center;padding:9px 0" onclick="addNota('${id2}')">📝 Nota</button>
+</div>`;
+  document.getElementById('mCli').classList.add('open');
+}
+function closeCli(){ document.getElementById('mCli').classList.remove('open'); }
+
+async function sendWA(id,nom){
+  const msg=prompt(`Mensaje para ${nom}:`);
+  if(!msg)return;
+  const r=await fetch(`/api/clientes/${id}/whatsapp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:msg})});
+  alert(r.ok?'✅ Mensaje enviado':'❌ Error al enviar');
+}
+
+async function addNota(id){
+  const n=prompt('Nota:');
+  if(!n)return;
+  await fetch(`/api/clientes/${id}/nota`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota:n})});
+  alert('✅ Nota guardada');
+}
+
+// ─── STATS ──────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const d=await fetch('/api/stats').then(r=>r.json());
+    document.getElementById('st').textContent=d.total||0;
+    document.getElementById('sv').textContent=d.vinieron||0;
+    document.getElementById('sa').textContent=d.agendados||0;
+    document.getElementById('sl').textContent=d.leads||0;
+    document.getElementById('sc2').textContent=d.conCuponera||0;
+    document.getElementById('si').textContent=d.ingresosEstimados?'$'+(d.ingresosEstimados/1000).toFixed(0)+'k':'$0';
+    if(d.porCanal){
+      document.getElementById('canalGrid').innerHTML=Object.entries(d.porCanal).map(([c,n])=>`<div class="sc"><div class="sc-n">${n}</div><div class="sc-l">${c}</div></div>`).join('');
+    }
+  }catch(e){}
+}
+
+async function loadResumenIA(){
+  try{
+    const d=await fetch('/api/stats').then(r=>r.json());
+    const partes=[];
+    if(d.leads>0)partes.push(`${d.leads} lead${d.leads!==1?'s':''} activo${d.leads!==1?'s':''}`);
+    if(d.agendados>0)partes.push(`${d.agendados} turno${d.agendados!==1?'s':''} agendado${d.agendados!==1?'s':''}`);
+    if(d.vinieron>0)partes.push(`${d.vinieron} cliente${d.vinieron!==1?'s':''} que vinieron`);
+    if(d.conCuponera>0)partes.push(`${d.conCuponera} con cuponera activa`);
+    const conv=d.total>0?Math.round((d.vinieron/d.total)*100):0;
+    const txt=partes.length>0
+      ?`Tenés ${partes.join(', ')}. Tasa de conversión: ${conv}%.${d.ingresosEstimados?` Ingresos estimados del mes: $${d.ingresosEstimados.toLocaleString('es-UY')} UYU.`:''}`
+      :'El CRM está vacío. Importá los datos para ver el análisis.';
+    document.getElementById('resumenIA').textContent=txt;
+  }catch(e){}
+}
+
+// ─── CAMPAÑA ────────────────────────────────────────────────
+function updateSegCounts(){
+  document.getElementById('cL').textContent=clientes.filter(c=>c.Estado==='lead').length+' contactos';
+  document.getElementById('cV').textContent=clientes.filter(c=>c.score>=4).length+' contactos';
+  document.getElementById('cC').textContent=clientes.filter(c=>c.Cuponera==='si').length+' contactos';
+  document.getElementById('cI').textContent=clientes.filter(c=>c.dias>30).length+' contactos';
+  updatePrev();
+}
+
+function setSeg(el,s){
+  document.querySelectorAll('.sgb').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); seg=s; updatePrev();
+}
+
+function updatePrev(){
+  const counts={leads:clientes.filter(c=>c.Estado==='lead').length,vip:clientes.filter(c=>c.score>=4).length,cuponera:clientes.filter(c=>c.Cuponera==='si').length,inactivos:clientes.filter(c=>c.dias>30).length};
+  const n=counts[seg]||0;
+  document.getElementById('prevCamp').textContent=`Se enviará a ${n} contacto${n!==1?'s':''}`;
+}
+
+document.getElementById('msgTxt')?.addEventListener('input',updatePrev);
+
+async function enviarCamp(){
+  const texto=document.getElementById('msgTxt').value.trim();
+  if(!texto){alert('Escribí un mensaje');return;}
+  if(!confirm(`¿Enviar este mensaje al segmento "${seg}"?`))return;
+  const r=await fetch('/api/campana',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({segmento:seg,texto})});
+  const d=await r.json();
+  alert(d.ok?`✅ Enviado a ${d.enviados} contactos`:'❌ Error: '+(d.error||''));
+}
+
+// ─── NAV ────────────────────────────────────────────────────
+function showPanel(pid,bid){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.querySelectorAll('.bt').forEach(b=>b.classList.remove('a'));
+  document.getElementById(pid).classList.add('show');
+  document.getElementById(bid).classList.add('a');
+  if(pid==='pStats')loadStats();
+}
+
+function setTab(el,t){
+  document.querySelectorAll('.segtab').forEach(x=>x.classList.remove('a'));
+  el.classList.add('a'); tab=t; renderClientes();
+}
+
+function setFiltro(el,f){
+  document.querySelectorAll('.chips .chip').forEach(x=>x.classList.remove('a'));
+  el.classList.add('a'); filtro=f; renderClientes();
+}
+
+init();
+setInterval(loadEstado,30000);
 </script>
 </body>
 </html>

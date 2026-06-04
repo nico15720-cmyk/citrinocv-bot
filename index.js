@@ -112,6 +112,95 @@ app.post("/webhook", async (req, res) => {
 });
 
 // ============================================================
+// ESTADO GLOBAL DEL BOT
+// ============================================================
+let botActivo = true;
+let botModo = "auto"; // "auto" | "pausa" | "off"
+
+// Exportar para que conversation.js pueda consultarlo
+global.getBotActivo = () => botActivo;
+global.getBotModo = () => botModo;
+
+// ============================================================
+// API DE CONTROL — Centro de control
+// ============================================================
+
+// Estado actual del bot
+app.get("/api/control/estado", (req, res) => {
+  res.json({ activo: botActivo, modo: botModo });
+});
+
+// Cambiar modo del bot
+app.post("/api/control/modo", (req, res) => {
+  const { modo } = req.body;
+  if (!["auto", "pausa", "off"].includes(modo)) {
+    return res.status(400).json({ error: "Modo inválido. Usar: auto, pausa, off" });
+  }
+  botModo = modo;
+  botActivo = modo === "auto";
+  console.log(`🎛️ Bot modo cambiado a: ${modo}`);
+  res.json({ ok: true, modo, activo: botActivo });
+});
+
+// Actualizar score manual de un cliente
+app.post("/api/clientes/:userId/score", async (req, res) => {
+  try {
+    const { actualizarNotas } = require("./bot/crm");
+    const { score } = req.body; // 1-5
+    await actualizarNotas(req.params.userId, `Score manual: ${score}/5`);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Enviar mensaje desde el panel
+app.post("/api/clientes/:userId/whatsapp", async (req, res) => {
+  try {
+    const { enviarMensaje } = require("./bot/sender");
+    await enviarMensaje(req.params.userId, req.body.texto, "whatsapp");
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Envío masivo a un segmento
+app.post("/api/campana", async (req, res) => {
+  try {
+    const { leerTodosLosClientes } = require("./bot/crm");
+    const { enviarMensaje } = require("./bot/sender");
+    const { segmento, texto } = req.body;
+    const clientes = await leerTodosLosClientes();
+
+    const filtrados = clientes.filter(c => {
+      if (segmento === "leads") return c.Estado === "lead";
+      if (segmento === "vip") return c.Score >= 4;
+      if (segmento === "cuponera") return c.Cuponera === "si";
+      if (segmento === "inactivos") {
+        const dias = c.UltimoContacto
+          ? Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000)
+          : 999;
+        return dias > 30;
+      }
+      return true;
+    });
+
+    // Enviar con delay para no saturar
+    let enviados = 0;
+    for (const c of filtrados) {
+      if (!c.ID) continue;
+      await enviarMensaje(c.ID, texto, c.Canal || "whatsapp").catch(() => {});
+      enviados++;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    res.json({ ok: true, enviados });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================
 // DASHBOARD — métricas y templates
 // ============================================================
 app.get("/api/templates", (req, res) => {
