@@ -172,6 +172,36 @@ async function enviarSeguimientoPostSesion() {
 }
 
 // ============================================================
+// ALERTA VENCIMIENTO TOKEN DE META
+// Corre todos los días a las 9:00
+// ============================================================
+async function verificarVencimientoToken() {
+  if (!OWNER) return;
+  const fechaStr = process.env.META_PAGE_TOKEN_EXPIRES;
+  if (!fechaStr) return;
+
+  const expira = new Date(fechaStr);
+  const hoy = new Date();
+  const diasRestantes = Math.ceil((expira - hoy) / (1000 * 60 * 60 * 24));
+
+  if (diasRestantes <= 2 && diasRestantes >= 0) {
+    const msg =
+      `⚠️ *URGENTE — Token de Facebook por vencer*\n\n` +
+      `El *META_PAGE_ACCESS_TOKEN* vence ${diasRestantes === 0 ? "*HOY*" : `en *${diasRestantes} día${diasRestantes === 1 ? "" : "s"}*`}.\n\n` +
+      `*Para renovarlo:*\n` +
+      `1. Andá a developers.facebook.com/tools/explorer\n` +
+      `2. Seleccioná la app y la página Citrino\n` +
+      `3. Click "Generate Access Token"\n` +
+      `4. Copiá el nuevo token\n` +
+      `5. Actualizalo en Railway → Variables → META_PAGE_ACCESS_TOKEN\n` +
+      `6. Actualizá también META_PAGE_TOKEN_EXPIRES con la nueva fecha (+60 días)\n\n` +
+      `Sin renovarlo, Messenger e Instagram dejan de funcionar.`;
+    await enviarMensaje(OWNER, msg, "whatsapp").catch(() => {});
+    console.log(`⚠️ Token META vence en ${diasRestantes} días — alerta enviada a Nico`);
+  }
+}
+
+// ============================================================
 // RESUMEN DIARIO A LAS 20HS PARA NICO
 // ============================================================
 async function enviarResumenDiario() {
@@ -269,6 +299,11 @@ function startScheduler() {
 
   // Verificación de salud cada 4 horas
   cron.schedule("0 */4 * * *", verificarSalud, {
+    timezone: "America/Montevideo",
+  });
+
+  // Alerta vencimiento token Meta — todos los días a las 9:00
+  cron.schedule("0 9 * * *", verificarVencimientoToken, {
     timezone: "America/Montevideo",
   });
 
