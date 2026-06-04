@@ -17,6 +17,7 @@ const {
   actualizarEstado,
 } = require("./crm");
 const { getDisponibilidad, formatearDisponibilidad } = require("./calendar");
+const { detectarYAplicarCambio } = require("./self-fix");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -195,6 +196,14 @@ ${clientes.slice(0, 20).map(c =>
   ).join("\n")}
 ${clientes.length > 20 ? `... y ${clientes.length - 20} más` : ""}
 `;
+
+  // ── SELF-FIX: detectar si es instrucción de cambio ──
+  const cambioAplicado = await detectarYAplicarCambio(text);
+  if (cambioAplicado) {
+    const confirmacion = `✅ *Cambio aplicado:* ${cambioAplicado}\n\nEl sistema se actualizó automáticamente. Podés ver todos los cambios en el dashboard → Config.`;
+    await enviarMensaje(ownerId, confirmacion, platform);
+    return; // no continuar con el flujo admin normal
+  }
 
   agregarAdmin("user", text);
 

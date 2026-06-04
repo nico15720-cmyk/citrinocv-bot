@@ -24,6 +24,7 @@ const {
   actualizarPerfil,
 } = require("./crm");
 const { analizarConversacion } = require("./consciousness");
+const { buildContextoDinamico } = require("./self-fix");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -423,7 +424,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 600,
-      system: contextoCliente ? `${SYSTEM_PROMPT}\n\n${contextoCliente}` : SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + buildContextoDinamico() + (contextoCliente ? `\n\n${contextoCliente}` : ""),
       messages: mensajes,
     });
     respuestaBot = response.content[0].text;

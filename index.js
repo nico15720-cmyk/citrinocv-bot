@@ -291,6 +291,16 @@ app.get("/admin", (req, res) => {
 // ============================================================
 // CLIENTE TIPO — análisis agregado de perfiles aprendidos
 // ============================================================
+// Changelog de cambios aplicados por WhatsApp
+app.get("/api/changelog", (req, res) => {
+  try {
+    const { leerChangelog } = require("./bot/self-fix");
+    res.json(leerChangelog());
+  } catch (e) {
+    res.json([]);
+  }
+});
+
 app.get("/api/cliente-tipo", async (req, res) => {
   try {
     const Anthropic = require("@anthropic-ai/sdk");
