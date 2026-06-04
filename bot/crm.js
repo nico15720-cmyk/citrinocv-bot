@@ -292,26 +292,81 @@ async function registrarCuponera(userId, sesiones) {
 }
 
 // ============================================================
-// OBTENER CLIENTES PARA REMARKETING
-// Leads sin respuesta > 48hs y sin turno agendado
+// SCORING DE CLIENTAS
+// VIP / Regular / Lead tibio / Lead frío / En riesgo
 // ============================================================
+function calcularScore(fila) {
+  let score = 0;
+  const estado = fila[COL.ESTADO] || "";
+  const cuponera = fila[COL.CUPONERA] === "si";
+  const sesRest = parseInt(fila[COL.SES_REST]) || 0;
+  const ultimoContacto = fila[COL.ULTIMO_CONT] ? new Date(fila[COL.ULTIMO_CONT]) : null;
+  const diasDesdeContacto = ultimoContacto
+    ? Math.floor((new Date() - ultimoContacto) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  // Estado
+  if (estado === "vino") score += 40;
+  else if (estado === "agendado") score += 30;
+  else if (estado === "lead") score += 5;
+  else if (estado === "cancelado") score -= 10;
+
+  // Cuponera
+  if (cuponera) score += 30;
+  if (sesRest > 0) score += sesRest * 5;
+
+  // Recencia
+  if (diasDesdeContacto <= 7) score += 20;
+  else if (diasDesdeContacto <= 30) score += 10;
+  else if (diasDesdeContacto <= 60) score += 0;
+  else score -= 10;
+
+  // Clasificar
+  let categoria;
+  if (score >= 70) categoria = "VIP 🌟";
+  else if (score >= 40) categoria = "Regular 💚";
+  else if (score >= 20) categoria = "Lead tibio 🌡️";
+  else if (estado === "lead") categoria = "Lead frío ❄️";
+  else categoria = "En riesgo ⚠️";
+
+  return { score, categoria };
+}
+
 async function getLeadsParaRemarketing() {
   const filas = await leerTodasLasFilas();
   const ahora = new Date();
-  const limite = 48 * 60 * 60 * 1000; // 48 horas en ms
+  const limite48h = 48 * 60 * 60 * 1000;
+  const limite30d = 30 * 24 * 60 * 60 * 1000;
 
   return filas.slice(1).filter((fila) => {
-    if (fila[COL.ESTADO] !== "lead") return false;
-    if (fila[COL.REMARKETING]) return false; // ya le enviamos remarketing
-
-    const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
-    return ahora - ultimoContacto > limite;
-  }).map((fila) => ({
-    userId: fila[COL.ID],
-    nombre: fila[COL.NOMBRE],
-    canal: fila[COL.CANAL],
-    servicio: fila[COL.SERVICIO],
-  }));
+    const estado = fila[COL.ESTADO];
+    // Leads sin respuesta > 48hs
+    if (estado === "lead") {
+      if (fila[COL.REMARKETING]) return false;
+      const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
+      return ahora - ultimoContacto > limite48h;
+    }
+    // Clientas que vinieron pero no volvieron en 30 días
+    if (estado === "vino") {
+      if (fila[COL.REMARKETING]) {
+        const ultimoRemark = new Date(fila[COL.REMARKETING]);
+        if (ahora - ultimoRemark < limite30d) return false;
+      }
+      const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
+      return ahora - ultimoContacto > limite30d;
+    }
+    return false;
+  }).map((fila) => {
+    const { categoria } = calcularScore(fila);
+    return {
+      userId: fila[COL.ID],
+      nombre: fila[COL.NOMBRE],
+      canal: fila[COL.CANAL],
+      servicio: fila[COL.SERVICIO],
+      estado: fila[COL.ESTADO],
+      categoria,
+    };
+  });
 }
 
 // ============================================================
@@ -513,4 +568,5 @@ module.exports = {
   obtenerPerfil,
   actualizarPerfil,
   obtenerTodosLosPerfiles,
+  calcularScore,
 };

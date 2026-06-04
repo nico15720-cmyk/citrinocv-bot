@@ -11,6 +11,7 @@ const { handleAdminMessage } = require("./bot/admin");
 const { startScheduler } = require("./bot/scheduler");
 
 const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
+const modoAdmin = new Set(); // números que activaron /admin temporalmente
 
 const app = express();
 app.use(express.json());
@@ -49,10 +50,27 @@ app.post("/webhook", async (req, res) => {
     const msg = entry.changes?.[0]?.value?.messages?.[0];
     if (!msg || msg.type !== "text") return;
 
-    // Si es el dueño → modo admin
-    if (OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
+    const texto = msg.text.body.trim();
+
+    // Comandos de modo desde cualquier número (para testing)
+    if (texto.toLowerCase() === "/admin") {
+      modoAdmin.add(msg.from);
+      const { enviarMensaje } = require("./bot/sender");
+      await enviarMensaje(msg.from, "🔑 Modo admin activado.", "whatsapp");
+      return;
+    }
+    if (texto.toLowerCase() === "/marta") {
+      modoAdmin.delete(msg.from);
+      const { enviarMensaje } = require("./bot/sender");
+      await enviarMensaje(msg.from, "🌿 Modo Marta activado.", "whatsapp");
+      return;
+    }
+
+    // Si es el dueño O está en modo admin → modo admin
+    const esAdmin = (OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from);
+    if (esAdmin) {
       await handleAdminMessage({
-        text: msg.text.body,
+        text: texto,
         platform: "whatsapp",
       });
       return;
@@ -60,7 +78,7 @@ app.post("/webhook", async (req, res) => {
 
     await handleIncomingMessage({
       userId: msg.from,
-      text: msg.text.body,
+      text: texto,
       platform: "whatsapp",
       messageId: msg.id,
     });

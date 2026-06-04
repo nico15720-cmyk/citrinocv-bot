@@ -5,15 +5,21 @@
 // ============================================================
 
 const cron = require("node-cron");
-const { enviarMensaje, enviarTemplateWhatsApp } = require("./sender");
+const Anthropic = require("@anthropic-ai/sdk");
+const { enviarMensaje } = require("./sender");
 const {
   getClientesConTurnoManana,
   getLeadsParaRemarketing,
   getClientesParaSeguimiento,
   registrarRemarketing,
   actualizarEstado,
+  getStats,
+  leerTodosLosClientes,
 } = require("./crm");
-const { cancelarTurno } = require("./calendar");
+const { getDisponibilidad, formatearDisponibilidad } = require("./calendar");
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const OWNER = process.env.OWNER_WHATSAPP;
 
 // ============================================================
 // MENSAJES
@@ -32,10 +38,15 @@ const MENSAJES = {
     `¿Confirmás que venís? Respondé *SÍ* para confirmar o *NO* si necesitás cancelar/reagendar.`,
 
   remarketingLead: (nombre, servicio) =>
-    `¡Hola ${nombre}! 🌿 Te escribimos de Citrino.\n\n` +
+    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
     `Vimos que consultaste sobre ${servicio || "nuestros masajes"} y queríamos saber si pudimos ayudarte.\n\n` +
     `Si todavía te interesa agendar, tenemos buenos horarios disponibles esta semana ✨\n` +
     `¿Te cuento más?`,
+
+  remarketingClientaVino: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 ¿Cómo andás?\n\n` +
+    `Hace un tiempo que no te vemos por Citrino y te extrañamos 💛\n\n` +
+    `Si necesitás un espacio para vos, tenemos turnos disponibles. ¿Agendamos?`,
 
   seguimientoPostSesion: (nombre) =>
     `¡Hola ${nombre}! 🌿 ¿Cómo te quedaste después de tu sesión en Citrino?\n\n` +
@@ -105,12 +116,18 @@ async function enviarRemarketing() {
 
   for (const lead of leads) {
     try {
-      const nombre = lead.nombre || "amig@";
-      const mensaje = MENSAJES.remarketingLead(nombre, lead.servicio);
+      const nombre = lead.nombre || "";
+      let mensaje;
 
-      await enviarMensaje(lead.userId, mensaje, lead.canal);
+      if (lead.estado === "vino") {
+        mensaje = MENSAJES.remarketingClientaVino(nombre);
+      } else {
+        mensaje = MENSAJES.remarketingLead(nombre, lead.servicio);
+      }
+
+      await enviarMensaje(lead.userId, mensaje, lead.canal || "whatsapp");
       await registrarRemarketing(lead.userId);
-      console.log(`✅ Remarketing enviado a ${lead.userId} (${nombre})`);
+      console.log(`✅ Remarketing enviado a ${lead.userId} (${nombre}) [${lead.categoria}]`);
     } catch (err) {
       console.error(`❌ Error en remarketing a ${lead.userId}:`, err.message);
     }
@@ -153,6 +170,73 @@ async function enviarSeguimientoPostSesion() {
 }
 
 // ============================================================
+// RESUMEN DIARIO A LAS 20HS PARA NICO
+// ============================================================
+async function enviarResumenDiario() {
+  if (!OWNER) return;
+  console.log("📊 Enviando resumen diario a Nico...");
+
+  try {
+    const [stats, clientes, disponibilidad] = await Promise.all([
+      getStats(),
+      leerTodosLosClientes(),
+      getDisponibilidad(),
+    ]);
+
+    const hoy = new Date();
+    const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
+    const mananaStr = manana.toLocaleDateString("es-UY", {
+      weekday: "long", day: "numeric", month: "long",
+      timeZone: "America/Montevideo"
+    });
+
+    // Turno de mañana
+    const turnosManana = clientes.filter(c => {
+      if (!c.FechaTurno || c.Estado !== "agendado") return false;
+      const f = new Date(c.FechaTurno);
+      return f.toDateString() === manana.toDateString();
+    });
+
+    // Clientas que vinieron hoy
+    const inicioHoy = new Date(hoy);
+    inicioHoy.setHours(0, 0, 0, 0);
+    const vinieronHoy = clientes.filter(c => {
+      if (c.Estado !== "vino") return false;
+      const f = new Date(c.UltimoContacto);
+      return f >= inicioHoy;
+    });
+
+    // Nuevos leads hoy
+    const leadsHoy = clientes.filter(c => {
+      if (c.Estado !== "lead") return false;
+      const f = new Date(c.FechaAlta);
+      return f >= inicioHoy;
+    });
+
+    const disponibilidadManana = formatearDisponibilidad(
+      disponibilidad.filter(s => {
+        const f = new Date(s.fecha + "T12:00:00");
+        return f.toDateString() === manana.toDateString();
+      })
+    );
+
+    let resumen = `📊 *Resumen de hoy — ${hoy.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" })}*\n\n`;
+
+    resumen += `👥 *Clientas que vinieron hoy:* ${vinieronHoy.length > 0 ? vinieronHoy.map(c => c.Nombre || c.ID).join(", ") : "ninguna registrada"}\n\n`;
+    resumen += `🆕 *Leads nuevos hoy:* ${leadsHoy.length > 0 ? leadsHoy.map(c => c.Nombre || c.ID).join(", ") : "ninguno"}\n\n`;
+    resumen += `📅 *Turnos ${mananaStr}:*\n${turnosManana.length > 0 ? turnosManana.map(c => `• ${c.Nombre || c.ID} — ${new Date(c.FechaTurno).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })} (${c.Servicio || "sin servicio"})`).join("\n") : "ninguno agendado"}\n\n`;
+    resumen += `📈 *Total CRM:* ${stats.total} clientas | ${stats.agendados} agendadas | ${stats.leads} leads\n\n`;
+    resumen += `💰 *Ingresos estimados mes:* $${stats.ingresosEstimados?.toLocaleString("es-UY") || 0} UYU\n\n`;
+    resumen += `_Respondeme con lo que pasó hoy y lo guardo en el CRM 📝_`;
+
+    await enviarMensaje(OWNER, resumen, "whatsapp");
+    console.log("✅ Resumen diario enviado a Nico");
+  } catch (err) {
+    console.error("❌ Error enviando resumen diario:", err.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
@@ -171,7 +255,12 @@ function startScheduler() {
     timezone: "America/Montevideo",
   });
 
-  console.log("🗓️ Schedulers iniciados: recordatorios (c/hora), remarketing (L/X/V 10:00), seguimiento (11:00)");
+  // Resumen diario para Nico a las 20:00
+  cron.schedule("0 20 * * *", enviarResumenDiario, {
+    timezone: "America/Montevideo",
+  });
+
+  console.log("🗓️ Schedulers iniciados: recordatorios (c/hora), remarketing (L/X/V 10:00), seguimiento (11:00), resumen diario (20:00)");
 }
 
 // ============================================================

@@ -204,23 +204,38 @@ ${clientes.length > 20 ? `... y ${clientes.length - 20} más` : ""}
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
       system: `Sos el asistente administrativo interno de Citrino. Solo hablás con Nico, el dueño.
-Sos directo, conciso y útil. Usás "vos". No sos el bot de clientas — sos el panel de control privado.
+Sos directo, conciso y útil. Usás "vos". Sos el panel de control privado del negocio.
 
-Tenés acceso a todos los datos del negocio en tiempo real.
+Procesás TODO lo que Nico te manda en lenguaje natural: notas del día, observaciones de clientas, lo que pasó en las sesiones.
+Cuando Nico te mande un texto libre → extraés la info y ejecutás las acciones automáticamente.
+Podés ejecutar MÚLTIPLES acciones poniendo varios bloques seguidos.
 
-Cuando Nico te pida hacer una acción (marcar asistencia, agregar nota, registrar cuponera, cambiar estado), respondé con una acción JSON al final:
+Acciones disponibles:
 <admin_accion>{"tipo":"marcar_asistencia","nombre":"Ana","vino":true}</admin_accion>
-<admin_accion>{"tipo":"agregar_nota","nombre":"María","nota":"prefiere masajes de mañana"}</admin_accion>
+<admin_accion>{"tipo":"agregar_nota","nombre":"María","nota":"le dolía la zona lumbar, quedó muy conforme"}</admin_accion>
 <admin_accion>{"tipo":"registrar_cuponera","nombre":"Laura","sesiones":6}</admin_accion>
 <admin_accion>{"tipo":"cambiar_estado","nombre":"Julia","estado":"vino"}</admin_accion>
 
+Ejemplos de cómo procesar texto libre de Nico:
+- "Alejandra vino hoy, le dolía la zona lumbar, quedó muy conforme, próxima sesión en 15 días" → marcar_asistencia + agregar_nota
+- "Laura compró cuponera de 6 sesiones" → registrar_cuponera
+- "Sofía canceló su turno" → cambiar_estado cancelado
+
+Clasificación de clientas:
+- VIP 🌟: viene seguido, cuponera activa
+- Regular 💚: viene cada 2-4 semanas
+- Lead tibio 🌡️: consultó, tiene potencial
+- Lead frío ❄️: sin respuesta +48hs
+- En riesgo ⚠️: vino pero no volvió en +30 días
+
 ${resumenNegocio}
 
-Respondé siempre en base a los datos reales de arriba. Si no tenés el dato, decilo.`,
+Respondé siempre en base a los datos reales. Si no tenés el dato, decilo.`,
       messages: historialAdmin.map(m => ({ role: m.role, content: m.content })),
     });
 
     const textoRespuesta = response.content[0].text;
+    console.log(`🔑 [ADMIN] Respuesta: ${textoRespuesta.slice(0, 100)}...`);
 
     // Detectar y ejecutar acción admin si existe
     const accionMatch = textoRespuesta.match(/<admin_accion>([\s\S]*?)<\/admin_accion>/);
