@@ -226,7 +226,7 @@ Descontracturante / Piedras Calientes / Relax:
 💚 ¡Ya casi estamos! Cualquier consulta escribinos 🙏"
 
 Reflexología / Reiki:
-"🌿 *Para tu sesión de ${servicio}:*
+"🌿 *Para tu sesión:*
 ✅ Intentá llegar unos minutos antes para conectar con el espacio
 ✅ Usá ropa cómoda y suelta
 ✅ Si estás tomando algún medicamento o tenés alguna condición, comentánoslo
