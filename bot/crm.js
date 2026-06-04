@@ -25,6 +25,7 @@ const COL = {
   NOTAS:        11,  // L: Notas
   ULTIMO_CONT:  12,  // M: Último contacto (timestamp)
   REMARKETING:  13,  // N: Fecha de último remarketing enviado
+  PERFIL:       14,  // O: Perfil JSON del cliente (aprendizaje)
 };
 
 // ============================================================
@@ -50,7 +51,7 @@ async function leerTodasLasFilas() {
   const sheets = await getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:N`,
+    range: `${SHEET_NAME}!A:O`,
   });
   return res.data.values || [];
 }
@@ -77,20 +78,20 @@ async function inicializarSheet() {
   const sheets = await getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A1:N1`,
+    range: `${SHEET_NAME}!A1:O1`,
   });
 
   const header = res.data.values?.[0];
   if (!header || header[0] !== "ID") {
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A1:N1`,
+      range: `${SHEET_NAME}!A1:O1`,
       valueInputOption: "RAW",
       resource: {
         values: [[
           "ID", "Nombre", "Teléfono", "Canal", "Servicio", "Estado",
           "Cuponera", "Ses. Rest.", "Fecha Alta", "Fecha Turno",
-          "Event ID", "Notas", "Último Contacto", "Remarketing"
+          "Event ID", "Notas", "Último Contacto", "Remarketing", "Perfil"
         ]],
       },
     });
@@ -363,6 +364,68 @@ async function getClientesConTurnoManana() {
 }
 
 // ============================================================
+// PERFIL DE CLIENTE — aprendizaje automático
+// ============================================================
+async function obtenerPerfil(userId) {
+  const cliente = await buscarCliente(userId);
+  if (!cliente || !cliente.datos[COL.PERFIL]) return {};
+  try {
+    return JSON.parse(cliente.datos[COL.PERFIL]);
+  } catch {
+    return {};
+  }
+}
+
+async function actualizarPerfil(userId, nuevosDatos) {
+  const cliente = await buscarCliente(userId);
+  if (!cliente) return;
+
+  const perfilActual = await obtenerPerfil(userId);
+
+  // Merge inteligente: arrays se concatenan sin duplicar, strings se reemplazan
+  const perfilNuevo = { ...perfilActual };
+  for (const [key, val] of Object.entries(nuevosDatos)) {
+    if (!val || val === "" || (Array.isArray(val) && val.length === 0)) continue;
+    if (Array.isArray(val) && Array.isArray(perfilActual[key])) {
+      // Unir sin duplicados
+      perfilNuevo[key] = [...new Set([...perfilActual[key], ...val])];
+    } else {
+      perfilNuevo[key] = val;
+    }
+  }
+  perfilNuevo.ultima_actualizacion = new Date().toISOString();
+
+  const sheets = await getSheets();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${SHEET_NAME}!O${cliente.rowIndex}`,
+    valueInputOption: "RAW",
+    resource: { values: [[JSON.stringify(perfilNuevo)]] },
+  });
+
+  return perfilNuevo;
+}
+
+// Devuelve todos los perfiles para análisis agregado
+async function obtenerTodosLosPerfiles() {
+  const filas = await leerTodasLasFilas();
+  return filas.slice(1)
+    .filter(f => f[COL.PERFIL])
+    .map(f => {
+      try {
+        return {
+          nombre: f[COL.NOMBRE],
+          estado: f[COL.ESTADO],
+          canal: f[COL.CANAL],
+          servicio: f[COL.SERVICIO],
+          perfil: JSON.parse(f[COL.PERFIL]),
+        };
+      } catch { return null; }
+    })
+    .filter(Boolean);
+}
+
+// ============================================================
 // REGISTRAR ENVÍO DE REMARKETING
 // ============================================================
 async function registrarRemarketing(userId) {
@@ -447,4 +510,7 @@ module.exports = {
   getClientesConTurnoManana,
   registrarRemarketing,
   getStats,
+  obtenerPerfil,
+  actualizarPerfil,
+  obtenerTodosLosPerfiles,
 };

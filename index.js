@@ -7,7 +7,10 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const { handleIncomingMessage } = require("./bot/conversation");
+const { handleAdminMessage } = require("./bot/admin");
 const { startScheduler } = require("./bot/scheduler");
+
+const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
 
 const app = express();
 app.use(express.json());
@@ -42,6 +45,16 @@ app.post("/webhook", async (req, res) => {
   if (body.object === "whatsapp_business_account") {
     const msg = entry.changes?.[0]?.value?.messages?.[0];
     if (!msg || msg.type !== "text") return;
+
+    // Si es el dueño → modo admin
+    if (OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
+      await handleAdminMessage({
+        text: msg.text.body,
+        platform: "whatsapp",
+      });
+      return;
+    }
+
     await handleIncomingMessage({
       userId: msg.from,
       text: msg.text.body,
@@ -159,6 +172,48 @@ app.post("/api/clientes/:userId/mensaje", async (req, res) => {
 
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+// ============================================================
+// CLIENTE TIPO — análisis agregado de perfiles aprendidos
+// ============================================================
+app.get("/api/cliente-tipo", async (req, res) => {
+  try {
+    const Anthropic = require("@anthropic-ai/sdk");
+    const { obtenerTodosLosPerfiles } = require("./bot/crm");
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const perfiles = await obtenerTodosLosPerfiles();
+    if (perfiles.length === 0) {
+      return res.json({ mensaje: "Todavía no hay suficientes perfiles para analizar.", perfiles: [] });
+    }
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 800,
+      system: `Sos una analista de marketing para Citrino, un spa de masajes en Montevideo, Uruguay.
+Analizá los perfiles de clientes y generá un resumen útil y accionable para el negocio.`,
+      messages: [{
+        role: "user",
+        content: `Acá están los perfiles de ${perfiles.length} clientes:\n\n${JSON.stringify(perfiles, null, 2)}\n\nGenerá:
+1. Perfil del "cliente tipo" de Citrino (quién es, qué busca, cuándo viene)
+2. Horarios más demandados
+3. Servicios más populares
+4. Cómo comunicarse mejor con estos clientes
+5. Oportunidades de venta (qué más podrían querer)
+
+Usá un tono práctico y directo, como si le hablaras al dueño del negocio.`,
+      }],
+    });
+
+    res.json({
+      perfiles_analizados: perfiles.length,
+      analisis: response.content[0].text,
+      perfiles_raw: perfiles,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ============================================================

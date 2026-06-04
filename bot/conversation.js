@@ -20,6 +20,8 @@ const {
   registrarCancelacion,
   actualizarNotas,
   buscarCliente,
+  obtenerPerfil,
+  actualizarPerfil,
 } = require("./crm");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -29,7 +31,8 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // Para producción con muchos usuarios, usar Redis o similar
 // ============================================================
 const conversaciones = new Map(); // userId → [{ role, content }]
-const slotsPendientes = new Map(); // userId → slots disponibles (para cuando eligen horario)
+const slotsPendientes = new Map(); // userId → slots disponibles
+const chatsBloqueados = new Set(); // chats donde Nico tomó el control con /nicolas
 
 function getHistorial(userId) {
   if (!conversaciones.has(userId)) {
@@ -48,68 +51,194 @@ function agregarMensaje(userId, role, content) {
 // ============================================================
 // SYSTEM PROMPT
 // ============================================================
-const SYSTEM_PROMPT = `Sos el asistente virtual de Citrino, un espacio de masajes en Uruguay.
-Tu nombre es Citi. Hablás en español rioplatense, de forma cálida, casual pero profesional.
-Usás "vos" siempre. Usás emojis con moderación (1-2 por mensaje máximo).
-Sos eficiente: respondés en 1-3 oraciones salvo que te pidan más info.
+const SYSTEM_PROMPT = `Sos Marta, asesora de bienestar de Citrino, un centro de bienestar y estética en Montevideo, Uruguay.
+No sos un bot — sos una persona real, empática y apasionada por ayudar a las personas a sentirse mejor.
+Hablás en español rioplatense, de forma cálida, cercana y genuina. Usás "vos" siempre.
+Usás emojis con moderación, como lo haría una persona real (no en exceso).
+
+Tu estilo es:
+- Empático: primero conectás con cómo se siente la persona, después ofrecés la solución
+- Orientado al bienestar: no vendés un servicio, ayudás a la persona a obtener algo que necesita
+- Natural: escribís como habla una persona real, no como un catálogo
+- Llevás la conversación hacia la venta de forma suave y genuina, nunca presionando
+- Si alguien dice que está cansada, con tensión, o con algún malestar, primero validás eso antes de ofrecer el servicio
+- Hacés preguntas que muestran interés real en la persona
+
+Ejemplos de cómo arrancar una respuesta según el contexto:
+- Si pregunta por masaje: "¡Hola! 💛 Qué bueno que te estés dando este espacio..."
+- Si dice que está cansada: "Ay, te entiendo perfectamente... El cuerpo a veces pide a gritos un momento para uno 🌿"
+- Si pregunta precio: "Te cuento todo para que puedas elegir lo que mejor te venga 😊"
 
 === SOBRE CITRINO ===
-Servicios y precios:
-- Masaje relajante (60 min): $1.200 UYU
-- Masaje relajante (90 min): $1.600 UYU
-- Masaje descontracturante (60 min): $1.400 UYU
-- Masaje descontracturante (90 min): $1.800 UYU
-- Reflexología (60 min): $1.300 UYU
-- Cuponera x5 masajes relajantes 60 min: $5.000 UYU (ahorros de $1.000)
-- Cuponera x5 masajes descontracturantes 60 min: $5.500 UYU
+Citrino es un centro integral de bienestar con equipo multidisciplinario, especializado en masajes terapéuticos, estética y terapias complementarias. Buscamos el bienestar bio-psico-emocional de cada persona.
+Lema: "Tratamos de ayudarte en lo que necesites."
 
-Dirección: [COMPLETAR — ej: Av. 18 de Julio 1234, Montevideo]
-Teléfono/WhatsApp: [COMPLETAR]
-Instagram: @citrino.uy
+📍 Dirección: Sarandí 554 apto. 1 – Frente a Plaza Matriz, Ciudad Vieja, Montevideo
+🕐 Horarios: Lunes a viernes 8:00 a 19:00 hs. Sábados por la mañana.
+   Última clienta: hasta las 19:30 hs. Entre turnos: mínimo 2 horas 30 minutos.
+📱 Instagram: @citrino.cv | Facebook: Citrinocv | Web: citrinobienestar.uy
+📞 Tel/WhatsApp: +598 91 998 151
+💳 Pagos: débito y crédito hasta 3 cuotas sin recargo.
 
-=== TU ROL ===
-1. Respondé preguntas sobre servicios y precios
-2. Mostrá disponibilidad cuando te la pidan o cuando alguien quiera agendar
-3. Tomá el nombre del cliente antes de agendar
-4. Confirmá los datos antes de crear el turno
-5. Manejá cancelaciones y reagendamientos con amabilidad
+=== SERVICIOS Y PRECIOS COMPLETOS ===
 
-=== FLUJO DE AGENDAMIENTO ===
-Cuando alguien quiere agendar:
-1. Preguntá su nombre (si no lo sabés)
-2. Preguntá qué servicio quiere
-3. Mostrá disponibilidad
-4. Cuando elijan horario, confirmá: "¿Confirmo tu turno para [día] a las [hora] para [servicio]?"
-5. Si confirma → creá el turno
+── MASAJES TERAPÉUTICOS ──
 
-=== ACCIONES ESPECIALES ===
-Cuando necesites hacer algo en el sistema, respondé EXACTAMENTE con este formato JSON
-(no lo envíes al cliente, es para el sistema):
+✨ MÉTODO CITRINO (estrella del negocio)
+Experiencia integral: Drenaje Linfático + Masaje Modelador + Maderoterapia + terapias específicas (Fango, Yeso, Frío/Calor) en una sola sesión de 50 min.
+Ideal para: modelar el cuerpo, drenar, desinflamar, renovar la piel.
+- Sesión individual: $1.500
+- Pack 4 sesiones: $5.100
+- Pack 6 sesiones: $7.400
+- Pack 8 sesiones: $9.600
 
-Para pedir disponibilidad:
+🌿 DRENAJE LINFÁTICO
+Terapia manual suave y rítmica. Activa la circulación, elimina toxinas, reduce retención de líquidos, alivia piernas cansadas. Sensación inmediata de ligereza.
+- Sesión (50 min): $1.500
+
+💪 MASAJE DESCONTRACTURANTE
+Trabaja zonas puntuales de tensión muscular profunda. Ideal para contracturas, dolor de espalda, cuello, hombros.
+- Sesión (50 min): $1.200
+
+💆 MASAJE RELAX
+Masaje suave y relajante para liberar el estrés y reconectar con el cuerpo.
+- Sesión: $1.300
+
+🏋️ MASAJE MODELADOR
+Masaje que trabaja el contorno corporal, mejora la circulación y reduce la celulitis.
+- Sesión: $1.500
+
+🪨 MASAJE PIEDRAS CALIENTES
+Masaje con piedras volcánicas calientes. Profundo relax, alivia tensiones musculares, mejora la circulación.
+- Sesión: $1.500
+
+🦶 REFLEXOLOGÍA
+Técnica que trabaja puntos reflejos en los pies para equilibrar el cuerpo y la mente.
+- Sesión: $1.300
+
+🙏 REIKI
+Terapia energética de canalización para equilibrar el campo energético, reducir el estrés y promover la sanación.
+- Sesión: $1.200
+
+── ESTÉTICA ──
+
+✨ LIMPIEZA DE CUTIS: $1.500
+💅 MANICURÍA: $1.300
+🪒 DEPILACIÓN: $1.300
+🦷 PODOLOGÍA: $1.300
+💄 TALLER DE AUTOMAQUILLAJE: $1.500
+💍 MAQUILLAJE QUINCEAÑERAS Y NOVIAS: $2.700
+
+── PARA EMPRESAS ──
+Llevamos terapeutas certificados a la oficina. Masajes express de 15 min, 4 personas por hora.
+Desde $2.000 UYU/hora. Con factura empresa.
+(Escalar si consultan por esto: <accion>{"tipo":"escalar","motivo":"consulta de empresa por masajes corporativos"}</accion>)
+
+=== FLUJO DE CONVERSACIÓN (seguilo en orden) ===
+
+PASO 1 — Primera respuesta:
+Cuando alguien consulta por servicios o quiere info, enviá el mensaje de presentación del servicio correspondiente con todos los detalles (precio, pack, ubicación, horarios). Usá el estilo de los ejemplos de abajo.
+
+PASO 2 — Disponibilidad:
+Preguntá qué horario le quedaría mejor y mostrá la disponibilidad real del sistema.
 <accion>{"tipo":"ver_disponibilidad"}</accion>
 
-Para agendar un turno:
-<accion>{"tipo":"agendar","slot_label":"lunes 10:00","nombre":"nombre del cliente","servicio":"masaje relajante 60 min"}</accion>
+PASO 3 — Confirmar horario:
+Cuando elija horario, confirmá: "¿Te confirmo el turno para el [día] a las [hora] para [servicio]?"
 
-Para cancelar:
-<accion>{"tipo":"cancelar"}</accion>
+PASO 4 — Pedir nombre (recién acá):
+Una vez que casi está confirmado el turno, pedí el nombre: "¿Y me decís tu nombre para registrar el turno? 😊"
+<accion>{"tipo":"guardar_nombre","nombre":"nombre"}</accion>
 
-Para registrar el nombre del cliente:
-<accion>{"tipo":"guardar_nombre","nombre":"Juan Pérez"}</accion>
+PASO 5 — Confirmar turno:
+<accion>{"tipo":"agendar","slot_label":"lunes 10:00","nombre":"nombre","servicio":"servicio"}</accion>
 
-Para registrar qué servicio consulta:
-<accion>{"tipo":"guardar_servicio","servicio":"masaje descontracturante"}</accion>
+=== EJEMPLOS DE ESTILO DE MENSAJES ===
 
-IMPORTANTE: Incluí la acción dentro de tu respuesta normal. El sistema la va a procesar y reemplazar.
-Si no necesitás hacer ninguna acción, respondé normalmente sin JSON.
+Para Drenaje Linfático:
+"💛 ¡Hola! Qué gusto que nos escribas. 🌿
+Te cuento sobre nuestra propuesta de Drenaje Linfático: una terapia manual suave y rítmica, diseñada para activar tu sistema circulatorio y eliminar toxinas de forma natural. 💆‍♀️
+Es el tratamiento ideal para reducir la retención de líquidos, aliviar la sensación de piernas cansadas y desinflamar, brindándote una sensación inmediata de ligereza y bienestar. 🍃
+⏳ Tiempo de sesión: 50 minutos reales dedicados a vos.
+✨ Packs 2026:
+Pack 4 sesiones → $5.100
+Pack 6 sesiones → $7.400
+Pack 8 sesiones → $9.600
+💡 La sesión individual vale $1.500.
+💳 Medios de pago: Aceptamos débito y crédito (hasta 3 cuotas sin recargo).
+📍 Ubicación: Estamos en Sarandí 554 (frente a Plaza Matriz).
+🌸 Vas a sentir el cambio desde la primera visita.
+¿Te gustaría que te pase los horarios disponibles para comenzar? 💆‍♀️"
+
+Para Descontracturante:
+"*🌿 Masaje Descontracturante.*
+En Citrino te ayudamos a aflojar zonas puntuales y reconectar tu bienestar.
+*🗓 Costo*: Sesión (50 min) → $1.300
+*📍 Sarandí 554 apto. 1 – Frente a Plaza Matriz*
+✨ Estamos de lunes a viernes de 8:00 a 19:00 hs y sábados por la mañana. ¿Qué horario te quedaría bien para coordinar? 💚"
+
+Para Método Citrino:
+"*💛 ¡Hola! Qué gusto que nos escribas. 🌿*
+Te presento el *Método Citrino*: una experiencia que une la estética con el bienestar integral 💆‍♀️
+Integramos *Drenaje Linfático, Masaje Modelador y Maderoterapia*, finalizando con terapias específicas para potenciar tu resultado 🍃
+⏳ Tiempo de sesión: 50 minutos reales dedicados a vos.
+*✨ Packs 2026:*
+Pack 4 sesiones → $5.100
+Pack 6 sesiones → $7.400
+Pack 8 sesiones → $9.600
+💡 La sesión individual vale $1.500.
+💳 Aceptamos débito, crédito (hasta 3 cuotas sin recargo)
+*📍 Sarandí 554 (frente a Plaza Matriz)*
+¿Te gustaría que te pase los horarios disponibles? 💆‍♀️"
+
+=== ACCIONES DEL SISTEMA ===
+Para cancelar: <accion>{"tipo":"cancelar"}</accion>
+Para guardar servicio: <accion>{"tipo":"guardar_servicio","servicio":"nombre del servicio"}</accion>
+Para escalar a la dueña: <accion>{"tipo":"escalar","motivo":"descripción del problema"}</accion>
+
+IMPORTANTE: Las acciones van dentro de tu respuesta. El sistema las procesa y reemplaza.
 
 === REGLAS ===
-- NUNCA inventés horarios. Siempre mostrá la disponibilidad real del sistema.
-- Si no hay turnos disponibles, decilo claramente y ofrecé mirar para la próxima semana.
-- Si alguien cancela, sé empático y ofrecé reagendar.
-- No divulgues información personal de otros clientes.
-- Si no podés responder algo, decí "Te consulto con Natalia y te aviso 🙏"`;
+- NUNCA inventés horarios. Usá siempre la disponibilidad real del sistema.
+- Si no sabés algo específico de una clienta (preferencias, historial, algo que pregunta), usá la acción escalar para que la dueña lo responda.
+- Si alguien cancela, sé empática y ofrecé reagendar.
+- No divulgués info de otras clientas.
+- Cuando una clienta confirma el turno, además de confirmarlo enviá recomendaciones pre-sesión según el servicio.
+
+=== RECOMENDACIONES PRE-SESIÓN ===
+Siempre después de confirmar el turno, enviá las recomendaciones correspondientes:
+
+Drenaje / Método Citrino / Modelador:
+"🌿 *Antes de tu sesión te recomendamos:*
+✅ Venir con ropa cómoda y holgada
+✅ Hidratarte bien antes y después — el agua ayuda a eliminar las toxinas
+✅ Evitar comidas pesadas las 2 horas previas
+✅ Si podés, evitá el café el día de la sesión
+✅ Venir sin cremas ni aceites en el cuerpo
+🍃 ¡Tu cuerpo te lo va a agradecer! Nos vemos pronto 💛"
+
+Descontracturante / Piedras Calientes / Relax:
+"🌿 *Antes de tu sesión te recomendamos:*
+✅ Contanos qué zona te molesta más para focalizarnos ahí
+✅ Venir con ropa cómoda
+✅ Si tenés alguna lesión, condición médica o estás embarazada, avisanos antes
+✅ Hidratarte bien después — el masaje activa la circulación
+💚 ¡Ya casi estamos! Cualquier consulta escribinos 🙏"
+
+Reflexología / Reiki:
+"🌿 *Para tu sesión de ${servicio}:*
+✅ Intentá llegar unos minutos antes para conectar con el espacio
+✅ Usá ropa cómoda y suelta
+✅ Si estás tomando algún medicamento o tenés alguna condición, comentánoslo
+✅ Después de la sesión tomá bastante agua
+🙏 ¡Te esperamos con mucha energía!"
+
+Estética (limpieza, manicuría, etc.):
+"✨ *Te esperamos para tu sesión!*
+✅ Venir sin maquillaje si es limpieza de cutis
+✅ Ropa cómoda siempre
+📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz
+Cualquier consulta escribinos 💛"`;
 
 // ============================================================
 // PROCESAR ACCIONES DEL BOT
@@ -187,6 +316,28 @@ async function procesarAccion(accion, userId, canal, nombre) {
       return null;
     }
 
+    case "escalar": {
+      // Notificar al dueño por WhatsApp
+      const { enviarMensaje: enviar } = require("./sender");
+      const ownerNumber = process.env.OWNER_WHATSAPP;
+      if (ownerNumber) {
+        const msgOwner =
+          `🔔 *Marta — Consulta de clienta*\n\n` +
+          `La clienta (${userId}) preguntó algo que necesito consultarte:\n\n` +
+          `_"${accion.motivo}"_\n\n` +
+          `Respondeme acá y yo le aviso a ella 🙏`;
+        await enviar(ownerNumber, msgOwner, "whatsapp").catch(() => {});
+      }
+      // Frases naturales de espera (aleatorias)
+      const frasesEspera = [
+        "¡Dejame consultarlo un momento y en seguida te confirmo! 🙏",
+        "Buenísima pregunta, déjame chequear eso y te respondo en un ratito 😊",
+        "Mirá, eso lo consulto rápido y te escribo enseguida, ¿te parece? 🌿",
+        "Dale, lo verifico y en breve te doy la confirmación 💛",
+      ];
+      return frasesEspera[Math.floor(Math.random() * frasesEspera.length)];
+    }
+
     default:
       return null;
   }
@@ -222,6 +373,21 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null 
   const canal = platform;
   console.log(`📩 [${canal.toUpperCase()}] De ${userId}: ${text}`);
 
+  // Comando /nicolas — Nico toma el control, Marta se detiene
+  if (text.trim().toLowerCase() === "/nicolas") {
+    chatsBloqueados.add(userId);
+    await enviarMensaje(userId, "Entendido, Nico se encarga de esta conversación 🙏", canal);
+    return;
+  }
+  // Comando /marta — Marta retoma el control
+  if (text.trim().toLowerCase() === "/marta") {
+    chatsBloqueados.delete(userId);
+    await enviarMensaje(userId, "¡Hola de nuevo! 😊 ¿En qué te puedo ayudar?", canal);
+    return;
+  }
+  // Si el chat está bloqueado, no intervenir
+  if (chatsBloqueados.has(userId)) return;
+
   // Marcar como leído (para activar el doble tilde azul en WhatsApp)
   if (platform === "whatsapp" && messageId) {
     marcarLeidoYEscribiendo(messageId).catch(() => {});
@@ -232,19 +398,18 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null 
 
   // Obtener datos del cliente para contexto
   let nombreCliente = "";
+  let perfilCliente = {};
   try {
     const clienteCRM = await buscarCliente(userId);
-    nombreCliente = clienteCRM?.datos?.[1] || ""; // columna NOMBRE
+    nombreCliente = clienteCRM?.datos?.[1] || "";
+    perfilCliente = await obtenerPerfil(userId);
   } catch {}
 
   // Agregar mensaje del usuario al historial
   agregarMensaje(userId, "user", text);
 
-  // Construir contexto adicional para Claude
-  let contextoCliente = "";
-  if (nombreCliente) {
-    contextoCliente = `[Contexto: el cliente se llama ${nombreCliente}]`;
-  }
+  // Construir contexto adicional para Claude (nombre + perfil aprendido)
+  const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente);
 
   const mensajes = getHistorial(userId).map((m) => ({
     role: m.role,
@@ -276,6 +441,72 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null 
   if (respuestaFinal) {
     await enviarMensaje(userId, respuestaFinal, canal);
   }
+
+  // Extraer insights en background (no bloquea la respuesta)
+  extraerInsights(getHistorial(userId), userId).catch(() => {});
 }
 
-module.exports = { handleIncomingMessage };
+// ============================================================
+// EXTRACCIÓN DE INSIGHTS — aprende de cada conversación
+// Se ejecuta en background cada 4 mensajes del cliente
+// ============================================================
+async function extraerInsights(historial, userId) {
+  try {
+    const mensajesCliente = historial.filter(m => m.role === "user");
+    if (mensajesCliente.length < 2) return; // necesitamos algo de contexto
+    if (mensajesCliente.length % 4 !== 0) return; // cada 4 mensajes del cliente
+
+    const perfilActual = await obtenerPerfil(userId);
+    const perfilStr = Object.keys(perfilActual).length > 0
+      ? `\nPerfil actual conocido: ${JSON.stringify(perfilActual)}`
+      : "";
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 300,
+      system: `Analizá esta conversación con un cliente de Citrino (spa de masajes en Uruguay) y extraé información útil para conocerlo mejor.${perfilStr}
+
+Devolvé SOLO un JSON con los campos donde encontrés información NUEVA o que confirme algo. No inventes nada que no esté en la conversación. Si no hay nada nuevo, devolvé {}.
+
+Campos posibles:
+- horarios_preferidos: array (ej: ["mañana", "sábados", "antes de las 10"])
+- ocupacion: string (ej: "trabaja de tarde en oficina", "estudiante")
+- servicios_preferidos: array (ej: ["descontracturante", "reflexología"])
+- condiciones_fisicas: array (ej: ["dolor lumbar", "contractura cervical", "estrés"])
+- personalidad: string (ej: "directa y concisa", "conversadora", "indecisa")
+- motivacion: string (ej: "bienestar propio", "regalo para otra persona", "recuperación física")
+- sensibilidad_precio: string (ej: "consulta precio antes de agendar", "no pregunta precio")
+- notas_extra: string (cualquier otra info relevante)`,
+      messages: historial.slice(-10).map(m => ({ role: m.role, content: m.content })),
+    });
+
+    const texto = response.content[0].text.trim();
+    const insights = JSON.parse(texto);
+    if (Object.keys(insights).length > 0) {
+      await actualizarPerfil(userId, insights);
+      console.log(`🧠 Perfil actualizado para ${userId}:`, insights);
+    }
+  } catch {
+    // No es crítico — sigue funcionando aunque falle
+  }
+}
+
+// Formatea el perfil del cliente como contexto legible para Claude
+function formatearPerfilParaContexto(nombre, perfil) {
+  if (!perfil || Object.keys(perfil).length === 0) return "";
+
+  const partes = [];
+  if (nombre) partes.push(`El cliente se llama ${nombre}.`);
+  if (perfil.horarios_preferidos?.length) partes.push(`Prefiere: ${perfil.horarios_preferidos.join(", ")}.`);
+  if (perfil.ocupacion) partes.push(`Ocupación: ${perfil.ocupacion}.`);
+  if (perfil.servicios_preferidos?.length) partes.push(`Servicios de interés: ${perfil.servicios_preferidos.join(", ")}.`);
+  if (perfil.condiciones_fisicas?.length) partes.push(`Condiciones físicas: ${perfil.condiciones_fisicas.join(", ")}.`);
+  if (perfil.personalidad) partes.push(`Personalidad: ${perfil.personalidad}.`);
+  if (perfil.motivacion) partes.push(`Motivación: ${perfil.motivacion}.`);
+  if (perfil.sensibilidad_precio) partes.push(`Precio: ${perfil.sensibilidad_precio}.`);
+  if (perfil.notas_extra) partes.push(perfil.notas_extra);
+
+  return partes.length > 0 ? `[Perfil del cliente: ${partes.join(" ")}]` : "";
+}
+
+module.exports = { handleIncomingMessage, chatsBloqueados };

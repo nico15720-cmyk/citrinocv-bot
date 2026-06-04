@@ -6,24 +6,16 @@
 require("dotenv").config();
 const readline = require("readline");
 
-// Simular el módulo de envío para que no intente mandar a Meta
-const originalSender = require("./bot/sender");
-// Monkey-patch: interceptar los mensajes del bot
-const conversation = require("./bot/conversation");
-
-// Reemplazar enviarMensaje con console.log
+// Parchar sender ANTES de cargar conversation
 const senderModule = require("./bot/sender");
-const originalEnviarMensaje = senderModule.enviarMensaje;
-
-// Parchar el módulo globalmente
-require.cache[require.resolve("./bot/sender")].exports.enviarMensaje = async (userId, texto, canal) => {
+senderModule.enviarMensaje = async (userId, texto, canal) => {
   console.log("\n─────────────────────────────────────");
-  console.log(`🤖 BOT [${canal.toUpperCase()}]:`);
+  console.log(`🤖 CITI [${canal.toUpperCase()}]:`);
   console.log(texto);
   console.log("─────────────────────────────────────\n");
 };
-
-require.cache[require.resolve("./bot/sender")].exports.marcarLeidoYEscribiendo = async () => {};
+senderModule.marcarLeidoYEscribiendo = async () => {};
+require.cache[require.resolve("./bot/sender")].exports = senderModule;
 
 // Parchear Google Sheets para que no falle si no está configurado
 try {
@@ -65,6 +57,7 @@ try {
 } catch {}
 
 const { handleIncomingMessage } = require("./bot/conversation");
+const { handleAdminMessage } = require("./bot/admin");
 
 // ============================================================
 // REPL interactivo
@@ -80,7 +73,7 @@ const CANAL = "whatsapp";
 console.log("═══════════════════════════════════════");
 console.log("  🌿 CITRINO BOT — Modo prueba local");
 console.log("═══════════════════════════════════════");
-console.log("  Escribí mensajes como si fueras un cliente.");
+console.log("  Escribí como cliente, o empezá con 'ADMIN:' para modo dueño.");
 console.log("  Escribe 'salir' para terminar.\n");
 
 function pregunta() {
@@ -93,12 +86,17 @@ function pregunta() {
     }
 
     try {
-      await handleIncomingMessage({
-        userId: USER_ID,
-        text: texto,
-        platform: CANAL,
-        messageId: null,
-      });
+      if (texto.toUpperCase().startsWith("ADMIN:")) {
+        const mensajeAdmin = texto.slice(6).trim();
+        await handleAdminMessage({ text: mensajeAdmin, platform: CANAL });
+      } else {
+        await handleIncomingMessage({
+          userId: USER_ID,
+          text: texto,
+          platform: CANAL,
+          messageId: null,
+        });
+      }
     } catch (err) {
       console.error("❌ Error:", err.message);
     }
