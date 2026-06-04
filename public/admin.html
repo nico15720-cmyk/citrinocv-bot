@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Citrino — Admin</title>
+  <style>
+    :root {
+      --verde: #5a7a5a;
+      --verde-claro: #8fbc8f;
+      --crema: #f5f0e8;
+      --crema-oscura: #ede5d0;
+      --texto: #2c3e2d;
+      --gris: #7a8a7a;
+      --rojo: #c0392b;
+      --naranja: #e67e22;
+      --azul: #2980b9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--crema); color: var(--texto); }
+
+    header {
+      background: var(--verde);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.3rem; }
+    header nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 1rem;
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
+    header nav a:hover { opacity: 1; }
+
+    .container { max-width: 1200px; margin: 1.5rem auto; padding: 0 1.5rem; }
+
+    /* Filtros */
+    .filtros {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
+    .filtros input, .filtros select {
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--crema-oscura);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      color: var(--texto);
+    }
+    .filtros input { flex: 1; min-width: 200px; }
+    .btn {
+      padding: 0.5rem 1.1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-verde  { background: var(--verde); color: white; }
+    .btn-azul   { background: var(--azul); color: white; }
+    .btn-naranja{ background: var(--naranja); color: white; }
+    .btn-rojo   { background: var(--rojo); color: white; }
+    .btn-gris   { background: #ccc; color: #444; }
+
+    /* Tabla */
+    .tabla-wrap {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th {
+      background: var(--crema-oscura);
+      padding: 0.7rem 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gris);
+    }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--crema); font-size: 0.88rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafaf7; }
+
+    /* Badges de estado */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-lead     { background: #fef3e2; color: #b7700a; }
+    .badge-agendado { background: #e3f0fb; color: #1a6499; }
+    .badge-vino     { background: #e6f4e6; color: #2d6e2d; }
+    .badge-novino   { background: #fde8e8; color: #962020; }
+    .badge-cancelado{ background: #f0f0f0; color: #666; }
+
+    /* Badges de canal */
+    .badge-wa  { background: #e8f9ee; color: #1a7a3c; }
+    .badge-fb  { background: #e8eef9; color: #1a3c7a; }
+    .badge-ig  { background: #fce8f3; color: #7a1a5a; }
+
+    /* Acciones inline */
+    .acciones { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .acciones .btn { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 460px;
+      width: 90%;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    .modal h3 { margin-bottom: 1rem; color: var(--verde); }
+    .modal textarea, .modal input {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid var(--crema-oscura);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      margin-bottom: 0.8rem;
+      resize: vertical;
+    }
+    .modal-btns { display: flex; gap: 0.6rem; justify-content: flex-end; }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--verde);
+      color: white;
+      padding: 0.7rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 200;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--rojo); }
+
+    .loading-msg { text-align: center; padding: 3rem; color: var(--gris); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 Citrino — Gestión de clientes</h1>
+  <nav>
+    <a href="/dashboard">📊 Dashboard</a>
+    <a href="#" onclick="cargarClientes()">↻ Actualizar</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="filtros">
+    <input type="text" id="buscar" placeholder="Buscar por nombre, teléfono o servicio..." oninput="filtrar()" />
+    <select id="filtro-estado" onchange="filtrar()">
+      <option value="">Todos los estados</option>
+      <option value="lead">Leads</option>
+      <option value="agendado">Agendados</option>
+      <option value="vino">Vinieron</option>
+      <option value="no_vino">No vinieron</option>
+      <option value="cancelado">Cancelados</option>
+    </select>
+    <select id="filtro-canal" onchange="filtrar()">
+      <option value="">Todos los canales</option>
+      <option value="whatsapp">WhatsApp</option>
+      <option value="facebook">Facebook</option>
+      <option value="instagram">Instagram</option>
+    </select>
+  </div>
+
+  <div class="tabla-wrap">
+    <div id="loading-msg" class="loading-msg">Cargando clientes... 🌿</div>
+    <table id="tabla" style="display:none">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Canal</th>
+          <th>Servicio</th>
+          <th>Estado</th>
+          <th>Cuponera</th>
+          <th>Notas</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal nota -->
+<div class="modal-overlay" id="modal-nota">
+  <div class="modal">
+    <h3>Agregar nota</h3>
+    <p id="modal-nota-nombre" style="margin-bottom:0.8rem; color:var(--gris); font-size:0.85rem"></p>
+    <textarea id="nota-texto" rows="4" placeholder="Ej: Vive lejos, prefiere sábados..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-gris" onclick="cerrarModal('modal-nota')">Cancelar</button>
+      <button class="btn btn-verde" onclick="guardarNota()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal mensaje -->
+<div class="modal-overlay" id="modal-mensaje">
+  <div class="modal">
+    <h3>Enviar mensaje</h3>
+    <p id="modal-msg-nombre" style="margin-bottom:0.8rem; color:var(--gris); font-size:0.85rem"></p>
+    <textarea id="mensaje-texto" rows="4" placeholder="Escribí el mensaje que querés enviar..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-gris" onclick="cerrarModal('modal-mensaje')">Cancelar</button>
+      <button class="btn btn-azul" onclick="enviarMensajeAdmin()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal cuponera -->
+<div class="modal-overlay" id="modal-cuponera">
+  <div class="modal">
+    <h3>Registrar cuponera</h3>
+    <p id="modal-cup-nombre" style="margin-bottom:0.8rem; color:var(--gris); font-size:0.85rem"></p>
+    <label style="display:block;margin-bottom:0.4rem;font-size:0.85rem">Cantidad de sesiones:</label>
+    <input type="number" id="cuponera-sesiones" value="5" min="1" max="20" />
+    <div class="modal-btns">
+      <button class="btn btn-gris" onclick="cerrarModal('modal-cuponera')">Cancelar</button>
+      <button class="btn btn-naranja" onclick="guardarCuponera()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let todosLosClientes = [];
+  let usuarioActivo = null;
+
+  async function cargarClientes() {
+    document.getElementById("loading-msg").style.display = "block";
+    document.getElementById("tabla").style.display = "none";
+    try {
+      const res = await fetch("/api/clientes");
+      todosLosClientes = await res.json();
+      filtrar();
+      document.getElementById("loading-msg").style.display = "none";
+      document.getElementById("tabla").style.display = "table";
+    } catch (e) {
+      document.getElementById("loading-msg").textContent = "❌ Error al cargar: " + e.message;
+    }
+  }
+
+  function filtrar() {
+    const busq = document.getElementById("buscar").value.toLowerCase();
+    const estado = document.getElementById("filtro-estado").value;
+    const canal = document.getElementById("filtro-canal").value;
+
+    const filtrados = todosLosClientes.filter(c => {
+      const matchTexto = !busq ||
+        (c.Nombre || "").toLowerCase().includes(busq) ||
+        (c.Teléfono || "").includes(busq) ||
+        (c.Servicio || "").toLowerCase().includes(busq);
+      const matchEstado = !estado || (c.Estado || "") === estado;
+      const matchCanal = !canal || (c.Canal || "") === canal;
+      return matchTexto && matchEstado && matchCanal;
+    });
+
+    renderTabla(filtrados);
+  }
+
+  function renderTabla(clientes) {
+    const tbody = document.getElementById("tbody");
+    if (!clientes.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gris);padding:2rem">No se encontraron clientes</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = clientes.map(c => {
+      const estadoBadge = {
+        lead: '<span class="badge badge-lead">Lead</span>',
+        agendado: '<span class="badge badge-agendado">Agendado</span>',
+        vino: '<span class="badge badge-vino">Vino ✓</span>',
+        no_vino: '<span class="badge badge-novino">No vino</span>',
+        cancelado: '<span class="badge badge-cancelado">Cancelado</span>',
+      }[c.Estado] || `<span class="badge">${c.Estado || "—"}</span>`;
+
+      const canalBadge = {
+        whatsapp: '<span class="badge badge-wa">💬 WA</span>',
+        facebook: '<span class="badge badge-fb">📘 FB</span>',
+        instagram: '<span class="badge badge-ig">📸 IG</span>',
+      }[c.Canal] || (c.Canal || "—");
+
+      const cuponera = c.Cuponera === "si"
+        ? `✅ (${c["Ses.Rest."] || 0} ses.)`
+        : "—";
+
+      const notas = c.Notas
+        ? `<span title="${c.Notas.replace(/"/g, '&quot;')}" style="cursor:help">📝 ${c.Notas.substring(0,20)}${c.Notas.length > 20 ? "..." : ""}</span>`
+        : "—";
+
+      const userId = c.ID;
+      const nombre = c.Nombre || userId;
+
+      return `<tr>
+        <td><strong>${nombre || "—"}</strong></td>
+        <td>${c.Teléfono || "—"}</td>
+        <td>${canalBadge}</td>
+        <td>${c.Servicio || "—"}</td>
+        <td>${estadoBadge}</td>
+        <td>${cuponera}</td>
+        <td>${notas}</td>
+        <td>
+          <div class="acciones">
+            <button class="btn btn-verde" onclick="marcarVino('${userId}','${nombre}',true)" title="Marcar que vino">✓ Vino</button>
+            <button class="btn btn-rojo" onclick="marcarVino('${userId}','${nombre}',false)" title="Marcar que no vino">✗ No vino</button>
+            <button class="btn btn-naranja" onclick="abrirCuponera('${userId}','${nombre}')" title="Registrar cuponera">🎟</button>
+            <button class="btn btn-gris" onclick="abrirNota('${userId}','${nombre}')" title="Agregar nota">📝</button>
+            <button class="btn btn-azul" onclick="abrirMensaje('${userId}','${nombre}')" title="Enviar mensaje">✉</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ---- Acciones ----
+
+  async function marcarVino(userId, nombre, vino) {
+    try {
+      const res = await fetch(`/api/clientes/${encodeURIComponent(userId)}/asistencia`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vino }),
+      });
+      if (!res.ok) throw new Error("Error en la respuesta");
+      toast(`${nombre}: marcado como ${vino ? "vino ✓" : "no vino"}`);
+      await cargarClientes();
+    } catch (e) {
+      toast("Error: " + e.message, true);
+    }
+  }
+
+  function abrirNota(userId, nombre) {
+    usuarioActivo = { userId, nombre };
+    document.getElementById("modal-nota-nombre").textContent = nombre;
+    document.getElementById("nota-texto").value = "";
+    document.getElementById("modal-nota").classList.add("open");
+  }
+
+  async function guardarNota() {
+    const nota = document.getElementById("nota-texto").value.trim();
+    if (!nota) return;
+    try {
+      await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/nota`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nota }),
+      });
+      toast("Nota guardada ✓");
+      cerrarModal("modal-nota");
+      await cargarClientes();
+    } catch (e) {
+      toast("Error: " + e.message, true);
+    }
+  }
+
+  function abrirCuponera(userId, nombre) {
+    usuarioActivo = { userId, nombre };
+    document.getElementById("modal-cup-nombre").textContent = nombre;
+    document.getElementById("cuponera-sesiones").value = "5";
+    document.getElementById("modal-cuponera").classList.add("open");
+  }
+
+  async function guardarCuponera() {
+    const sesiones = parseInt(document.getElementById("cuponera-sesiones").value) || 5;
+    try {
+      await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/cuponera`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sesiones }),
+      });
+      toast(`Cuponera de ${sesiones} sesiones registrada ✓`);
+      cerrarModal("modal-cuponera");
+      await cargarClientes();
+    } catch (e) {
+      toast("Error: " + e.message, true);
+    }
+  }
+
+  function abrirMensaje(userId, nombre) {
+    usuarioActivo = { userId, nombre };
+    document.getElementById("modal-msg-nombre").textContent = `Para: ${nombre}`;
+    document.getElementById("mensaje-texto").value = "";
+    document.getElementById("modal-mensaje").classList.add("open");
+  }
+
+  async function enviarMensajeAdmin() {
+    const texto = document.getElementById("mensaje-texto").value.trim();
+    if (!texto) return;
+    try {
+      await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/mensaje`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto }),
+      });
+      toast(`Mensaje enviado a ${usuarioActivo.nombre} ✓`);
+      cerrarModal("modal-mensaje");
+    } catch (e) {
+      toast("Error: " + e.message, true);
+    }
+  }
+
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove("open");
+    usuarioActivo = null;
+  }
+
+  // Cerrar modal clickeando fuera
+  document.querySelectorAll(".modal-overlay").forEach(o => {
+    o.addEventListener("click", (e) => {
+      if (e.target === o) o.classList.remove("open");
+    });
+  });
+
+  function toast(msg, error = false) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.toggle("error", error);
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  cargarClientes();
+</script>
+</body>
+</html>
