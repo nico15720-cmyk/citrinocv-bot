@@ -18,6 +18,7 @@ const {
 } = require("./crm");
 const { getDisponibilidad, formatearDisponibilidad } = require("./calendar");
 const { tomarDecisiones } = require("./consciousness");
+const { verificarSalud } = require("./utils");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const OWNER = process.env.OWNER_WHATSAPP;
@@ -266,7 +267,12 @@ function startScheduler() {
     timezone: "America/Montevideo",
   });
 
-  console.log("🗓️ Schedulers iniciados: recordatorios (c/hora), remarketing (L/X/V 10:00), seguimiento (11:00), resumen diario (20:00), conciencia (c/6hs)");
+  // Verificación de salud cada 4 horas
+  cron.schedule("0 */4 * * *", verificarSalud, {
+    timezone: "America/Montevideo",
+  });
+
+  console.log("🗓️ Schedulers iniciados: recordatorios (c/hora), remarketing (L/X/V 10:00), seguimiento (11:00), resumen diario (20:00), conciencia (c/6hs), salud (c/4hs)");
 }
 
 // ============================================================

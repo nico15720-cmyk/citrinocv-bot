@@ -5,6 +5,7 @@
 
 const { calendar: googleCalendar } = require("@googleapis/calendar");
 const { GoogleAuth } = require("google-auth-library");
+const { conRetry } = require("./utils");
 
 // ============================================================
 // CONFIGURACIÓN DE HORARIOS DE LA TERAPEUTA
@@ -83,13 +84,16 @@ function formatFecha(dateStr) {
 // ============================================================
 async function getEventosOcupados(desde, hasta) {
   const calendar = getCalendar();
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin: desde.toISOString(),
-    timeMax: hasta.toISOString(),
-    singleEvents: true,
-    orderBy: "startTime",
-  });
+  const res = await conRetry(
+    () => calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: desde.toISOString(),
+      timeMax: hasta.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+    }),
+    { nombre: "Google Calendar - listar eventos", intentos: 3 }
+  );
   return res.data.items || [];
 }
 
