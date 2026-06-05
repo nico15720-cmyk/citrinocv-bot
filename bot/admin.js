@@ -16,8 +16,9 @@ const {
   obtenerTodosLosPerfiles,
   actualizarEstado,
 } = require("./crm");
-const { getDisponibilidad, formatearDisponibilidad } = require("./calendar");
+const { getDisponibilidad, formatearDisponibilidad, crearTurno, resolverSlot } = require("./calendar");
 const { detectarYAplicarCambio } = require("./self-fix");
+const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -91,9 +92,20 @@ async function recolectarDatosNegocio() {
       nuevasEstaSemana: nuevasEstaSemana.length,
       sinRegresar30dias: sinRegresarMes.length,
       leadsSinAtender: leadsSinAtender.length,
-      disponibilidadHoy: formatearDisponibilidad(disponibilidad.filter(s =>
-        s.fecha === hoy.toISOString().split("T")[0]
-      )),
+      disponibilidad: formatearDisponibilidad(disponibilidad),
+      disponibilidadPorDia: (() => {
+        const porDia = {};
+        for (const s of disponibilidad) {
+          if (!porDia[s.fecha]) porDia[s.fecha] = [];
+          porDia[s.fecha].push(s.horaLabel || s.label);
+        }
+        return Object.entries(porDia).map(([fecha, horas]) => {
+          const f = new Date(fecha + "T12:00:00");
+          const label = f.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
+          return `${label}: ${horas.join(", ")}`;
+        }).join("\n");
+      })(),
+      slotsRaw: disponibilidad,
       totalClientes: clientes,
     };
   } catch (e) {
@@ -150,10 +162,64 @@ async function ejecutarAccionAdmin(accion, clientes) {
         return `✅ Estado de ${cliente.Nombre} cambiado a "${accion.estado}".`;
       }
 
+      case "agendar_turno": {
+        // Buscar el slot en Calendar
+        const slots = await getDisponibilidad();
+        // Buscar por fecha y hora aproximada
+        const slotBuscado = slots.find(s => {
+          const fechaSlot = new Date(s.inicioISO);
+          const diaCorrecto = accion.fecha
+            ? fechaSlot.toLocaleDateString("es-UY", { timeZone: "America/Montevideo" }).includes(accion.fecha) ||
+              s.fecha === accion.fecha ||
+              fechaSlot.toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" }).toLowerCase().includes((accion.dia || "").toLowerCase())
+            : false;
+          const horaSlot = fechaSlot.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+          const horaCorrecto = accion.hora ? horaSlot === accion.hora || horaSlot.startsWith(accion.hora.replace(":00","").replace("hs","").trim()) : false;
+          return diaCorrecto && horaCorrecto;
+        });
+
+        if (!slotBuscado) {
+          // Intentar con resolverSlot
+          const slot = await resolverSlot(accion.dia || accion.fecha || "", accion.hora || "").catch(() => null);
+          if (!slot) {
+            return `⚠️ No encontré el horario ${accion.hora} del ${accion.dia || accion.fecha}. Los slots disponibles son:\n${slots.slice(0,5).map(s=>s.label).join(", ")}`;
+          }
+          const evento = await crearTurno({
+            nombre: accion.nombre || "Clienta",
+            telefono: accion.telefono || "sin-tel",
+            servicio: accion.servicio || "Sesión",
+            slot,
+          });
+          return `✅ *Turno creado en Google Calendar*\n📅 ${slot.label}\n👤 ${accion.nombre || "Clienta"}\n💆 ${accion.servicio || "Sesión"}\n🔗 Link: ${evento.htmlLink || "ver en Calendar"}`;
+        }
+
+        const evento = await crearTurno({
+          nombre: accion.nombre || "Clienta",
+          telefono: accion.telefono || "sin-tel",
+          servicio: accion.servicio || "Sesión",
+          slot: slotBuscado,
+        });
+        return `✅ *Turno creado en Google Calendar*\n📅 ${slotBuscado.label}\n👤 ${accion.nombre || "Clienta"}\n💆 ${accion.servicio || "Sesión"}\n🔗 Link: ${evento.htmlLink || "ver en Calendar"}`;
+      }
+
+      case "generar_reporte": {
+        let resultado;
+        const tipo = (accion.tipo_reporte || "").toLowerCase();
+        if (tipo.includes("lead")) resultado = await reporteLeads(clientes);
+        else if (tipo.includes("vip")) resultado = await reporteVIP(clientes);
+        else if (tipo.includes("inacti")) resultado = await reporteInactivos(clientes, accion.dias || 30);
+        else if (tipo.includes("cupon")) resultado = await reporteCuponeras(clientes);
+        else if (tipo.includes("agend")) resultado = await reporteAgendadas(clientes);
+        else resultado = await reporteLeads(clientes);
+
+        return `✅ *Reporte creado en Google Sheets*\n📊 Tab: "${resultado.tab}"\n📝 ${resultado.registros} registros\n🔗 ${resultado.url}`;
+      }
+
       default:
         return null;
     }
   } catch (e) {
+    console.error("❌ Error en acción admin:", e.message);
     return `❌ Error ejecutando la acción: ${e.message}`;
   }
 }
@@ -188,7 +254,8 @@ Próximos turnos (48hs): ${datos.proximas48h?.length > 0
     ? datos.proximas48h.map(c => `${c.Nombre} — ${c.FechaTurno}`).join(", ")
     : "ninguno"}
 
-Disponibilidad hoy: ${datos.disponibilidadHoy || "sin slots hoy"}
+Disponibilidad próximos 7 días (slots libres en Google Calendar):
+${datos.disponibilidadPorDia || "sin slots disponibles"}
 
 Lista de clientas (primeras 20):
 ${clientes.slice(0, 20).map(c =>
@@ -228,14 +295,33 @@ Podés ejecutar MÚLTIPLES acciones poniendo varios bloques seguidos.
 
 Acciones disponibles:
 <admin_accion>{"tipo":"marcar_asistencia","nombre":"Ana","vino":true}</admin_accion>
-<admin_accion>{"tipo":"agregar_nota","nombre":"María","nota":"le dolía la zona lumbar, quedó muy conforme"}</admin_accion>
+<admin_accion>{"tipo":"agregar_nota","nombre":"María","nota":"le dolía la zona lumbar"}</admin_accion>
 <admin_accion>{"tipo":"registrar_cuponera","nombre":"Laura","sesiones":6}</admin_accion>
 <admin_accion>{"tipo":"cambiar_estado","nombre":"Julia","estado":"vino"}</admin_accion>
+<admin_accion>{"tipo":"agendar_turno","nombre":"Susana","telefono":"098123456","dia":"mañana","fecha":"2026-06-06","hora":"10:30","servicio":"Masaje"}</admin_accion>
+<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"leads"}</admin_accion>
+<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"inactivas","dias":30}</admin_accion>
+<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"vip"}</admin_accion>
+<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"cuponeras"}</admin_accion>
+<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"agendadas"}</admin_accion>
+
+Reportes disponibles: leads, vip, inactivas, cuponeras, agendadas.
+Cuando Nico pida "dame la lista de leads" o "exportá las inactivas" → generar_reporte.
+El reporte se crea como pestaña nueva en el Google Sheet y le das el link.
+
+IMPORTANTE sobre agendar:
+- SIEMPRE usá la acción agendar_turno para crear eventos — NUNCA digas que agendaste sin ejecutarla
+- La disponibilidad real está en el contexto bajo "Disponibilidad próximos 7 días"
+- Si el horario pedido no aparece en los slots disponibles, decíselo a Nico
+- Cuando agendás, el evento se crea REALMENTE en Google Calendar
 
 Ejemplos de cómo procesar texto libre de Nico:
-- "Alejandra vino hoy, le dolía la zona lumbar, quedó muy conforme, próxima sesión en 15 días" → marcar_asistencia + agregar_nota
+- "Alejandra vino hoy, le dolía la zona lumbar" → marcar_asistencia + agregar_nota
 - "Laura compró cuponera de 6 sesiones" → registrar_cuponera
 - "Sofía canceló su turno" → cambiar_estado cancelado
+- "Agendá a Susana mañana a las 10:30" → agendar_turno (con los datos disponibles)
+- "Hay algo mañana a las 9?" → consultá la disponibilidad del contexto y respondé
+- "¿Qué tengo mañana?" → mirá los turnos proximas48h y respondé con los datos reales
 
 Clasificación de clientas:
 - VIP 🌟: viene seguido, cuponera activa
