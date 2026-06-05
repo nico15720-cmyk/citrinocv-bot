@@ -49,30 +49,51 @@ app.post("/webhook", async (req, res) => {
   // WhatsApp
   if (body.object === "whatsapp_business_account") {
     const msg = entry.changes?.[0]?.value?.messages?.[0];
-    if (!msg || msg.type !== "text") return;
+    if (!msg) return;
 
-    const texto = msg.text.body.trim();
+    // Tipos soportados
+    const tiposSoportados = ["text", "image", "document", "audio", "video", "sticker"];
+    if (!tiposSoportados.includes(msg.type)) return;
 
-    // Comandos de modo desde cualquier número (para testing)
-    if (texto.toLowerCase() === "/admin") {
-      modoAdmin.add(msg.from);
-      modoMarta.delete(msg.from);
-      const { enviarMensaje } = require("./bot/sender");
-      await enviarMensaje(msg.from, "🔑 Modo admin activado.", "whatsapp");
-      return;
+    // Extraer texto (solo para mensajes de texto)
+    const texto = msg.type === "text" ? msg.text.body.trim() : "";
+
+    // Comandos de modo (solo desde texto)
+    if (msg.type === "text") {
+      if (texto.toLowerCase() === "/admin") {
+        modoAdmin.add(msg.from);
+        modoMarta.delete(msg.from);
+        const { enviarMensaje } = require("./bot/sender");
+        await enviarMensaje(msg.from, "🔑 Modo admin activado.", "whatsapp");
+        return;
+      }
+      if (texto.toLowerCase() === "/marta") {
+        modoMarta.add(msg.from);
+        modoAdmin.delete(msg.from);
+        const { enviarMensaje } = require("./bot/sender");
+        await enviarMensaje(msg.from, "🌿 Modo Marta activado — respondiendo como clienta.", "whatsapp");
+        return;
+      }
     }
-    if (texto.toLowerCase() === "/marta") {
-      modoMarta.add(msg.from);
-      modoAdmin.delete(msg.from);
-      const { enviarMensaje } = require("./bot/sender");
-      await enviarMensaje(msg.from, "🌿 Modo Marta activado — respondiendo como clienta.", "whatsapp");
-      return;
+
+    // Procesar media si la hay (imagen, documento, audio)
+    let media = null;
+    if (msg.type !== "text") {
+      try {
+        const { procesarMensajeMedia } = require("./bot/media");
+        media = await procesarMensajeMedia(msg);
+        console.log(`📎 [WA] Media recibido: tipo=${media?.type}, mimeType=${media?.mimeType || "-"}`);
+      } catch (err) {
+        console.error("❌ Error procesando media:", err.message);
+      }
     }
 
     // Si es el dueño O está en modo admin → modo admin (salvo que activó /marta)
     const esAdmin = !modoMarta.has(msg.from) &&
       ((OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from));
     if (esAdmin) {
+      // Admin solo procesa texto por ahora
+      if (msg.type !== "text") return;
       await handleAdminMessage({
         text: texto,
         platform: "whatsapp",
@@ -85,6 +106,7 @@ app.post("/webhook", async (req, res) => {
       text: texto,
       platform: "whatsapp",
       messageId: msg.id,
+      media,
     });
   }
 
@@ -286,6 +308,143 @@ app.post("/api/clientes/:userId/mensaje", async (req, res) => {
 
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/agenda", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "agenda.html"));
+});
+
+// ============================================================
+// API DE AGENDA — para el dashboard de calendario
+// ============================================================
+
+// Obtener eventos del Google Calendar con info del CRM cruzada
+app.get("/api/agenda/eventos", async (req, res) => {
+  try {
+    const { getEventosAgenda } = require("./bot/calendar");
+    const { leerTodosLosClientes } = require("./bot/crm");
+
+    const desde = req.query.desde ? new Date(req.query.desde) : new Date();
+    const hasta = req.query.hasta
+      ? new Date(req.query.hasta)
+      : new Date(Date.now() + 21 * 86400000); // 3 semanas
+
+    const [eventos, clientes] = await Promise.all([
+      getEventosAgenda(desde, hasta),
+      leerTodosLosClientes(),
+    ]);
+
+    // Cruzar eventos con datos del CRM por número de teléfono
+    const eventosConCRM = eventos.map((ev) => {
+      const tel = ev.clienteTelefono?.replace(/\D/g, ""); // solo números
+      const clienteCRM = tel
+        ? clientes.find((c) => {
+            const cTel = (c.ID || c.Teléfono || "").replace(/\D/g, "");
+            return cTel && cTel.includes(tel.slice(-9)); // últimos 9 dígitos
+          })
+        : null;
+
+      return {
+        ...ev,
+        crm: clienteCRM
+          ? {
+              nombre: clienteCRM.Nombre,
+              estado: clienteCRM.Estado,
+              canal: clienteCRM.Canal,
+              cuponera: clienteCRM.Cuponera,
+              sesRest: clienteCRM["Ses.Rest."],
+              notas: clienteCRM.Notas,
+              fechaAlta: clienteCRM.FechaAlta,
+            }
+          : null,
+      };
+    });
+
+    res.json(eventosConCRM);
+  } catch (e) {
+    console.error("❌ /api/agenda/eventos:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Obtener configuración de terapeutas y sus horarios
+app.get("/api/agenda/terapeutas", (req, res) => {
+  const { TERAPEUTAS } = require("./bot/calendar");
+  // No enviar el calendarId completo al frontend
+  const safe = TERAPEUTAS.map(({ id, nombre, color, colorBadge, horarios }) => ({
+    id,
+    nombre,
+    color,
+    colorBadge,
+    horarios,
+  }));
+  res.json(safe);
+});
+
+// Obtener slots disponibles (para mostrar en la agenda)
+app.get("/api/agenda/disponibilidad", async (req, res) => {
+  try {
+    const { getDisponibilidad } = require("./bot/calendar");
+    const slots = await getDisponibilidad();
+    res.json(slots);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Crear turno desde el dashboard de agenda
+app.post("/api/agenda/turno", async (req, res) => {
+  try {
+    const { crearTurno, resolverSlot, getDisponibilidad } = require("./bot/calendar");
+    const { registrarTurno, registrarCliente } = require("./bot/crm");
+    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO } = req.body;
+
+    if (!nombre || !servicio) {
+      return res.status(400).json({ error: "nombre y servicio son requeridos" });
+    }
+
+    let slot;
+    if (inicioISO && finISO) {
+      // Slot manual con ISO directo
+      slot = {
+        inicioISO,
+        finISO,
+        label: slotLabel || inicioISO,
+        horaInicio: inicioISO.slice(11, 16),
+        horaFin: finISO.slice(11, 16),
+      };
+    } else if (slotLabel) {
+      const partes = slotLabel.split(" ");
+      const dia = partes.slice(0, -1).join(" ");
+      const hora = partes[partes.length - 1];
+      slot = await resolverSlot(dia, hora);
+    }
+
+    if (!slot) return res.status(400).json({ error: "Slot no encontrado o inválido" });
+
+    const userId = telefono || `manual_${Date.now()}`;
+    const evento = await crearTurno({ nombre, telefono: userId, servicio, slot });
+
+    // Registrar en CRM
+    await registrarCliente({ userId, nombre, servicio, canal: "dashboard" });
+    await registrarTurno(userId, { fechaTurno: slot.inicioISO, eventId: evento.id, servicio });
+
+    res.json({ ok: true, eventoId: evento.id, link: evento.htmlLink });
+  } catch (e) {
+    console.error("❌ /api/agenda/turno POST:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Cancelar turno desde el dashboard
+app.delete("/api/agenda/turno/:eventId", async (req, res) => {
+  try {
+    const { cancelarTurno } = require("./bot/calendar");
+    await cancelarTurno(req.params.eventId);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ============================================================

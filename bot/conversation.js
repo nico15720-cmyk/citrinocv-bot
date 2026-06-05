@@ -5,6 +5,7 @@
 
 const Anthropic = require("@anthropic-ai/sdk");
 const { enviarMensaje, marcarLeidoYEscribiendo } = require("./sender");
+const { construirContenidoConImagen } = require("./media");
 const {
   getDisponibilidad,
   formatearDisponibilidad,
@@ -200,6 +201,13 @@ Para escalar a la dueña: <accion>{"tipo":"escalar","motivo":"descripción del p
 
 IMPORTANTE: Las acciones van dentro de tu respuesta. El sistema las procesa y reemplaza.
 
+=== IMÁGENES Y DOCUMENTOS ===
+Podés recibir imágenes y PDFs (comprobantes de pago, fotos de zonas del cuerpo, capturas, etc.).
+- Si recibís una imagen de comprobante de pago (transferencia, débito, etc.): reconocé el monto, banco y fecha si es posible, confirmá amablemente que lo recibiste y que lo registraste. Usá <accion>{"tipo":"agregar_nota","texto":"Comprobante recibido: [detalle]"}</accion>
+- Si recibís una foto de una zona corporal (espalda, piernas, etc.): comentá brevemente lo que ves y sugerí el servicio más apropiado.
+- Si la imagen no está relacionada con Citrino: respondé con calidez pero orientá la conversación al negocio.
+- Si recibís el mensaje especial [AUDIO]: la clienta envió una nota de voz. Pedile amablemente que escriba su consulta porque no podés escuchar audios por el momento.
+
 === REGLAS CRÍTICAS — NO IGNORAR ===
 - NUNCA inventés horarios. Solo ofrecés los slots que aparecen en la sección DISPONIBILIDAD REAL.
 - NUNCA digas que agendaste algo sin usar la acción agendar. Si no hay slots disponibles, decilo.
@@ -376,7 +384,7 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
 // ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
-async function handleIncomingMessage({ userId, text, platform, messageId = null }) {
+async function handleIncomingMessage({ userId, text, platform, messageId = null, media = null }) {
   const canal = platform;
   console.log(`📩 [${canal.toUpperCase()}] De ${userId}: ${text}`);
 
@@ -412,22 +420,53 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null 
     perfilCliente = await obtenerPerfil(userId);
   } catch {}
 
+  // Construir contenido del mensaje según tipo de media
+  let contenidoUsuario;
+  if (media?.type === "image" || media?.type === "document") {
+    if (media.base64) {
+      // Imagen o PDF: mensaje multimodal con imagen + texto
+      const textoAcompanante = text || media.caption || "";
+      contenidoUsuario = construirContenidoConImagen(textoAcompanante, media.base64, media.mimeType);
+    } else {
+      // Falló la descarga pero sabemos que era una imagen
+      contenidoUsuario = `[La clienta intentó enviar una ${media.type === "document" ? "documento" : "imagen"} pero no se pudo procesar]`;
+    }
+  } else if (media?.type === "audio") {
+    contenidoUsuario = "[AUDIO]";
+  } else {
+    contenidoUsuario = text;
+  }
+
   // Agregar mensaje del usuario al historial
-  agregarMensaje(userId, "user", text);
+  // Para imágenes guardamos el texto plano (no el base64) para no llenar memoria
+  const textoParaHistorial = media?.type === "image" || media?.type === "document"
+    ? `[imagen enviada] ${text || media?.caption || ""}`.trim()
+    : (media?.type === "audio" ? "[nota de voz]" : text);
+  agregarMensaje(userId, "user", textoParaHistorial);
 
   // Construir contexto adicional para Claude (nombre + perfil aprendido)
   const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente);
 
-  const mensajes = getHistorial(userId).map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  // Para Claude: usar el historial pero reemplazar el último mensaje con el contenido real (multimodal si aplica)
+  const mensajesHistorial = getHistorial(userId);
+  const mensajes = mensajesHistorial.map((m, idx) => {
+    // El último mensaje del usuario → usar contenido real (puede ser multimodal)
+    if (idx === mensajesHistorial.length - 1 && m.role === "user") {
+      return { role: "user", content: contenidoUsuario };
+    }
+    return { role: m.role, content: m.content };
+  });
 
   // Llamar a Claude
+  // Si hay imagen → usar modelo con visión (claude-3-5-haiku soporta imágenes)
+  const modeloAUsar = (media?.type === "image" || media?.type === "document") && media?.base64
+    ? "claude-haiku-4-5-20251001"
+    : "claude-haiku-4-5-20251001";
+
   let respuestaBot;
   try {
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: modeloAUsar,
       max_tokens: 600,
       system: SYSTEM_PROMPT + buildContextoDinamico() + (contextoCliente ? `\n\n${contextoCliente}` : ""),
       messages: mensajes,

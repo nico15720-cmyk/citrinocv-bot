@@ -30,6 +30,30 @@ const TIMEZONE = "America/Montevideo";
 const DIAS_A_MOSTRAR = 7;               // cuántos días hacia adelante buscar
 
 // ============================================================
+// CONFIGURACIÓN DE TERAPEUTAS
+// Expandible: agregar más terapeutas con su calendar y horarios
+// ============================================================
+const TERAPEUTAS = [
+  {
+    id: "default",
+    nombre: process.env.TERAPEUTA_NOMBRE || "Citrino",
+    color: "#5a7a5a",
+    colorBadge: "verde",
+    calendarId: CALENDAR_ID,
+    horarios: HORARIOS,
+  },
+  // Ejemplo para agregar una segunda terapeuta:
+  // {
+  //   id: "ana",
+  //   nombre: "Ana",
+  //   color: "#2980b9",
+  //   colorBadge: "azul",
+  //   calendarId: process.env.GOOGLE_CALENDAR_ID_ANA || CALENDAR_ID,
+  //   horarios: { 1: { dia: "Lunes", franjas: [{ inicio: 14, fin: 19 }] }, ... }
+  // },
+];
+
+// ============================================================
 // AUTH — Service Account
 // ============================================================
 function getAuth() {
@@ -298,6 +322,47 @@ async function resolverSlot(textoFecha, textoHora) {
   return null;
 }
 
+// ============================================================
+// OBTENER EVENTOS PARA EL DASHBOARD DE AGENDA
+// Devuelve eventos reales del calendario con formato limpio
+// ============================================================
+async function getEventosAgenda(desde, hasta) {
+  const calendar = getCalendar();
+  const res = await conRetry(
+    () => calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: (desde || new Date()).toISOString(),
+      timeMax: (hasta || new Date(Date.now() + 14 * 86400000)).toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 200,
+    }),
+    { nombre: "Google Calendar - getEventosAgenda", intentos: 3 }
+  );
+
+  return (res.data.items || []).map((ev) => {
+    // Extraer datos del cliente de la descripción del evento
+    const desc = ev.description || "";
+    const nombreMatch = desc.match(/Cliente:\s*([^\n]+)/);
+    const telMatch = desc.match(/Teléfono:\s*([^\n]+)/);
+    const servicioMatch = desc.match(/Servicio:\s*([^\n]+)/);
+
+    return {
+      id: ev.id,
+      titulo: ev.summary || "Turno",
+      descripcion: desc,
+      inicio: ev.start.dateTime || ev.start.date,
+      fin: ev.end.dateTime || ev.end.date,
+      colorId: ev.colorId,
+      link: ev.htmlLink,
+      // Datos extraídos
+      clienteNombre: nombreMatch?.[1]?.trim() || "",
+      clienteTelefono: telMatch?.[1]?.trim() || "",
+      clienteServicio: servicioMatch?.[1]?.trim() || "",
+    };
+  });
+}
+
 module.exports = {
   getDisponibilidad,
   formatearDisponibilidad,
@@ -305,4 +370,7 @@ module.exports = {
   cancelarTurno,
   buscarTurnoCliente,
   resolverSlot,
+  getEventosAgenda,
+  TERAPEUTAS,
+  HORARIOS,
 };

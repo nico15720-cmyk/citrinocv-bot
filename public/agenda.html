@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Citrino — Agenda</title>
+  <style>
+    :root {
+      --verde: #5a7a5a;
+      --verde-claro: #8fbc8f;
+      --verde-bg: #e8f0e8;
+      --crema: #f5f0e8;
+      --crema-oscura: #ede5d0;
+      --texto: #2c3e2d;
+      --gris: #7a8a7a;
+      --gris-claro: #d0d8d0;
+      --rojo: #c0392b;
+      --naranja: #e67e22;
+      --azul: #2980b9;
+      --blanco: #ffffff;
+      --sombra: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--crema); color: var(--texto); height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--verde);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    header nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 1rem;
+      font-size: 0.82rem;
+      opacity: 0.85;
+      transition: opacity 0.15s;
+    }
+    header nav a:hover { opacity: 1; }
+    header nav a.active { opacity: 1; font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.6); }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      background: white;
+      border-bottom: 1px solid var(--crema-oscura);
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .toolbar h2 { font-size: 1rem; font-weight: 600; flex: 1; min-width: 160px; }
+    .btn {
+      padding: 0.4rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.97); }
+    .btn-verde  { background: var(--verde); color: white; }
+    .btn-gris   { background: var(--gris-claro); color: var(--texto); }
+    .btn-icon   { background: transparent; color: var(--verde); border: 1.5px solid var(--verde); padding: 0.35rem 0.7rem; font-size: 1rem; }
+    .nav-fecha  { display: flex; align-items: center; gap: 0.3rem; }
+    .semana-label { font-size: 0.82rem; color: var(--gris); min-width: 110px; text-align: center; }
+
+    /* ── LAYOUT PRINCIPAL ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: white;
+      border-right: 1px solid var(--crema-oscura);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-section { padding: 1rem; border-bottom: 1px solid var(--crema-oscura); }
+    .sidebar-section h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gris); margin-bottom: 0.75rem; }
+
+    /* Terapeutas */
+    .terapeuta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+      font-size: 0.88rem;
+    }
+    .terapeuta-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Stats rápidos */
+    .stat-item { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.85rem; }
+    .stat-num { font-weight: 700; color: var(--verde); }
+
+    /* Panel detalle cliente */
+    .panel-cliente { flex: 1; padding: 1rem; overflow-y: auto; }
+    .panel-cliente h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gris); margin-bottom: 0.75rem; }
+    .panel-empty { color: var(--gris); font-size: 0.82rem; text-align: center; padding: 1.5rem 0.5rem; line-height: 1.6; }
+    .cliente-nombre { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .cliente-campo { font-size: 0.83rem; margin-bottom: 0.3rem; color: var(--gris); }
+    .cliente-campo span { color: var(--texto); font-weight: 500; }
+    .badge-estado {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 0.6rem;
+    }
+    .estado-agendado { background: #d4edda; color: #155724; }
+    .estado-vino     { background: #cce5ff; color: #004085; }
+    .estado-lead     { background: #fff3cd; color: #856404; }
+    .estado-cancelado{ background: #f8d7da; color: #721c24; }
+    .estado-no_vino  { background: #fde8e8; color: #a00; }
+    .notas-box { background: var(--crema); border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.78rem; line-height: 1.5; margin-top: 0.5rem; max-height: 120px; overflow-y: auto; }
+
+    /* ── CALENDARIO ── */
+    .cal-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 0;
+    }
+    .cal-grid {
+      display: grid;
+      min-width: 640px;
+      grid-template-columns: 54px repeat(7, 1fr);
+      border-left: 1px solid var(--crema-oscura);
+    }
+
+    /* Cabecera de días */
+    .cal-header-spacer { background: white; border-right: 1px solid var(--crema-oscura); border-bottom: 2px solid var(--crema-oscura); }
+    .cal-dia-header {
+      background: white;
+      border-right: 1px solid var(--crema-oscura);
+      border-bottom: 2px solid var(--crema-oscura);
+      padding: 0.4rem 0.3rem;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .cal-dia-header.hoy { background: var(--verde-bg); }
+    .cal-dia-nombre { font-size: 0.72rem; color: var(--gris); text-transform: uppercase; letter-spacing: 0.04em; }
+    .cal-dia-num {
+      font-size: 1.2rem;
+      font-weight: 700;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+      margin: 0 auto;
+      border-radius: 50%;
+    }
+    .cal-dia-header.hoy .cal-dia-num { background: var(--verde); color: white; }
+
+    /* Filas de horas */
+    .cal-hora-label {
+      background: white;
+      border-right: 1px solid var(--crema-oscura);
+      border-bottom: 1px solid var(--crema-oscura);
+      padding: 0.2rem 0.3rem;
+      text-align: right;
+      font-size: 0.7rem;
+      color: var(--gris);
+      vertical-align: top;
+      height: 52px;
+      position: sticky;
+      left: 0;
+      z-index: 3;
+    }
+    .cal-hora-label span { position: relative; top: -0.5em; }
+
+    .cal-celda {
+      border-right: 1px solid var(--crema-oscura);
+      border-bottom: 1px solid var(--crema-oscura);
+      height: 52px;
+      position: relative;
+      background: white;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .cal-celda:hover { background: var(--verde-bg); }
+    .cal-celda.hoy { background: #f9fcf9; }
+    .cal-celda.fuera-horario { background: #fafafa; cursor: default; }
+    .cal-celda.fuera-horario:hover { background: #fafafa; }
+
+    /* Evento dentro de celda */
+    .cal-evento {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      top: 2px;
+      border-radius: 5px;
+      padding: 3px 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      cursor: pointer;
+      z-index: 2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: opacity 0.15s;
+    }
+    .cal-evento:hover { opacity: 0.85; }
+
+    /* Slot disponible */
+    .slot-disponible {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      top: 2px;
+      bottom: 2px;
+      border: 1.5px dashed var(--verde-claro);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: var(--verde);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .slot-disponible:hover { background: var(--verde-bg); }
+
+    /* ── MODAL NUEVO TURNO ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 360px;
+      max-width: 95vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .modal h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--verde); }
+    .modal label { display: block; font-size: 0.82rem; color: var(--gris); margin-bottom: 0.2rem; margin-top: 0.7rem; }
+    .modal input, .modal select {
+      width: 100%;
+      padding: 0.5rem 0.7rem;
+      border: 1.5px solid var(--crema-oscura);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      background: white;
+      color: var(--texto);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .modal input:focus, .modal select:focus { border-color: var(--verde); }
+    .modal-info { background: var(--crema); border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.82rem; margin-top: 0.5rem; color: var(--gris); }
+    .modal-botones { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--texto);
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      z-index: 200;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.verde { background: var(--verde); }
+    .toast.rojo  { background: var(--rojo); }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(245,240,232,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      font-size: 0.9rem;
+      color: var(--verde);
+      gap: 0.5rem;
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid var(--gris-claro);
+      border-top-color: var(--verde);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 Citrino</h1>
+  <nav>
+    <a href="/admin">CRM</a>
+    <a href="/agenda" class="active">Agenda</a>
+    <a href="/dashboard">Dashboard</a>
+  </nav>
+</header>
+
+<div class="toolbar">
+  <div class="nav-fecha">
+    <button class="btn btn-icon" id="btnAnterior">‹</button>
+    <span class="semana-label" id="labelSemana">—</span>
+    <button class="btn btn-icon" id="btnSiguiente">›</button>
+    <button class="btn btn-gris" id="btnHoy" style="font-size:0.78rem;padding:0.35rem 0.7rem;">Hoy</button>
+  </div>
+  <h2 id="tituloPagina">Agenda semanal</h2>
+  <button class="btn btn-verde" id="btnNuevoTurno">+ Nuevo turno</button>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Terapeutas</h3>
+      <div id="listaTerapeutas">
+        <div class="terapeuta-item"><span class="terapeuta-dot" style="background:#5a7a5a"></span> Citrino</div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Esta semana</h3>
+      <div id="statsSemanales">
+        <div class="stat-item"><span>Turnos</span><span class="stat-num" id="statTurnos">—</span></div>
+        <div class="stat-item"><span>Slots libres</span><span class="stat-num" id="statSlots">—</span></div>
+      </div>
+    </div>
+    <div class="panel-cliente" id="panelCliente">
+      <h3>Cliente seleccionado</h3>
+      <p class="panel-empty">Hacé clic en un turno para ver la info del cliente</p>
+    </div>
+  </aside>
+
+  <!-- Calendario -->
+  <div class="cal-wrap">
+    <div class="cal-grid" id="calGrid">
+      <!-- Generado por JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuevo turno -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>📅 Nuevo turno</h3>
+    <div class="modal-info" id="modalInfo">—</div>
+    <label>Nombre del cliente *</label>
+    <input type="text" id="inputNombre" placeholder="Ej: María López" />
+    <label>Teléfono</label>
+    <input type="tel" id="inputTelefono" placeholder="+598 9x xxx xxx" />
+    <label>Servicio *</label>
+    <select id="inputServicio">
+      <option value="">Seleccioná un servicio...</option>
+      <option value="Método Citrino">Método Citrino ($1.500)</option>
+      <option value="Drenaje Linfático">Drenaje Linfático ($1.500)</option>
+      <option value="Masaje Descontracturante">Masaje Descontracturante ($1.200)</option>
+      <option value="Masaje Relax">Masaje Relax ($1.300)</option>
+      <option value="Masaje Modelador">Masaje Modelador ($1.500)</option>
+      <option value="Masaje Piedras Calientes">Masaje Piedras Calientes ($1.500)</option>
+      <option value="Reflexología">Reflexología ($1.300)</option>
+      <option value="Reiki">Reiki ($1.200)</option>
+      <option value="Limpieza de Cutis">Limpieza de Cutis ($1.500)</option>
+      <option value="Manicuría">Manicuría ($1.300)</option>
+      <option value="Podología">Podología ($1.300)</option>
+      <option value="Depilación">Depilación ($1.300)</option>
+    </select>
+    <div class="modal-botones">
+      <button class="btn btn-gris" id="btnCancelarModal">Cancelar</button>
+      <button class="btn btn-verde" id="btnConfirmarTurno">Confirmar turno</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading" style="display:none">
+  <div class="spinner"></div> Cargando...
+</div>
+
+<script>
+// ============================================================
+// ESTADO
+// ============================================================
+let semanaOffset = 0;
+let eventos = [];
+let slots = [];
+let terapeutas = [];
+let slotSeleccionado = null;
+
+// Horas a mostrar: 7:00 a 20:00 (14 franjas)
+const HORA_INICIO = 7;
+const HORA_FIN = 20;
+const HORAS = Array.from({ length: HORA_FIN - HORA_INICIO + 1 }, (_, i) => HORA_INICIO + i);
+
+// Días de la semana (lun-dom)
+const DIAS_NOMBRE = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const DIAS_NOMBRE_LARGO = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+// ============================================================
+// UTILIDADES DE FECHA
+// ============================================================
+function getLunes(offset = 0) {
+  const hoy = new Date();
+  const dia = hoy.getDay() || 7; // 0=dom → 7
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - dia + 1 + offset * 7);
+  lunes.setHours(0, 0, 0, 0);
+  return lunes;
+}
+
+function formatFecha(date) {
+  return date.toLocaleDateString("es-UY", { day: "numeric", month: "short", timeZone: "America/Montevideo" });
+}
+
+function fechaISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function esHoy(date) {
+  const hoy = new Date();
+  return date.toDateString() === hoy.toDateString();
+}
+
+// Convierte "2025-01-15T10:00:00-03:00" en { fecha: "2025-01-15", hora: 10 }
+function parsearInicio(isoStr) {
+  const d = new Date(isoStr);
+  const hora = d.getHours() + d.getMinutes() / 60;
+  const fechaStr = fechaISO(d);
+  return { fecha: fechaStr, hora, minutos: d.getMinutes(), d };
+}
+
+// ============================================================
+// CARGA DE DATOS
+// ============================================================
+async function cargarDatos() {
+  setLoading(true);
+  try {
+    const lunes = getLunes(semanaOffset);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(23, 59, 59, 0);
+
+    const [resEv, resSl, resTer] = await Promise.all([
+      fetch(`/api/agenda/eventos?desde=${lunes.toISOString()}&hasta=${domingo.toISOString()}`),
+      fetch("/api/agenda/disponibilidad"),
+      fetch("/api/agenda/terapeutas"),
+    ]);
+
+    eventos = resEv.ok ? await resEv.json() : [];
+    slots = resSl.ok ? await resSl.json() : [];
+    terapeutas = resTer.ok ? await resTer.json() : [];
+
+    // Filtrar slots para la semana visible
+    const lunesStr = fechaISO(lunes);
+    const domingoStr = fechaISO(domingo);
+    slots = slots.filter(s => s.fecha >= lunesStr && s.fecha <= domingoStr);
+
+    renderTerapeutas();
+    renderCalendario();
+    actualizarStats();
+  } catch (e) {
+    mostrarToast("❌ Error cargando datos: " + e.message, "rojo");
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ============================================================
+// RENDER TERAPEUTAS EN SIDEBAR
+// ============================================================
+function renderTerapeutas() {
+  const lista = document.getElementById("listaTerapeutas");
+  if (!terapeutas.length) return;
+  lista.innerHTML = terapeutas.map(t =>
+    `<div class="terapeuta-item">
+      <span class="terapeuta-dot" style="background:${t.color}"></span>
+      ${t.nombre}
+    </div>`
+  ).join("");
+}
+
+// ============================================================
+// RENDER CALENDARIO
+// ============================================================
+function renderCalendario() {
+  const grid = document.getElementById("calGrid");
+  const lunes = getLunes(semanaOffset);
+
+  // Actualizar label de semana
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  document.getElementById("labelSemana").textContent =
+    `${formatFecha(lunes)} – ${formatFecha(domingo)}`;
+
+  // Construir los 7 días de la semana
+  const dias = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    return d;
+  });
+
+  let html = "";
+
+  // ── Cabecera ──
+  html += `<div class="cal-header-spacer" style="position:sticky;top:0;z-index:6;background:white"></div>`;
+  dias.forEach((d, i) => {
+    const hoyClass = esHoy(d) ? " hoy" : "";
+    html += `<div class="cal-dia-header${hoyClass}">
+      <div class="cal-dia-nombre">${DIAS_NOMBRE[i]}</div>
+      <div class="cal-dia-num">${d.getDate()}</div>
+    </div>`;
+  });
+
+  // ── Filas por hora ──
+  HORAS.forEach(hora => {
+    html += `<div class="cal-hora-label"><span>${hora}:00</span></div>`;
+
+    dias.forEach((dia, dIdx) => {
+      const fechaStr = fechaISO(dia);
+      const fueraHorario = !esDentroDeHorario(dia.getDay(), hora);
+      const claseHoy = esHoy(dia) ? " hoy" : "";
+      const claseFuera = fueraHorario ? " fuera-horario" : "";
+
+      // Buscar eventos que empiecen en esta hora
+      const eventosEnSlot = eventos.filter(ev => {
+        const { fecha, hora: h } = parsearInicio(ev.inicio);
+        return fecha === fechaStr && Math.floor(h) === hora;
+      });
+
+      // Buscar slots disponibles en esta hora
+      const slotEnHora = slots.find(s => {
+        const h = parseInt(s.horaInicio?.split(":")[0]);
+        return s.fecha === fechaStr && h === hora;
+      });
+
+      let contenido = "";
+
+      eventosEnSlot.forEach(ev => {
+        const color = getColorEvento(ev);
+        const titulo = ev.clienteNombre || ev.titulo.replace(/Turno\s*/i, "").split("—")[0].trim();
+        const durMin = Math.round((new Date(ev.fin) - new Date(ev.inicio)) / 60000);
+        const altoPx = Math.max(48, (durMin / 60) * 52 - 4);
+        contenido += `<div class="cal-evento"
+          style="background:${color};color:white;height:${altoPx}px"
+          onclick="seleccionarEvento(${JSON.stringify(JSON.stringify(ev))})"
+          title="${ev.clienteNombre || ev.titulo} — ${ev.clienteServicio || ''}">
+          ${titulo}<br><span style="font-weight:400;font-size:0.68rem">${ev.clienteServicio || ''}</span>
+        </div>`;
+      });
+
+      if (!eventosEnSlot.length && slotEnHora && !fueraHorario) {
+        contenido += `<div class="slot-disponible"
+          onclick="abrirModalNuevoTurno('${fechaStr}', ${hora}, '${slotEnHora.horaInicio}', '${slotEnHora.inicioISO}', '${slotEnHora.finISO}')">
+          + libre
+        </div>`;
+      }
+
+      html += `<div class="cal-celda${claseHoy}${claseFuera}"
+        ${!fueraHorario && !eventosEnSlot.length ? `onclick="abrirModalNuevoTurno('${fechaStr}', ${hora}, '${hora}:00', null, null)"` : ""}>
+        ${contenido}
+      </div>`;
+    });
+  });
+
+  grid.innerHTML = html;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esDentroDeHorario(diaSemana, hora) {
+  // 0=dom, 1=lun...6=sab
+  const mapeo = { 1: [8, 18], 2: [8, 18], 3: [8, 18], 4: [8, 18], 5: [8, 18], 6: [8, 12] };
+  const rango = mapeo[diaSemana];
+  if (!rango) return false;
+  return hora >= rango[0] && hora < rango[1];
+}
+
+function getColorEvento(ev) {
+  // Colores por colorId del Google Calendar o por terapeuta
+  const colores = {
+    "1": "#a4bdfc", "2": "#7ae7bf", "3": "#dbadff",
+    "4": "#ff887c", "5": "#fbd75b", "6": "#ffb878",
+    "7": "#46d6db", "8": "#e1e1e1", "9": "#5484ed",
+    "10": "#51b749", "11": "#dc2127",
+  };
+  if (ev.colorId && colores[ev.colorId]) return colores[ev.colorId];
+  // Default verde de Citrino
+  return terapeutas[0]?.color || "#5a7a5a";
+}
+
+function actualizarStats() {
+  document.getElementById("statTurnos").textContent = eventos.length;
+  document.getElementById("statSlots").textContent = slots.length;
+}
+
+// ============================================================
+// PANEL CLIENTE (sidebar derecho → seleccionar evento)
+// ============================================================
+function seleccionarEvento(evJson) {
+  const ev = JSON.parse(evJson);
+  const panel = document.getElementById("panelCliente");
+  const crm = ev.crm;
+
+  const estadoBadge = crm?.estado
+    ? `<span class="badge-estado estado-${crm.estado}">${crm.estado}</span>`
+    : "";
+
+  panel.innerHTML = `
+    <h3>Cliente seleccionado</h3>
+    <div class="cliente-nombre">${ev.clienteNombre || ev.titulo}</div>
+    ${estadoBadge}
+    <div class="cliente-campo">📅 <span>${new Date(ev.inicio).toLocaleString("es-UY", { weekday:"long", day:"numeric", month:"long", hour:"2-digit", minute:"2-digit", timeZone:"America/Montevideo" })}</span></div>
+    <div class="cliente-campo">💆 <span>${ev.clienteServicio || "—"}</span></div>
+    ${ev.clienteTelefono ? `<div class="cliente-campo">📱 <span>${ev.clienteTelefono}</span></div>` : ""}
+    ${crm ? `
+      <div class="cliente-campo">📊 Estado: <span>${crm.estado || "—"}</span></div>
+      ${crm.cuponera === "si" ? `<div class="cliente-campo">🎟️ Cuponera: <span>${crm.sesRest || 0} sesiones restantes</span></div>` : ""}
+      ${crm.canal ? `<div class="cliente-campo">💬 Canal: <span>${crm.canal}</span></div>` : ""}
+      ${crm.notas ? `<div class="cliente-campo">📝 Notas:<div class="notas-box">${crm.notas.replace(/\n/g, "<br>")}</div></div>` : ""}
+    ` : `<div class="cliente-campo" style="margin-top:0.5rem;color:var(--gris);font-size:0.78rem">Sin datos en CRM</div>`}
+    <div style="margin-top:1rem;display:flex;gap:0.4rem;flex-wrap:wrap">
+      ${ev.clienteTelefono ? `<a href="https://wa.me/${ev.clienteTelefono.replace(/\D/g,'')}" target="_blank" class="btn btn-verde" style="font-size:0.75rem;padding:0.3rem 0.7rem;text-decoration:none">WhatsApp</a>` : ""}
+      <button class="btn" style="background:#fde8e8;color:#a00;font-size:0.75rem;padding:0.3rem 0.7rem" onclick="cancelarTurno('${ev.id}')">Cancelar turno</button>
+    </div>
+  `;
+}
+
+// ============================================================
+// MODAL NUEVO TURNO
+// ============================================================
+function abrirModalNuevoTurno(fechaStr, hora, horaStr, inicioISO, finISO) {
+  slotSeleccionado = { fechaStr, hora, horaStr, inicioISO, finISO };
+
+  const d = new Date(fechaStr + "T12:00:00");
+  const diaLabel = d.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long" });
+  document.getElementById("modalInfo").textContent = `📅 ${diaLabel.charAt(0).toUpperCase() + diaLabel.slice(1)} a las ${horaStr} hs`;
+  document.getElementById("inputNombre").value = "";
+  document.getElementById("inputTelefono").value = "";
+  document.getElementById("inputServicio").value = "";
+  document.getElementById("modalOverlay").classList.add("open");
+}
+
+function cerrarModal() {
+  document.getElementById("modalOverlay").classList.remove("open");
+  slotSeleccionado = null;
+}
+
+async function confirmarTurno() {
+  const nombre = document.getElementById("inputNombre").value.trim();
+  const telefono = document.getElementById("inputTelefono").value.trim();
+  const servicio = document.getElementById("inputServicio").value;
+
+  if (!nombre || !servicio) {
+    mostrarToast("Completá nombre y servicio", "rojo");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const body = {
+      nombre,
+      telefono,
+      servicio,
+      slotLabel: slotSeleccionado?.horaStr
+        ? `${slotSeleccionado.fechaStr} ${slotSeleccionado.horaStr}`
+        : undefined,
+      inicioISO: slotSeleccionado?.inicioISO || undefined,
+      finISO: slotSeleccionado?.finISO || undefined,
+    };
+
+    const res = await fetch("/api/agenda/turno", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      mostrarToast("✅ Turno creado", "verde");
+      cerrarModal();
+      cargarDatos();
+    } else {
+      mostrarToast("❌ " + (data.error || "Error desconocido"), "rojo");
+    }
+  } catch (e) {
+    mostrarToast("❌ Error de red", "rojo");
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function cancelarTurno(eventId) {
+  if (!confirm("¿Cancelar este turno?")) return;
+  setLoading(true);
+  try {
+    const res = await fetch(`/api/agenda/turno/${eventId}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.ok) {
+      mostrarToast("Turno cancelado", "verde");
+      document.getElementById("panelCliente").innerHTML =
+        '<h3>Cliente seleccionado</h3><p class="panel-empty">Hacé clic en un turno para ver la info del cliente</p>';
+      cargarDatos();
+    } else {
+      mostrarToast("Error: " + data.error, "rojo");
+    }
+  } catch (e) {
+    mostrarToast("Error de red", "rojo");
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function mostrarToast(msg, tipo = "") {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.className = "toast show " + tipo;
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+function setLoading(on) {
+  document.getElementById("loading").style.display = on ? "flex" : "none";
+}
+
+// ============================================================
+// EVENTOS DE LA UI
+// ============================================================
+document.getElementById("btnAnterior").onclick = () => { semanaOffset--; cargarDatos(); };
+document.getElementById("btnSiguiente").onclick = () => { semanaOffset++; cargarDatos(); };
+document.getElementById("btnHoy").onclick = () => { semanaOffset = 0; cargarDatos(); };
+document.getElementById("btnNuevoTurno").onclick = () => {
+  const hoy = new Date();
+  abrirModalNuevoTurno(fechaISO(hoy), 9, "09:00", null, null);
+};
+document.getElementById("btnCancelarModal").onclick = cerrarModal;
+document.getElementById("btnConfirmarTurno").onclick = confirmarTurno;
+document.getElementById("modalOverlay").onclick = (e) => { if (e.target === e.currentTarget) cerrarModal(); };
+
+// Cerrar modal con Escape
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarModal(); });
+
+// ============================================================
+// INIT
+// ============================================================
+cargarDatos();
+
+// Auto-refresh cada 5 minutos
+setInterval(cargarDatos, 5 * 60 * 1000);
+</script>
+</body>
+</html>
