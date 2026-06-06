@@ -1,793 +1,251 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citrino — CRM</title>
-  <style>
-    :root {
-      --verde: #4a6f4a;
-      --verde-hover: #3d5e3d;
-      --verde-claro: #8fbc8f;
-      --verde-bg: #eef4ee;
-      --crema: #f7f2eb;
-      --crema-card: #ffffff;
-      --crema-border: #e5ddd0;
-      --texto: #1e2e1e;
-      --texto-suave: #5a6e5a;
-      --rojo: #b33a2f;
-      --naranja: #c96a18;
-      --azul: #2563b0;
-      --amarillo: #a07010;
-      --sombra: 0 1px 4px rgba(0,0,0,0.07);
-      --sombra-md: 0 4px 16px rgba(0,0,0,0.1);
-      --radio: 10px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--crema); color: var(--texto); min-height: 100vh; }
-
-    /* ── NAV ── */
-    nav.topnav {
-      background: var(--verde);
-      padding: 0 1.5rem;
-      display: flex;
-      align-items: center;
-      height: 52px;
-      gap: 0;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .nav-brand { color: white; font-size: 1rem; font-weight: 700; letter-spacing: -.3px; margin-right: 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 6px; }
-    .nav-links { display: flex; gap: 0.2rem; flex: 1; }
-    .nav-link {
-      color: rgba(255,255,255,0.75);
-      text-decoration: none;
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 0.35rem 0.8rem;
-      border-radius: 6px;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .nav-link:hover { background: rgba(255,255,255,0.12); color: white; }
-    .nav-link.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
-    .nav-refresh { margin-left: auto; }
-
-    /* ── CONTAINER ── */
-    .wrap { max-width: 1320px; margin: 0 auto; padding: 1.2rem 1.5rem; }
-
-    /* ── STATS CARDS ── */
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.2rem; }
-    .stat-card {
-      background: var(--crema-card);
-      border-radius: var(--radio);
-      padding: 0.9rem 1rem;
-      box-shadow: var(--sombra);
-      border: 1px solid var(--crema-border);
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-    .stat-num { font-size: 1.7rem; font-weight: 800; line-height: 1; }
-    .stat-label { font-size: 0.7rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; }
-    .stat-num.verde  { color: var(--verde); }
-    .stat-num.azul   { color: var(--azul); }
-    .stat-num.naranja{ color: var(--naranja); }
-    .stat-num.rojo   { color: var(--rojo); }
-
-    /* ── TOOLBAR ── */
-    .toolbar {
-      display: flex;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 0.9rem;
-    }
-    .toolbar input, .toolbar select {
-      padding: 0.45rem 0.8rem;
-      border: 1.5px solid var(--crema-border);
-      border-radius: 7px;
-      font-size: 0.83rem;
-      background: white;
-      color: var(--texto);
-      outline: none;
-      transition: border-color .15s;
-    }
-    .toolbar input:focus, .toolbar select:focus { border-color: var(--verde); }
-    .toolbar input { flex: 1; min-width: 200px; }
-    .btn {
-      padding: 0.45rem 1rem;
-      border: none;
-      border-radius: 7px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
-      transition: opacity .15s, transform .1s;
-      white-space: nowrap;
-    }
-    .btn:hover { opacity: 0.88; }
-    .btn:active { transform: scale(0.96); }
-    .btn-verde  { background: var(--verde); color: white; }
-    .btn-azul   { background: var(--azul); color: white; }
-    .btn-naranja{ background: var(--naranja); color: white; }
-    .btn-rojo   { background: var(--rojo); color: white; }
-    .btn-gris   { background: #e0dbd4; color: var(--texto); }
-    .btn-sm     { padding: 0.25rem 0.55rem; font-size: 0.72rem; border-radius: 5px; }
-
-    /* ── TABLA ── */
-    .tabla-card {
-      background: white;
-      border-radius: var(--radio);
-      border: 1px solid var(--crema-border);
-      box-shadow: var(--sombra);
-      overflow: hidden;
-    }
-    .tabla-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 860px; }
-    thead th {
-      background: var(--crema);
-      padding: 0.6rem 0.9rem;
-      text-align: left;
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--texto-suave);
-      font-weight: 700;
-      border-bottom: 1px solid var(--crema-border);
-    }
-    tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid #f5f0eb; font-size: 0.83rem; vertical-align: middle; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: #fafdf8; }
-    .loading-msg { text-align: center; padding: 3rem; color: var(--texto-suave); font-size: 0.9rem; }
-
-    /* ── BADGES ── */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 0.18rem 0.55rem;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .b-lead     { background: #fef3cd; color: #8a5a00; }
-    .b-agendado { background: #dbeafe; color: #1547a0; }
-    .b-vino     { background: #dcfce7; color: #166534; }
-    .b-no_vino  { background: #fee2e2; color: #991b1b; }
-    .b-cancelado{ background: #f3f4f6; color: #6b7280; }
-    .b-wa  { background: #d1fae5; color: #065f46; }
-    .b-fb  { background: #dbeafe; color: #1e40af; }
-    .b-ig  { background: #fce7f3; color: #9d174d; }
-    .b-dash{ background: #f3e8ff; color: #6b21a8; }
-    .cuponera-badge { background: var(--verde-bg); color: var(--verde); }
-
-    /* ── CLIENTE NOMBRE ── */
-    .cliente-nombre { font-weight: 600; font-size: 0.88rem; }
-    .cliente-tel { font-size: 0.75rem; color: var(--texto-suave); margin-top: 1px; }
-
-    /* ── ACCIONES ── */
-    .acciones { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-
-    /* ── MODALS ── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: white;
-      border-radius: 14px;
-      padding: 1.5rem;
-      width: 100%;
-      max-width: 480px;
-      box-shadow: var(--sombra-md);
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .modal.modal-wide { max-width: 600px; }
-    .modal h3 { font-size: 1rem; margin-bottom: 0.3rem; color: var(--verde); }
-    .modal .subtitle { font-size: 0.8rem; color: var(--texto-suave); margin-bottom: 1rem; }
-    .modal label { display: block; font-size: 0.78rem; color: var(--texto-suave); margin-bottom: 0.2rem; margin-top: 0.7rem; }
-    .modal textarea, .modal input, .modal select {
-      width: 100%;
-      padding: 0.5rem 0.7rem;
-      border: 1.5px solid var(--crema-border);
-      border-radius: 7px;
-      font-family: inherit;
-      font-size: 0.85rem;
-      outline: none;
-      transition: border-color .15s;
-      resize: vertical;
-    }
-    .modal textarea:focus, .modal input:focus, .modal select:focus { border-color: var(--verde); }
-    .modal-btns { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-
-    /* ── HISTORIAL DE CHATS ── */
-    .chat-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 380px; overflow-y: auto; padding: 0.5rem 0; }
-    .chat-bubble {
-      max-width: 80%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.82rem;
-      line-height: 1.45;
-    }
-    .chat-bubble.user { background: var(--verde-bg); color: var(--texto); align-self: flex-start; border-bottom-left-radius: 2px; }
-    .chat-bubble.bot  { background: #f0f0f0; color: var(--texto); align-self: flex-end; border-bottom-right-radius: 2px; }
-    .chat-fecha { font-size: 0.65rem; color: var(--texto-suave); margin-top: 2px; }
-    .chat-empty { text-align: center; color: var(--texto-suave); font-size: 0.82rem; padding: 1.5rem 0; }
-
-    /* ── TOAST ── */
-    .toast {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      background: var(--verde);
-      color: white;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      font-size: 0.83rem;
-      z-index: 300;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: all .25s;
-      pointer-events: none;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.error { background: var(--rojo); }
-
-    /* ── PAGINACION ── */
-    .pag-row { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 1rem; border-top: 1px solid var(--crema-border); font-size: 0.78rem; color: var(--texto-suave); }
-    .pag-btns { display: flex; gap: 0.3rem; }
-
-    /* ── CHIPS ── */
-    .chip {
-      padding: .3rem .85rem; border: 1.5px solid var(--crema-border); border-radius: 20px;
-      font-size: .78rem; font-weight: 600; cursor: pointer; background: white; color: var(--texto-suave);
-      transition: all .15s;
-    }
-    .chip:hover { border-color: var(--verde); color: var(--verde); }
-    .chip.active { background: var(--verde); border-color: var(--verde); color: white; }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 640px) {
-      .wrap { padding: 0.8rem; }
-      .stats-row { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-      .stat-num { font-size: 1.4rem; }
-      table { min-width: 700px; }
-      .nav-links { gap: 0; }
-      .nav-link { padding: 0.3rem 0.5rem; font-size: 0.76rem; }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0a0f0d"/>
+<title>Citrino — CRM</title>
+<link rel="stylesheet" href="/citrino-ui.css"/>
+<style>
+.admin-hero{
+  background:radial-gradient(ellipse at 15% -5%,rgba(59,130,246,.18) 0%,transparent 55%),
+             radial-gradient(ellipse at 85% 105%,rgba(34,197,94,.1) 0%,transparent 50%),
+             var(--bg2);
+  padding:calc(env(safe-area-inset-top,0px)+14px) 16px 16px;
+}
+.admin-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.admin-logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:15px}
+.search-wrap{position:relative}
+.search-input{width:100%;padding:11px 14px 11px 38px;background:var(--surface);border:1px solid var(--border2);border-radius:14px;color:var(--text);font-size:14px;outline:none;font-family:inherit;transition:border-color .2s;-webkit-appearance:none}
+.search-input:focus{border-color:var(--green-dim)}
+.search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
+.stat-pills{display:flex;gap:8px;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
+.stat-pills::-webkit-scrollbar{display:none}
+.stat-pill{flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;text-align:center;min-width:68px}
+.sp-val{font-size:18px;font-weight:800;letter-spacing:-.2px}
+.sp-lbl{font-size:10px;color:var(--text3);margin-top:2px;font-weight:500}
+.filter-row{display:flex;gap:6px;padding:10px 16px 2px;overflow-x:auto;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.sort-row{display:flex;gap:4px;padding:6px 16px;align-items:center}
+.sort-btn{background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:inherit;font-weight:500;transition:.15s}
+.sort-btn.a{color:var(--green);background:var(--green-subtle)}
+.clist{padding:6px 16px}
+.ccard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px;cursor:pointer;animation:fadeUp .25s cubic-bezier(.4,0,.2,1) both;transition:all .18s;position:relative}
+.ccard::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;opacity:0;transition:opacity .2s}
+.ccard.vip::after{background:var(--amber);opacity:1}
+.ccard.vino::after{background:var(--green);opacity:1}
+.ccard.riesgo::after{background:var(--red);opacity:.7}
+.ccard:active{background:var(--surface2);transform:scale(.985)}
+.ct{display:flex;align-items:center;gap:10px}
+.cav{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.ci{flex:1;min-width:0}
+.cn{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.dias-badge{font-size:10px;padding:2px 6px;border-radius:8px;background:var(--surface2);color:var(--text3);font-weight:600}
+.dias-badge.warn{background:rgba(245,158,11,.1);color:var(--amber)}
+.det-av{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 10px}
+.stars-row{display:flex;gap:4px;justify-content:center;margin:6px 0}
+.star{font-size:20px;color:var(--text4);cursor:pointer;transition:color .1s,transform .1s}
+.star.on{color:var(--amber)}
+.star:active{transform:scale(.85)}
+.status-opts{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px 4px}
+.s-opt{padding:7px 12px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text3);transition:.15s}
+.s-opt.sel{border-color:var(--green-dim);background:var(--green-subtle);color:var(--green)}
+.s-opt:active{transform:scale(.93)}
+.det-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 20px 8px}
+.det-btn{padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;text-align:center;text-decoration:none;display:block}
+.det-btn:active{transform:scale(.94)}
+.det-wa{background:rgba(34,197,94,.1);color:var(--green)}
+.det-nota{background:var(--surface2);color:var(--text)}
+.det-full{grid-column:1/-1;background:rgba(34,197,94,.07);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+</style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="nav-brand" href="/admin">🌿 Citrino</a>
-  <div class="nav-links">
-    <a class="nav-link active" href="/admin">👥 CRM</a>
-    <a class="nav-link" href="/agenda">📅 Agenda</a>
-    <a class="nav-link" href="/finanzas">💰 Finanzas</a>
-    <a class="nav-link" href="/dashboard">📊 Dashboard</a>
+<div class="admin-hero">
+  <div class="admin-topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="admin-logo">👥</div>
+      <span style="font-size:16px;font-weight:700">Clientes CRM</span>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn-icon" onclick="loadClientes()">🔄</button>
+      <button class="btn-icon" onclick="exportarCSV()">📤</button>
+    </div>
   </div>
-  <button class="btn btn-gris nav-refresh" style="font-size:0.75rem;padding:0.3rem 0.7rem" onclick="cargarClientes()">↻</button>
+  <div class="search-wrap">
+    <span class="search-ico">🔍</span>
+    <input class="search-input" id="searchInput" placeholder="Buscar nombre, teléfono..." oninput="renderClientes()"/>
+  </div>
+</div>
+
+<div class="stat-pills" id="statPills">
+  <div class="stat-pill"><div class="sp-val" id="sTot">–</div><div class="sp-lbl">Total</div></div>
+  <div class="stat-pill"><div class="sp-val t-green" id="sVin">–</div><div class="sp-lbl">Vinieron</div></div>
+  <div class="stat-pill"><div class="sp-val t-amber" id="sAg">–</div><div class="sp-lbl">Agendadas</div></div>
+  <div class="stat-pill"><div class="sp-val t-blue" id="sLea">–</div><div class="sp-lbl">Leads</div></div>
+  <div class="stat-pill"><div class="sp-val" id="sCup">–</div><div class="sp-lbl">Cuponeras</div></div>
+</div>
+
+<div class="filter-row">
+  <div class="chip a" onclick="setFiltro(this,'todos')">Todos</div>
+  <div class="chip" onclick="setFiltro(this,'vip')">⭐ VIP</div>
+  <div class="chip" onclick="setFiltro(this,'cuponera')">🎟 Cuponera</div>
+  <div class="chip" onclick="setFiltro(this,'riesgo')">⚠️ En riesgo</div>
+  <div class="chip" onclick="setFiltro(this,'leads')">🎯 Leads</div>
+  <div class="chip" onclick="setFiltro(this,'agendado')">📅 Agendados</div>
+</div>
+
+<div class="sort-row">
+  <span style="font-size:11px;color:var(--text3);font-weight:500;margin-right:2px">Ordenar:</span>
+  <button class="sort-btn a" id="sortScore" onclick="setSort('score')">Relevancia</button>
+  <button class="sort-btn" id="sortReciente" onclick="setSort('reciente')">Reciente</button>
+  <button class="sort-btn" id="sortNombre" onclick="setSort('nombre')">A–Z</button>
+  <span style="margin-left:auto;font-size:11px;color:var(--text3)" id="cntLbl"></span>
+</div>
+
+<div class="clist" id="clist">
+  ${Array(5).fill(`<div class="ccard"><div class="ct"><div class="skel" style="width:40px;height:40px;border-radius:13px"></div><div style="flex:1;margin-left:10px"><div class="skel" style="height:14px;width:55%;margin-bottom:7px"></div><div class="skel" style="height:11px;width:38%"></div></div></div></div>`).join('')}
+</div>
+
+<nav class="bottom-nav">
+  <a class="nav-btn" href="/dashboard"><span class="nav-ico">📊</span><span>Inicio</span><div class="nav-pip"></div></a>
+  <a class="nav-btn" href="/agenda"><span class="nav-ico">📅</span><span>Agenda</span><div class="nav-pip"></div></a>
+  <a class="nav-btn act" href="/admin"><span class="nav-ico">👥</span><span>Clientes</span><div class="nav-pip"></div></a>
+  <a class="nav-btn" href="/finanzas"><span class="nav-ico">💰</span><span>Finanzas</span><div class="nav-pip"></div></a>
 </nav>
 
-<div class="wrap">
-
-  <!-- Stats rápidos -->
-  <div class="stats-row" id="statsRow">
-    <div class="stat-card"><div class="stat-num verde" id="s-total">—</div><div class="stat-label">Total</div></div>
-    <div class="stat-card"><div class="stat-num azul" id="s-agendados">—</div><div class="stat-label">Agendados</div></div>
-    <div class="stat-card"><div class="stat-num verde" id="s-vino">—</div><div class="stat-label">Vinieron</div></div>
-    <div class="stat-card"><div class="stat-num naranja" id="s-leads">—</div><div class="stat-label">Leads</div></div>
-    <div class="stat-card"><div class="stat-num verde" id="s-cuponera">—</div><div class="stat-label">Cuponeras</div></div>
-    <div class="stat-card"><div class="stat-num verde" id="s-conv">—</div><div class="stat-label">Conversión</div></div>
-  </div>
-
-  <!-- Chips de filtro rápido -->
-  <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.7rem">
-    <button class="chip active" onclick="setChip('todos',this)">Todos</button>
-    <button class="chip" onclick="setChip('saldo',this)">🎟 Con saldo</button>
-    <button class="chip" onclick="setChip('riesgo',this)">🔴 En riesgo</button>
-    <button class="chip" onclick="setChip('lead',this)">⬤ Leads</button>
-    <button class="chip" onclick="setChip('agendado',this)">📅 Agendados</button>
-  </div>
-
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <input type="text" id="buscar" placeholder="🔍 Nombre, teléfono o servicio..." oninput="filtrar()" />
-    <select id="filtro-canal" onchange="filtrar()">
-      <option value="">Todos los canales</option>
-      <option value="whatsapp">WhatsApp</option>
-      <option value="facebook">Facebook</option>
-      <option value="instagram">Instagram</option>
-    </select>
-    <button class="btn btn-verde" onclick="abrirNuevoCliente()">+ Cliente</button>
-  </div>
-
-  <!-- Tabla -->
-  <div class="tabla-card">
-    <div class="tabla-scroll">
-      <div id="loading-msg" class="loading-msg">Cargando... 🌿</div>
-      <table id="tabla" style="display:none">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Canal</th>
-            <th>Servicio</th>
-            <th>Estado</th>
-            <th>Cuponera / Saldo</th>
-            <th>LTV</th>
-            <th>Último</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-    <div class="pag-row" id="paginacion" style="display:none">
-      <span id="pag-info"></span>
-      <div class="pag-btns">
-        <button class="btn btn-gris btn-sm" id="pag-ant" onclick="cambiarPag(-1)">‹ Ant</button>
-        <button class="btn btn-gris btn-sm" id="pag-sig" onclick="cambiarPag(1)">Sig ›</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Nota -->
-<div class="modal-overlay" id="modal-nota">
-  <div class="modal">
-    <h3>📝 Agregar nota</h3>
-    <p class="subtitle" id="modal-nota-nombre"></p>
-    <label>Nota</label>
-    <textarea id="nota-texto" rows="4" placeholder="Ej: Prefiere sábados, tiene lumbalgia..."></textarea>
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-nota')">Cancelar</button>
-      <button class="btn btn-verde" onclick="guardarNota()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Mensaje -->
-<div class="modal-overlay" id="modal-mensaje">
-  <div class="modal">
-    <h3>✉ Enviar mensaje</h3>
-    <p class="subtitle" id="modal-msg-nombre"></p>
-    <label>Mensaje</label>
-    <textarea id="mensaje-texto" rows="4" placeholder="Escribí el mensaje..."></textarea>
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-mensaje')">Cancelar</button>
-      <button class="btn btn-azul" onclick="enviarMensajeAdmin()">Enviar por WhatsApp</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Cuponera -->
-<div class="modal-overlay" id="modal-cuponera">
-  <div class="modal">
-    <h3>🎟 Registrar cuponera</h3>
-    <p class="subtitle" id="modal-cup-nombre"></p>
-    <label>Sesiones del pack</label>
-    <select id="cuponera-sesiones">
-      <option value="4">Pack 4 sesiones — $5.100</option>
-      <option value="6">Pack 6 sesiones — $7.400</option>
-      <option value="8" selected>Pack 8 sesiones — $9.600</option>
-      <option value="custom">Cantidad personalizada</option>
-    </select>
-    <div id="cuponera-custom-wrap" style="display:none;margin-top:0.5rem">
-      <label>Cantidad de sesiones</label>
-      <input type="number" id="cuponera-custom" min="1" max="30" value="5" />
-    </div>
-    <label>Monto cobrado (dejar vacío para usar precio de lista)</label>
-    <input type="number" id="cuponera-monto" placeholder="Ej: 7400" />
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-cuponera')">Cancelar</button>
-      <button class="btn btn-naranja" onclick="guardarCuponera()">Registrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Chat history -->
-<div class="modal-overlay" id="modal-chat">
-  <div class="modal modal-wide">
-    <h3>💬 Historial de conversación</h3>
-    <p class="subtitle" id="modal-chat-nombre"></p>
-    <div class="chat-list" id="chat-list">
-      <p class="chat-empty">Cargando...</p>
-    </div>
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-chat')">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Nuevo cliente manual -->
-<div class="modal-overlay" id="modal-nuevo">
-  <div class="modal">
-    <h3>👤 Nuevo cliente</h3>
-    <p class="subtitle">Agregá un cliente manualmente al CRM</p>
-    <label>Nombre *</label>
-    <input type="text" id="nuevo-nombre" placeholder="Ej: María López" />
-    <label>Teléfono</label>
-    <input type="tel" id="nuevo-tel" placeholder="+598 9x xxx xxx" />
-    <label>Servicio de interés</label>
-    <select id="nuevo-servicio">
-      <option value="">Sin especificar</option>
-      <option>Método Citrino</option>
-      <option>Drenaje Linfático</option>
-      <option>Masaje Descontracturante</option>
-      <option>Masaje Relax</option>
-      <option>Masaje Modelador</option>
-      <option>Reflexología</option>
-      <option>Reiki</option>
-      <option>Limpieza de Cutis</option>
-      <option>Manicuría</option>
-    </select>
-    <label>Canal</label>
-    <select id="nuevo-canal">
-      <option value="whatsapp">WhatsApp</option>
-      <option value="instagram">Instagram</option>
-      <option value="facebook">Facebook</option>
-      <option value="dashboard">Manual</option>
-    </select>
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-nuevo')">Cancelar</button>
-      <button class="btn btn-verde" onclick="crearCliente()">Agregar</button>
-    </div>
+<div class="overlay" id="mCli" onclick="if(event.target===this)close_()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><span class="sheet-title" id="mNom">–</span><button class="sheet-close" onclick="close_()">✕</button></div>
+    <div id="mBody"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-let todosLosClientes = [];
-let clientesFiltrados = [];
-let usuarioActivo = null;
-const POR_PAG = 25;
-let pagActual = 0;
-let chipActivo = "todos";
+let clientes=[],filtro='todos',sortMode='score';
+const PAL=[{bg:'rgba(34,197,94,.1)',c:'#22c55e'},{bg:'rgba(168,85,247,.1)',c:'#c084fc'},{bg:'rgba(245,158,11,.1)',c:'#fbbf24'},{bg:'rgba(59,130,246,.1)',c:'#60a5fa'},{bg:'rgba(239,68,68,.1)',c:'#f87171'},{bg:'rgba(107,114,128,.1)',c:'#9ca3af'}];
+function toast(msg,dur=2500){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur)}
+function pal(s){let h=0;for(const c of(s||''))h=(h*31+c.charCodeAt(0))%PAL.length;return PAL[h]}
+function ini(s){return(s||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2)||'?'}
 
-// ============================================================
-// CARGA
-// ============================================================
-async function cargarClientes() {
-  document.getElementById("loading-msg").style.display = "block";
-  document.getElementById("tabla").style.display = "none";
-  document.getElementById("paginacion").style.display = "none";
-  try {
-    const [resC, resS] = await Promise.all([
-      fetch("/api/clientes"),
-      fetch("/api/stats"),
-    ]);
-    todosLosClientes = await resC.json();
-    const stats = await resS.json();
-    renderStats(stats);
-    filtrar();
-    document.getElementById("loading-msg").style.display = "none";
-    document.getElementById("tabla").style.display = "table";
-  } catch (e) {
-    document.getElementById("loading-msg").textContent = "❌ Error: " + e.message;
-  }
+async function loadClientes(){
+  try{const r=await fetch('/api/clientes');const raw=await r.json();clientes=raw.map(enrich);renderStats();renderClientes();}
+  catch{document.getElementById('clist').innerHTML='<div class="empty-state"><div class="ico">⚠️</div><p>Error cargando clientes</p></div>'}
 }
 
-function renderStats(s) {
-  document.getElementById("s-total").textContent = s.total || 0;
-  document.getElementById("s-agendados").textContent = s.agendados || 0;
-  document.getElementById("s-vino").textContent = s.vinieron || 0;
-  document.getElementById("s-leads").textContent = s.leads || 0;
-  document.getElementById("s-cuponera").textContent = s.conCuponera || 0;
-  document.getElementById("s-conv").textContent = (s.tasaConversion || 0) + "%";
+function enrich(c){
+  const dias=c.UltimoContacto?Math.floor((Date.now()-new Date(c.UltimoContacto))/86400000):999;
+  const ses=parseInt(c['Ses.Rest.'])||0;
+  const score=scoreOf(c,dias,ses);
+  return{...c,dias,score,cat:catOf(score,c,dias)};
+}
+function scoreOf(c,dias,ses){let s=0;if(c.Estado==='vino')s+=3;else if(c.Estado==='agendado')s+=2;else if(c.Estado==='lead')s+=1;if(c.Cuponera==='si')s+=2;if(dias<7)s+=2;else if(dias<30)s+=1;if(ses>0)s+=1;return Math.min(5,Math.round(s/2));}
+function catOf(score,c,dias){if(score>=4)return'vip';if(c.Estado==='vino'&&dias>30)return'riesgo';if(c.Estado==='vino')return'vino';if(c.Estado==='agendado')return'agendado';if(c.Estado==='lead'&&score>=3)return'hot';return'lead';}
+
+function renderStats(){
+  document.getElementById('sTot').textContent=clientes.length;
+  document.getElementById('sVin').textContent=clientes.filter(c=>c.Estado==='vino').length;
+  document.getElementById('sAg').textContent=clientes.filter(c=>c.Estado==='agendado').length;
+  document.getElementById('sLea').textContent=clientes.filter(c=>c.Estado==='lead').length;
+  document.getElementById('sCup').textContent=clientes.filter(c=>c.Cuponera==='si').length;
 }
 
-// ============================================================
-// FILTRO Y PAGINACIÓN
-// ============================================================
-function setChip(chip, el) {
-  chipActivo = chip;
-  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-  el.classList.add("active");
-  filtrar();
+function renderClientes(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let list=[...clientes];
+  if(q)list=list.filter(c=>(c.Nombre||'').toLowerCase().includes(q)||(c.Teléfono||'').includes(q));
+  if(filtro==='vip')list=list.filter(c=>c.score>=4);
+  else if(filtro==='cuponera')list=list.filter(c=>c.Cuponera==='si');
+  else if(filtro==='riesgo')list=list.filter(c=>c.cat==='riesgo');
+  else if(filtro==='leads')list=list.filter(c=>c.Estado==='lead');
+  else if(filtro==='agendado')list=list.filter(c=>c.Estado==='agendado');
+  if(sortMode==='score')list.sort((a,b)=>b.score-a.score);
+  else if(sortMode==='reciente')list.sort((a,b)=>new Date(b.UltimoContacto||0)-new Date(a.UltimoContacto||0));
+  else if(sortMode==='nombre')list.sort((a,b)=>(a.Nombre||'').localeCompare(b.Nombre||''));
+  document.getElementById('cntLbl').textContent=list.length+' cliente'+(list.length!==1?'s':'');
+  if(!list.length){document.getElementById('clist').innerHTML='<div class="empty-state"><div class="ico">🔍</div><p>Sin resultados</p></div>';return;}
+  document.getElementById('clist').innerHTML=list.map((c,i)=>{
+    const p=pal(c.Nombre||c.ID);const av=ini(c.Nombre);
+    const id=(c.ID||c.Teléfono||'').replace(/'/g,"\\'");
+    const sub=[c.Servicio,c.Canal].filter(Boolean).join(' · ')||'–';
+    const sesLabel=c.Cuponera==='si'?` · 🎟${c['Ses.Rest.']}`:''
+    const warn=c.dias>30&&c.Estado==='vino';
+    return`<div class="ccard ${c.cat||''}" style="animation-delay:${Math.min(i*.03,.3)}s" onclick="openCli('${id}')">
+<div class="ct">
+  <div class="cav" style="background:${p.bg};color:${p.c}">${av}</div>
+  <div class="ci"><div class="cn">${c.Nombre||id||'–'}</div><div class="cs">${sub}${sesLabel}</div></div>
+  <div class="cr"><span class="dias-badge${warn?' warn':''}">${c.dias<999?c.dias+'d':'–'}</span></div>
+</div></div>`;
+  }).join('');
 }
 
-function filtrar() {
-  const busq = document.getElementById("buscar").value.toLowerCase();
-  const canal = document.getElementById("filtro-canal").value;
-  const hoy = new Date();
-
-  clientesFiltrados = todosLosClientes.filter(c => {
-    const matchTexto = !busq ||
-      (c.Nombre || "").toLowerCase().includes(busq) ||
-      (c.Teléfono || "").includes(busq) ||
-      (c.Servicio || "").toLowerCase().includes(busq);
-    const matchCanal = !canal || c.Canal === canal;
-
-    let matchChip = true;
-    if (chipActivo === "saldo") matchChip = c.Cuponera === "si" && parseInt(c["Ses.Rest."]) > 0;
-    if (chipActivo === "riesgo") {
-      const dias = c.UltimoContacto ? Math.floor((hoy - new Date(c.UltimoContacto)) / 86400000) : 999;
-      matchChip = dias > 30 && c.Estado === "vino";
-    }
-    if (chipActivo === "lead") matchChip = c.Estado === "lead";
-    if (chipActivo === "agendado") matchChip = c.Estado === "agendado";
-
-    return matchTexto && matchCanal && matchChip;
-  });
-
-  pagActual = 0;
-  renderPagina();
+function openCli(id){
+  const c=clientes.find(x=>(x.ID||x.Teléfono||'')===(id));if(!c)return;
+  const p=pal(c.Nombre||id);const av=ini(c.Nombre);
+  const eid=id.replace(/'/g,"\\'");const nom=(c.Nombre||'').replace(/'/g,"\\'");
+  document.getElementById('mNom').textContent=c.Nombre||id;
+  document.getElementById('mBody').innerHTML=`
+<div style="text-align:center;padding:4px 20px 0">
+  <div class="det-av" style="background:${p.bg};color:${p.c}">${av}</div>
+  <div style="font-size:11px;color:var(--text3)">${c.Teléfono||''}</div>
+</div>
+<div style="padding:0 20px">
+${[['Estado',c.Estado||'–'],['Canal',c.Canal||'–'],['Servicio',c.Servicio||'–'],['Cuponera',c.Cuponera==='si'?'✅ '+c['Ses.Rest.']+' sesiones':'No'],['Último contacto',c.UltimoContacto?new Date(c.UltimoContacto).toLocaleDateString('es-UY'):'–']].map(([k,v])=>`<div class="data-row"><span class="data-key">${k}</span><span class="data-val">${v}</span></div>`).join('')}
+${c.Notas?`<div class="data-row"><span class="data-key">Notas</span><span class="data-val" style="font-size:12px">${c.Notas.slice(0,120)}</span></div>`:''}
+</div>
+<div class="status-opts">
+${['lead','agendado','vino','no_vino','cancelado'].map(s=>`<div class="s-opt${c.Estado===s?' sel':''}" onclick="cambiarEstado('${eid}','${s}',this)">${{lead:'🎯 Lead',agendado:'📅 Agendado',vino:'✅ Vino',no_vino:'❌ No vino',cancelado:'🚫 Cancelado'}[s]}</div>`).join('')}
+</div>
+<div class="det-actions">
+  <button class="det-btn det-wa" onclick="sendWA('${eid}','${nom}')">📱 WhatsApp</button>
+  <button class="det-btn det-nota" onclick="addNota('${eid}')">📝 Nota</button>
+  <button class="det-btn det-full" onclick="marcarVino('${eid}','${nom}')">✅ Marcar asistencia</button>
+  <a href="/cliente?id=${encodeURIComponent(id)}" class="det-btn det-nota" style="text-decoration:none;grid-column:1/-1;text-align:center">👤 Perfil completo →</a>
+</div>`;
+  document.getElementById('mCli').classList.add('open');
 }
 
-function renderPagina() {
-  const total = clientesFiltrados.length;
-  const totalPags = Math.ceil(total / POR_PAG);
-  const inicio = pagActual * POR_PAG;
-  const slice = clientesFiltrados.slice(inicio, inicio + POR_PAG);
-
-  renderTabla(slice);
-
-  const pag = document.getElementById("paginacion");
-  if (total > POR_PAG) {
-    pag.style.display = "flex";
-    document.getElementById("pag-info").textContent = `${inicio + 1}–${Math.min(inicio + POR_PAG, total)} de ${total}`;
-    document.getElementById("pag-ant").disabled = pagActual === 0;
-    document.getElementById("pag-sig").disabled = pagActual >= totalPags - 1;
-  } else {
-    pag.style.display = total > 0 ? "flex" : "none";
-    document.getElementById("pag-info").textContent = `${total} cliente${total !== 1 ? "s" : ""}`;
-    document.getElementById("pag-ant").style.display = "none";
-    document.getElementById("pag-sig").style.display = "none";
-  }
+async function cambiarEstado(id,estado,el){
+  document.querySelectorAll('.s-opt').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');
+  await fetch(`/api/clientes/${encodeURIComponent(id)}/estado`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado})});
+  const c=clientes.find(x=>(x.ID||x.Teléfono||'')===(id));if(c)c.Estado=estado;
+  toast('✅ Estado actualizado');
 }
 
-function cambiarPag(dir) {
-  pagActual += dir;
-  renderPagina();
-  window.scrollTo({ top: 0, behavior: "smooth" });
+async function marcarVino(id,nom){
+  await fetch(`/api/clientes/${encodeURIComponent(id)}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vino:true})});
+  toast(`✅ ${nom} marcada como asistida`);close_();loadClientes();
 }
 
-// ============================================================
-// RENDER TABLA
-// ============================================================
-function renderTabla(clientes) {
-  const tbody = document.getElementById("tbody");
-  if (!clientes.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--texto-suave);padding:2.5rem">Sin resultados</td></tr>`;
-    return;
-  }
-
-  const estadoBadge = {
-    lead:     '<span class="badge b-lead">⬤ Lead</span>',
-    agendado: '<span class="badge b-agendado">📅 Agendado</span>',
-    vino:     '<span class="badge b-vino">✓ Vino</span>',
-    no_vino:  '<span class="badge b-no_vino">✗ No vino</span>',
-    cancelado:'<span class="badge b-cancelado">Cancelado</span>',
-  };
-  const canalBadge = {
-    whatsapp: '<span class="badge b-wa">💬 WA</span>',
-    facebook: '<span class="badge b-fb">📘 FB</span>',
-    instagram:'<span class="badge b-ig">📸 IG</span>',
-    dashboard:'<span class="badge b-dash">🖥 Manual</span>',
-  };
-
-  tbody.innerHTML = clientes.map(c => {
-    const uid = encodeURIComponent(c.ID);
-    const nombre = (c.Nombre || "—").replace(/'/g,"&#39;");
-    const sesRest = parseInt(c["Ses.Rest."]) || 0;
-    const cuponera = c.Cuponera === "si"
-      ? `<span class="badge cuponera-badge">🎟 ${sesRest} ses.</span>`
-      : `<span style="color:var(--texto-suave);font-size:0.75rem">—</span>`;
-    const ultimoCont = c.UltimoContacto
-      ? new Date(c.UltimoContacto).toLocaleDateString("es-UY",{day:"numeric",month:"short"})
-      : "—";
-
-    return `<tr>
-      <td>
-        <a href="/cliente?id=${encodeURIComponent(c.ID)}" style="text-decoration:none">
-          <div class="cliente-nombre" style="color:var(--verde);cursor:pointer">${c.Nombre || "Sin nombre"}</div>
-        </a>
-        <div class="cliente-tel">${c.Teléfono || c.ID || "—"}</div>
-        ${c.Notas ? `<div style="font-size:0.7rem;color:var(--texto-suave);margin-top:2px" title="${(c.Notas||"").replace(/"/g,"&quot;")}">📝 ${(c.Notas||"").substring(0,35)}${(c.Notas||"").length>35?"...":""}</div>` : ""}
-      </td>
-      <td>${canalBadge[c.Canal] || (c.Canal||"—")}</td>
-      <td style="font-size:0.8rem">${c.Servicio || "—"}</td>
-      <td>${estadoBadge[c.Estado] || `<span class="badge">${c.Estado||"—"}</span>`}</td>
-      <td>${cuponera}</td>
-      <td class="ltv-cell" data-id="${c.ID}" style="font-size:0.8rem;font-weight:700;color:var(--verde)">—</td>
-      <td style="font-size:0.72rem;color:${ultimoCont !== '—' && c.UltimoContacto && Math.floor((Date.now()-new Date(c.UltimoContacto))/86400000)>30 ? 'var(--naranja)' : 'var(--texto-suave)'}">${ultimoCont}</td>
-      <td>
-        <div class="acciones">
-          <button class="btn btn-verde btn-sm" onclick="marcarVino('${c.ID}','${nombre}',true)" title="Marcá que vino">✓</button>
-          <button class="btn btn-rojo btn-sm" onclick="marcarVino('${c.ID}','${nombre}',false)" title="No vino">✗</button>
-          <button class="btn btn-naranja btn-sm" onclick="abrirCuponera('${c.ID}','${nombre}')" title="Cuponera">🎟</button>
-          <button class="btn btn-gris btn-sm" onclick="abrirNota('${c.ID}','${nombre}')" title="Nota">📝</button>
-          <button class="btn btn-azul btn-sm" onclick="abrirMensaje('${c.ID}','${nombre}')" title="Enviar WA">✉</button>
-          <button class="btn btn-gris btn-sm" onclick="verChat('${c.ID}','${nombre}')" title="Ver chat">💬</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join("");
+async function sendWA(id,nom){
+  const msg=prompt(`Mensaje para ${nom}:`);if(!msg)return;
+  const r=await fetch(`/api/clientes/${encodeURIComponent(id)}/whatsapp`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:msg})});
+  toast(r.ok?'✅ Enviado':'❌ Error');
 }
 
-// ============================================================
-// ACCIONES
-// ============================================================
-async function marcarVino(userId, nombre, vino) {
-  try {
-    const res = await fetch(`/api/clientes/${encodeURIComponent(userId)}/asistencia`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vino }),
-    });
-    if (!res.ok) throw new Error("Error");
-    toast(`${nombre}: ${vino ? "✓ vino registrado (ingreso auto)" : "✗ no vino"}`);
-    cargarClientes();
-  } catch (e) { toast("Error: " + e.message, true); }
+async function addNota(id){
+  const n=prompt('Nota:');if(!n)return;
+  await fetch(`/api/clientes/${encodeURIComponent(id)}/nota`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nota:n})});
+  toast('📝 Nota guardada');
 }
 
-function abrirNota(userId, nombre) {
-  usuarioActivo = { userId, nombre };
-  document.getElementById("modal-nota-nombre").textContent = nombre;
-  document.getElementById("nota-texto").value = "";
-  document.getElementById("modal-nota").classList.add("open");
-}
-async function guardarNota() {
-  const nota = document.getElementById("nota-texto").value.trim();
-  if (!nota) return;
-  try {
-    await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/nota`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nota }),
-    });
-    toast("Nota guardada ✓"); cerrarModal("modal-nota"); cargarClientes();
-  } catch (e) { toast("Error", true); }
+function setFiltro(el,f){document.querySelectorAll('.chip').forEach(x=>x.classList.remove('a'));el.classList.add('a');filtro=f;renderClientes();}
+function setSort(s){sortMode=s;document.querySelectorAll('.sort-btn').forEach(x=>x.classList.remove('a'));document.getElementById('sort'+s.charAt(0).toUpperCase()+s.slice(1))?.classList.add('a');renderClientes();}
+function close_(){document.getElementById('mCli').classList.remove('open')}
+
+function exportarCSV(){
+  const csv=['Nombre,Teléfono,Canal,Servicio,Estado,Cuponera'].concat(clientes.map(c=>[c.Nombre,c.Teléfono,c.Canal,c.Servicio,c.Estado,c.Cuponera].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','))).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download='citrino-clientes.csv';a.click();toast('📤 CSV descargado');
 }
 
-function abrirCuponera(userId, nombre) {
-  usuarioActivo = { userId, nombre };
-  document.getElementById("modal-cup-nombre").textContent = nombre;
-  document.getElementById("cuponera-sesiones").value = "8";
-  document.getElementById("cuponera-monto").value = "";
-  document.getElementById("cuponera-custom-wrap").style.display = "none";
-  document.getElementById("modal-cuponera").classList.add("open");
-}
-document.getElementById("cuponera-sesiones").onchange = function() {
-  document.getElementById("cuponera-custom-wrap").style.display = this.value === "custom" ? "block" : "none";
-};
-async function guardarCuponera() {
-  const sel = document.getElementById("cuponera-sesiones").value;
-  const sesiones = sel === "custom"
-    ? parseInt(document.getElementById("cuponera-custom").value) || 5
-    : parseInt(sel);
-  const monto = parseFloat(document.getElementById("cuponera-monto").value) || 0;
-  try {
-    // Registrar cuponera en CRM
-    await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/cuponera`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sesiones }),
-    });
-    // Registrar ingreso en Finanzas
-    if (monto > 0 || sesiones) {
-      await fetch("/api/finanzas/cuponera", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clienteId: usuarioActivo.userId, sesiones, monto }),
-      });
-    }
-    toast(`Cuponera ${sesiones} ses. registrada ✓`); cerrarModal("modal-cuponera"); cargarClientes();
-  } catch (e) { toast("Error", true); }
-}
-
-function abrirMensaje(userId, nombre) {
-  usuarioActivo = { userId, nombre };
-  document.getElementById("modal-msg-nombre").textContent = `Para: ${nombre}`;
-  document.getElementById("mensaje-texto").value = "";
-  document.getElementById("modal-mensaje").classList.add("open");
-}
-async function enviarMensajeAdmin() {
-  const texto = document.getElementById("mensaje-texto").value.trim();
-  if (!texto) return;
-  try {
-    await fetch(`/api/clientes/${encodeURIComponent(usuarioActivo.userId)}/mensaje`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto }),
-    });
-    toast(`Mensaje enviado a ${usuarioActivo.nombre} ✓`); cerrarModal("modal-mensaje");
-  } catch (e) { toast("Error", true); }
-}
-
-async function verChat(userId, nombre) {
-  document.getElementById("modal-chat-nombre").textContent = nombre;
-  document.getElementById("chat-list").innerHTML = '<p class="chat-empty">Cargando...</p>';
-  document.getElementById("modal-chat").classList.add("open");
-  try {
-    const res = await fetch(`/api/clientes/${encodeURIComponent(userId)}/chats`);
-    const chats = await res.json();
-    if (!chats.length) {
-      document.getElementById("chat-list").innerHTML = '<p class="chat-empty">Sin historial de chats todavía</p>';
-      return;
-    }
-    document.getElementById("chat-list").innerHTML = chats.map(c => {
-      const fecha = c.fecha ? new Date(c.fecha).toLocaleString("es-UY",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) : "";
-      return `<div style="display:flex;flex-direction:column;align-items:${c.rol==="bot"?"flex-end":"flex-start"}">
-        <div class="chat-bubble ${c.rol === "bot" ? "bot" : "user"}">${(c.msg||"").replace(/\n/g,"<br>")}</div>
-        <span class="chat-fecha">${c.rol === "bot" ? "🌿 Marta" : "👤 Cliente"} · ${fecha}</span>
-      </div>`;
-    }).join("");
-    // Scroll al final
-    setTimeout(() => {
-      const list = document.getElementById("chat-list");
-      list.scrollTop = list.scrollHeight;
-    }, 50);
-  } catch (e) { document.getElementById("chat-list").innerHTML = '<p class="chat-empty">Error al cargar</p>'; }
-}
-
-function abrirNuevoCliente() { document.getElementById("modal-nuevo").classList.add("open"); }
-async function crearCliente() {
-  const nombre = document.getElementById("nuevo-nombre").value.trim();
-  if (!nombre) { toast("Nombre requerido", true); return; }
-  const tel = document.getElementById("nuevo-tel").value.trim() || `manual_${Date.now()}`;
-  const servicio = document.getElementById("nuevo-servicio").value;
-  const canal = document.getElementById("nuevo-canal").value;
-  try {
-    await fetch("/api/agenda/turno", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, telefono: tel, servicio: servicio || "Consulta", slotLabel: null }),
-    }).catch(() => {});
-    // Usar endpoint simplificado: registrar solo en CRM
-    await fetch(`/api/clientes/${encodeURIComponent(tel)}/nota`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nota: `Alta manual — ${servicio || "sin servicio"}` }),
-    }).catch(() => {});
-    toast(`${nombre} agregado ✓`); cerrarModal("modal-nuevo"); cargarClientes();
-  } catch (e) { toast("Error", true); }
-}
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function cerrarModal(id) { document.getElementById(id).classList.remove("open"); usuarioActivo = null; }
-document.querySelectorAll(".modal-overlay").forEach(o => {
-  o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); });
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(o => o.classList.remove("open")); });
-
-function toast(msg, error = false) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.toggle("error", error);
-  t.classList.add("show");
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove("show"), 3200);
-}
-
-// Carga LTV en background para las celdas visibles
-async function cargarLTVVisible() {
-  const celdas = document.querySelectorAll(".ltv-cell");
-  // Solo las primeras 10 para no saturar
-  const batch = Array.from(celdas).slice(0, 10);
-  for (const celda of batch) {
-    const id = celda.dataset.id;
-    if (!id || celda.textContent !== "—") continue;
-    try {
-      const res = await fetch(`/api/clientes/${encodeURIComponent(id)}/ltv`);
-      const { ltv } = await res.json();
-      if (ltv > 0) celda.textContent = `$${ltv.toLocaleString("es-UY")}`;
-      else celda.textContent = "";
-    } catch {}
-    await new Promise(r => setTimeout(r, 50));
-  }
-}
-
-cargarClientes().then(() => setTimeout(cargarLTVVisible, 500));
+loadClientes();
 </script>
 </body>
 </html>

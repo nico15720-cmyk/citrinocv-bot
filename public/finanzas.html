@@ -1,670 +1,433 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citrino — Finanzas</title>
-  <style>
-    :root {
-      --verde: #4a6f4a; --verde-bg: #eef4ee; --verde-claro: #8fbc8f;
-      --crema: #f7f2eb; --crema-card: #fff; --crema-border: #e5ddd0;
-      --texto: #1e2e1e; --texto-suave: #5a6e5a;
-      --rojo: #b33a2f; --naranja: #c96a18; --azul: #2563b0;
-      --sombra: 0 1px 4px rgba(0,0,0,0.07); --radio: 10px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--crema); color: var(--texto); min-height: 100vh; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0a0f0d"/>
+<title>Citrino — Finanzas</title>
+<link rel="stylesheet" href="/citrino-ui.css"/>
+<style>
+/* Finanzas-specific styles */
+.hero-fin{
+  background:radial-gradient(ellipse at 10% -10%,rgba(245,158,11,.18) 0%,transparent 55%),
+             radial-gradient(ellipse at 90% 110%,rgba(34,197,94,.1) 0%,transparent 50%),
+             var(--bg2);
+  padding:calc(env(safe-area-inset-top,0px)+14px) 16px 20px;
+}
+.fin-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.fin-hero-title{font-size:16px;font-weight:700;color:var(--text)}
+.month-nav{display:flex;align-items:center;gap:8px}
+.month-btn{background:rgba(255,255,255,.08);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.month-btn:active{background:rgba(255,255,255,.15);transform:scale(.9)}
+.month-label{font-size:14px;font-weight:600;color:var(--text);min-width:100px;text-align:center}
 
-    nav.topnav { background: var(--verde); padding: 0 1.5rem; display: flex; align-items: center; height: 52px; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
-    .nav-brand { color: white; font-size: 1rem; font-weight: 700; margin-right: 1.5rem; text-decoration: none; }
-    .nav-links { display: flex; gap: .2rem; flex: 1; }
-    .nav-link { color: rgba(255,255,255,.75); text-decoration: none; font-size: .82rem; font-weight: 500; padding: .35rem .8rem; border-radius: 6px; transition: all .15s; }
-    .nav-link:hover { background: rgba(255,255,255,.12); color: white; }
-    .nav-link.active { background: rgba(255,255,255,.2); color: white; font-weight: 600; }
+/* Float card */
+.float-card{
+  background:rgba(245,158,11,.08);
+  border:1px solid rgba(245,158,11,.2);
+  border-radius:20px;padding:16px;margin-bottom:16px;
+}
+.float-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.float-title{font-size:12px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.float-val{font-size:28px;font-weight:800;color:var(--amber);letter-spacing:-.4px}
+.float-sub{font-size:11px;color:var(--text3);margin-top:2px}
 
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 1.2rem 1.5rem; }
+/* Stat row */
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.stat-mini{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:12px;text-align:center}
+.stat-mini-val{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.stat-mini-lbl{font-size:10px;color:var(--text3);margin-top:3px;font-weight:500}
 
-    /* TABS */
-    .tabs-nav { display: flex; gap: 0; border-bottom: 2px solid var(--crema-border); margin-bottom: 1.2rem; }
-    .tab-btn { padding: .55rem 1.1rem; font-size: .83rem; font-weight: 600; color: var(--texto-suave); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
-    .tab-btn.active { color: var(--verde); border-bottom-color: var(--verde); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+/* Margin bar */
+.margin-bar-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:8px}
+.mb-header{display:flex;justify-content:space-between;margin-bottom:10px}
+.mb-pct{font-size:13px;font-weight:700;color:var(--green)}
+.mb-track{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.mb-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green2),var(--green));transition:width .8s cubic-bezier(.4,0,.2,1)}
 
-    /* CARDS */
-    .sum-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .7rem; margin-bottom: 1.1rem; }
-    .sum-card { background: var(--crema-card); border-radius: var(--radio); padding: .9rem 1rem; box-shadow: var(--sombra); border: 1px solid var(--crema-border); }
-    .sum-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--texto-suave); margin-bottom: .25rem; }
-    .sum-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
-    .sum-num.verde  { color: var(--verde); }
-    .sum-num.rojo   { color: var(--rojo); }
-    .sum-num.azul   { color: var(--azul); }
-    .sum-num.naranja{ color: var(--naranja); }
-    .sum-sub { font-size: .7rem; color: var(--texto-suave); margin-top: .2rem; }
+/* Tabs */
+.fin-tabs{display:flex;gap:2px;padding:3px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin:12px 16px 0}
+.fin-tab{flex:1;padding:8px 4px;border:none;border-radius:11px;font-size:11px;font-weight:500;color:var(--text3);background:transparent;cursor:pointer;transition:all .2s}
+.fin-tab.a{background:var(--surface2);color:var(--text);font-weight:700;box-shadow:0 1px 6px rgba(0,0,0,.3)}
 
-    /* FLOAT CARD */
-    .float-card { background: #1a1a2e; color: white; border-radius: var(--radio); padding: 1.1rem 1.2rem; margin-bottom: 1.1rem; }
-    .float-title { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; opacity: .7; margin-bottom: .6rem; }
-    .float-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
-    .float-item { text-align: center; }
-    .float-num { font-size: 1.3rem; font-weight: 800; }
-    .float-lab { font-size: .65rem; opacity: .65; margin-top: .15rem; }
-    .float-neto { background: rgba(255,255,255,.1); border-radius: 8px; padding: .6rem .8rem; margin-top: .8rem; display: flex; justify-content: space-between; align-items: center; }
-    .float-neto-label { font-size: .78rem; opacity: .8; }
-    .float-neto-val { font-size: 1.1rem; font-weight: 800; color: #4ade80; }
+/* Transaction list */
+.tx-list{padding:8px 16px 0}
+.tx-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);margin-bottom:8px;
+  animation:fadeUp .25s cubic-bezier(.4,0,.2,1) both;
+  cursor:pointer;transition:all .15s;
+}
+.tx-item:active{transform:scale(.985);background:var(--surface2)}
+.tx-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tx-ing{background:rgba(34,197,94,.1)}
+.tx-gas{background:rgba(239,68,68,.1)}
+.tx-info{flex:1;min-width:0}
+.tx-desc{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.tx-amount{text-align:right;flex-shrink:0}
+.tx-val{font-size:15px;font-weight:800;letter-spacing:-.2px}
+.tx-val.pos{color:var(--green)}
+.tx-val.neg{color:var(--red)}
+.tx-neto{font-size:10px;color:var(--text3);margin-top:2px}
 
-    /* TENDENCIA */
-    .tend-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: .5rem; margin-bottom: 1.1rem; }
-    .tend-mes { background: var(--crema-card); border-radius: var(--radio); border: 1px solid var(--crema-border); padding: .7rem .4rem; text-align: center; box-shadow: var(--sombra); }
-    .tend-label { font-size: .66rem; color: var(--texto-suave); margin-bottom: .3rem; }
-    .bar-wrap { height: 38px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
-    .bar { width: 13px; border-radius: 3px 3px 0 0; min-height: 2px; }
-    .bar.ing { background: var(--verde); }
-    .bar.gas { background: var(--rojo); opacity: .7; }
-    .bar-nums { font-size: .6rem; color: var(--texto-suave); margin-top: .2rem; line-height: 1.3; }
+/* Ranking */
+.rank-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r2);margin-bottom:8px;
+  animation:fadeUp .25s cubic-bezier(.4,0,.2,1) both;
+}
+.rank-pos{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.rank-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;background:var(--green-subtle);color:var(--green)}
+.rank-info{flex:1;min-width:0}
+.rank-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.rank-ltv{font-size:16px;font-weight:800;color:var(--green);letter-spacing:-.2px}
 
-    /* TOOLBAR */
-    .toolbar { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: .9rem; }
-    .toolbar select, .toolbar input { padding: .45rem .8rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .83rem; background: white; color: var(--texto); outline: none; }
-    .toolbar select:focus, .toolbar input:focus { border-color: var(--verde); }
+/* Add button */
+.add-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin:0 16px 16px}
+.add-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.mp-btn{padding:9px 6px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;text-align:center;transition:.15s;font-size:11px;font-weight:600;color:var(--text3)}
+.mp-btn.sel{border-color:var(--green-dim);background:var(--green-subtle);color:var(--green)}
+.mp-btn:active{transform:scale(.94)}
+.neto-preview{font-size:13px;font-weight:700;padding:10px 14px;background:var(--green-subtle);border-radius:10px;color:var(--green);margin-top:8px;display:none}
+.neto-preview.show{display:block}
 
-    /* SCAN TICKET */
-    .scan-box { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1rem; }
-    .scan-btn {
-      border: 2px dashed var(--crema-border); border-radius: var(--radio); padding: .9rem;
-      text-align: center; cursor: pointer; transition: all .15s; background: white;
-      display: flex; flex-direction: column; align-items: center; gap: .3rem;
-    }
-    .scan-btn:hover { border-color: var(--verde); background: var(--verde-bg); }
-    .scan-btn .icon { font-size: 1.4rem; }
-    .scan-btn .label { font-size: .78rem; font-weight: 600; color: var(--texto); }
-    .scan-btn .sub { font-size: .68rem; color: var(--texto-suave); }
-
-    /* TABLA */
-    .tabla-card { background: white; border-radius: var(--radio); border: 1px solid var(--crema-border); box-shadow: var(--sombra); overflow: hidden; }
-    .tabla-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 560px; }
-    thead th { background: var(--crema); padding: .55rem .9rem; text-align: left; font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); font-weight: 700; border-bottom: 1px solid var(--crema-border); }
-    tbody td { padding: .58rem .9rem; border-bottom: 1px solid #f5f0eb; font-size: .82rem; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: #fafdf8; }
-    .badge { display: inline-flex; align-items: center; padding: .18rem .55rem; border-radius: 20px; font-size: .7rem; font-weight: 600; }
-    .b-ingreso { background: #dcfce7; color: #166534; }
-    .b-gasto   { background: #fee2e2; color: #991b1b; }
-    .b-medio   { background: #f3e8ff; color: #6b21a8; font-size: .65rem; }
-
-    /* RANKING */
-    .rank-item { display: flex; align-items: center; gap: .7rem; padding: .6rem .9rem; border-bottom: 1px solid #f5f0eb; }
-    .rank-item:last-child { border-bottom: none; }
-    .rank-num { font-size: .85rem; font-weight: 800; color: var(--texto-suave); width: 24px; flex-shrink: 0; }
-    .rank-num.top { color: #d97706; }
-    .rank-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--verde); color: white; font-size: .9rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .rank-info { flex: 1; min-width: 0; }
-    .rank-nombre { font-size: .85rem; font-weight: 600; }
-    .rank-sub { font-size: .7rem; color: var(--texto-suave); }
-    .rank-ltv { font-size: .95rem; font-weight: 800; color: var(--verde); }
-    .rank-saldo { font-size: .72rem; background: var(--verde-bg); color: var(--verde); padding: .15rem .5rem; border-radius: 12px; margin-left: .3rem; }
-
-    /* BTNS */
-    .btn { padding: .45rem 1rem; border: none; border-radius: 7px; cursor: pointer; font-size: .8rem; font-weight: 600; transition: opacity .15s; white-space: nowrap; }
-    .btn:hover { opacity: .88; }
-    .btn-verde  { background: var(--verde); color: white; }
-    .btn-rojo   { background: var(--rojo); color: white; }
-    .btn-gris   { background: #e0dbd4; color: var(--texto); }
-
-    /* MODALES */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 440px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-height: 90vh; overflow-y: auto; }
-    .modal h3 { font-size: 1rem; margin-bottom: .25rem; }
-    .modal .sub { font-size: .78rem; color: var(--texto-suave); margin-bottom: 1rem; }
-    .modal label { display: block; font-size: .78rem; color: var(--texto-suave); margin-top: .6rem; margin-bottom: .2rem; }
-    .modal input, .modal select { width: 100%; padding: .5rem .7rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .85rem; outline: none; }
-    .modal input:focus, .modal select:focus { border-color: var(--verde); }
-    .modal-btns { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
-
-    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--verde); color: white; padding: .6rem 1.2rem; border-radius: 8px; font-size: .83rem; z-index: 300; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.error { background: var(--rojo); }
-
-    /* Margen */
-    .margen-bar-wrap { display: flex; gap: 3px; height: 12px; border-radius: 6px; overflow: hidden; margin-top: .4rem; }
-    .margen-seg { height: 100%; }
-
-    @media (max-width: 640px) {
-      .wrap { padding: .8rem; }
-      .tend-row { grid-template-columns: repeat(3, 1fr); }
-      .scan-box { grid-template-columns: 1fr; }
-      .float-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-  </style>
+/* Scan button */
+.scan-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px;border-radius:var(--r2);border:1.5px dashed var(--border2);
+  background:var(--surface);cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--text3);transition:all .15s;margin-bottom:10px;
+}
+.scan-btn:active{background:var(--surface2);transform:scale(.97)}
+</style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="nav-brand" href="/admin">🌿 Citrino</a>
-  <div class="nav-links">
-    <a class="nav-link" href="/admin">👥 CRM</a>
-    <a class="nav-link" href="/agenda">📅 Agenda</a>
-    <a class="nav-link active" href="/finanzas">💰 Finanzas</a>
-    <a class="nav-link" href="/dashboard">📊 Dashboard</a>
+<!-- HERO -->
+<div class="hero-fin" id="heroFin">
+  <div class="fin-hero-top">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#b45309,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:15px">💰</div>
+      <span class="fin-hero-title">Finanzas</span>
+    </div>
+    <div class="month-nav">
+      <button class="month-btn" onclick="cambiarMes(-1)">‹</button>
+      <span class="month-label" id="monthLabel">—</span>
+      <button class="month-btn" onclick="cambiarMes(1)">›</button>
+    </div>
   </div>
+
+  <div class="float-card" id="floatCard" style="display:none">
+    <div class="float-top">
+      <span class="float-title">⚡ Capital flotante</span>
+      <span style="font-size:20px" id="floatSes">–</span>
+    </div>
+    <div class="float-val" id="floatVal">$0</div>
+    <div class="float-sub" id="floatSub">Sesiones vendidas no dadas aún</div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-mini"><div class="stat-mini-val t-green" id="hIng">$0</div><div class="stat-mini-lbl">Ingresos</div></div>
+    <div class="stat-mini"><div class="stat-mini-val t-red" id="hGas">$0</div><div class="stat-mini-lbl">Gastos</div></div>
+    <div class="stat-mini"><div class="stat-mini-val" id="hNet">$0</div><div class="stat-mini-lbl">Neto</div></div>
+  </div>
+
+  <div class="margin-bar-wrap">
+    <div class="mb-header">
+      <span style="font-size:12px;color:var(--text3);font-weight:500">Margen del mes</span>
+      <span class="mb-pct" id="marginPct">–%</span>
+    </div>
+    <div class="mb-track"><div class="mb-fill" id="marginFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="fin-tabs">
+  <button class="fin-tab a" onclick="setTab(this,'mes')">Este mes</button>
+  <button class="fin-tab" onclick="setTab(this,'transacciones')">Movimientos</button>
+  <button class="fin-tab" onclick="setTab(this,'ranking')">Ranking</button>
+  <button class="fin-tab" onclick="setTab(this,'agregar')">+ Agregar</button>
+</div>
+
+<!-- PANEL: ESTE MES -->
+<div id="pMes" class="tab-panel" style="padding:12px 16px 0">
+  <div id="mesCont"><div class="empty-state"><div class="ico">📊</div><p>Cargando datos del mes...</p></div></div>
+</div>
+
+<!-- PANEL: TRANSACCIONES -->
+<div id="pTransacciones" class="tab-panel" style="display:none">
+  <div class="tx-list" id="txList"><div class="empty-state"><div class="ico">📋</div><p>Cargando movimientos...</p></div></div>
+</div>
+
+<!-- PANEL: RANKING -->
+<div id="pRanking" class="tab-panel" style="display:none">
+  <div class="tx-list" id="rankList"><div class="empty-state"><div class="ico">🏆</div><p>Cargando ranking...</p></div></div>
+</div>
+
+<!-- PANEL: AGREGAR -->
+<div id="pAgregar" class="tab-panel" style="display:none;padding:12px 16px 0">
+  <div class="add-card">
+    <div class="sec-hdr" style="padding:0 0 10px"><span class="sec-hdr-title">Nuevo ingreso</span></div>
+    <div class="scan-btn" onclick="activarScan()">📷 Escanear comprobante</div>
+    <div class="field"><label class="field-label">Descripción</label><input class="input" id="iDesc" placeholder="Ej: Masaje descontracturante"/></div>
+    <div class="add-row2">
+      <div class="field"><label class="field-label">Monto ($)</label><input class="input" id="iMonto" type="number" placeholder="1500" oninput="actualizarNeto()"/></div>
+      <div class="field"><label class="field-label">Cliente (opcional)</label><input class="input" id="iCliente" placeholder="Nombre"/></div>
+    </div>
+    <div class="field"><label class="field-label">Categoría</label>
+      <select class="select" id="iCateg">
+        <option>Método Citrino</option>
+        <option>Drenaje Linfático</option>
+        <option>Masaje Descontracturante</option>
+        <option>Masaje Relax</option>
+        <option>Masaje Modelador</option>
+        <option>Estética</option>
+        <option>Cuponera</option>
+        <option>Otro</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">Medio de pago</label>
+      <div class="mp-grid" id="mpGrid">
+        <div class="mp-btn sel" onclick="selMP(this,'efectivo')">💵 Efectivo</div>
+        <div class="mp-btn" onclick="selMP(this,'debito')">💳 Débito</div>
+        <div class="mp-btn" onclick="selMP(this,'credito')">💎 Crédito</div>
+        <div class="mp-btn" onclick="selMP(this,'mp')">📱 MercadoPago</div>
+        <div class="mp-btn" onclick="selMP(this,'transferencia')">🏦 Transfer.</div>
+        <div class="mp-btn" onclick="selMP(this,'otro')">🔄 Otro</div>
+      </div>
+    </div>
+    <div class="neto-preview" id="netoPreview"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="guardarIngreso()">✅ Registrar ingreso</button>
+  </div>
+
+  <div class="add-card">
+    <div class="sec-hdr" style="padding:0 0 10px"><span class="sec-hdr-title">Nuevo gasto</span></div>
+    <div class="field"><label class="field-label">Descripción</label><input class="input" id="gDesc" placeholder="Ej: Alquiler, UTE, insumos..."/></div>
+    <div class="add-row2">
+      <div class="field"><label class="field-label">Monto ($)</label><input class="input" id="gMonto" type="number" placeholder="5000"/></div>
+      <div class="field"><label class="field-label">Categoría</label>
+        <select class="select" id="gCateg">
+          <option>Alquiler</option>
+          <option>Servicios (UTE/OSE)</option>
+          <option>Sueldos</option>
+          <option>Insumos</option>
+          <option>Marketing</option>
+          <option>Impuestos</option>
+          <option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-full" style="margin-top:4px" onclick="guardarGasto()">💸 Registrar gasto</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a class="nav-btn" href="/dashboard"><span class="nav-ico">📊</span><span>Inicio</span><div class="nav-pip"></div></a>
+  <a class="nav-btn" href="/agenda"><span class="nav-ico">📅</span><span>Agenda</span><div class="nav-pip"></div></a>
+  <a class="nav-btn" href="/admin"><span class="nav-ico">👥</span><span>Clientes</span><div class="nav-pip"></div></a>
+  <a class="nav-btn act" href="/finanzas"><span class="nav-ico">💰</span><span>Finanzas</span><div class="nav-pip"></div></a>
 </nav>
 
-<div class="wrap">
-  <div class="tabs-nav">
-    <button class="tab-btn active" onclick="switchTab('mes')">📊 Este mes</button>
-    <button class="tab-btn" onclick="switchTab('transacciones')">📋 Transacciones</button>
-    <button class="tab-btn" onclick="switchTab('ranking')">🏆 Ranking</button>
-    <button class="tab-btn" onclick="switchTab('float')">⚖️ Float</button>
-  </div>
-
-  <!-- TAB: MES -->
-  <div class="tab-panel active" id="panel-mes">
-    <!-- Selector de mes -->
-    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
-      <select id="filtro-mes-main" onchange="cargarTodo()" style="padding:.4rem .8rem;border:1.5px solid var(--crema-border);border-radius:7px;font-size:.83rem;background:white;outline:none"></select>
-      <button class="btn btn-gris" style="padding:.4rem .7rem;font-size:.75rem" onclick="cargarTodo()">↻</button>
-    </div>
-
-    <!-- Cards resumen -->
-    <div class="sum-row">
-      <div class="sum-card"><div class="sum-label">Ingresos brutos</div><div class="sum-num verde" id="s-ing">—</div></div>
-      <div class="sum-card"><div class="sum-label">Comisiones</div><div class="sum-num naranja" id="s-com">—</div><div class="sum-sub" id="s-com-sub"></div></div>
-      <div class="sum-card"><div class="sum-label">Ingresos netos</div><div class="sum-num verde" id="s-neto">—</div></div>
-      <div class="sum-card"><div class="sum-label">Gastos</div><div class="sum-num rojo" id="s-gas">—</div></div>
-      <div class="sum-card"><div class="sum-label">Ganancia neta</div><div class="sum-num" id="s-gan">—</div><div class="sum-sub" id="s-gan-sub"></div></div>
-      <div class="sum-card"><div class="sum-label">Ticket promedio</div><div class="sum-num azul" id="s-tick">—</div><div class="sum-sub" id="s-ses-sub"></div></div>
-    </div>
-
-    <!-- Barra de margen -->
-    <div style="background:white;border-radius:var(--radio);border:1px solid var(--crema-border);padding:.8rem 1rem;box-shadow:var(--sombra);margin-bottom:1rem">
-      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--texto-suave);margin-bottom:.35rem">
-        <span>Distribución del ingreso</span>
-        <span id="margen-pct" style="font-weight:700;color:var(--verde)"></span>
-      </div>
-      <div class="margen-bar-wrap" id="margenBar"></div>
-      <div style="display:flex;gap:1rem;margin-top:.4rem;font-size:.65rem;color:var(--texto-suave)">
-        <span>🟢 Ganancia</span><span>🟣 Terapeutas/gastos</span><span>🟠 Comisiones</span>
-      </div>
-    </div>
-
-    <!-- Tendencia 6 meses -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
-      <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--texto-suave);font-weight:700">Últimos 6 meses</span>
-      <span style="font-size:.65rem;color:var(--texto-suave)">🟢 Ing &nbsp; 🔴 Gas</span>
-    </div>
-    <div class="tend-row" id="tendenciaRow" style="margin-bottom:1rem"></div>
-  </div>
-
-  <!-- TAB: TRANSACCIONES -->
-  <div class="tab-panel" id="panel-transacciones">
-    <!-- Scan ticket -->
-    <div class="scan-box">
-      <label class="scan-btn" for="fileTicket">
-        <span class="icon">📷</span>
-        <span class="label">Escanear ticket</span>
-        <span class="sub">Sacá foto — el monto se carga solo</span>
-        <input type="file" id="fileTicket" accept="image/*" style="display:none" onchange="scanTicket(this)" />
-      </label>
-      <div class="scan-btn" onclick="abrirModal('modal-gasto')">
-        <span class="icon">💸</span>
-        <span class="label">+ Gasto manual</span>
-        <span class="sub">Ingresá el monto a mano</span>
-      </div>
-    </div>
-
-    <div class="toolbar">
-      <select id="filtro-mes-trans" onchange="cargarTransacciones()" style="flex:1">
-        <!-- generado por JS -->
-      </select>
-      <select id="filtro-tipo" onchange="cargarTransacciones()">
-        <option value="">Todos</option>
-        <option value="ingreso">Ingresos</option>
-        <option value="gasto">Gastos</option>
-      </select>
-      <button class="btn btn-verde" onclick="abrirModal('modal-ingreso')">+ Ingreso</button>
-    </div>
-
-    <div class="tabla-card">
-      <div class="tabla-scroll">
-        <table>
-          <thead><tr>
-            <th>Fecha</th><th>Tipo</th><th>Descripción</th>
-            <th style="text-align:right">Monto</th><th style="text-align:right">Neto</th>
-            <th>Medio</th><th>Cliente</th>
-          </tr></thead>
-          <tbody id="tbody-fin"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: RANKING -->
-  <div class="tab-panel" id="panel-ranking">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
-      <span style="font-size:.8rem;color:var(--texto-suave)">Clientes ordenados por total invertido (LTV)</span>
-      <button class="btn btn-gris" style="font-size:.75rem;padding:.35rem .7rem" onclick="cargarRanking()">↻</button>
-    </div>
-    <div class="tabla-card">
-      <div id="rankingList"><div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:.85rem">Cargando...</div></div>
-    </div>
-  </div>
-
-  <!-- TAB: FLOAT -->
-  <div class="tab-panel" id="panel-float">
-    <div class="float-card" id="floatCard">
-      <div class="float-title">⚖️ FLOAT — Dinero de clientes en tu caja (sesiones no dadas aún)</div>
-      <div class="float-grid">
-        <div class="float-item"><div class="float-num" id="f-clientes">—</div><div class="float-lab">Clientes con saldo</div></div>
-        <div class="float-item"><div class="float-num" id="f-sesiones">—</div><div class="float-lab">Sesiones pendientes</div></div>
-        <div class="float-item"><div class="float-num" id="f-cobrado">—</div><div class="float-lab">Ya cobrado</div></div>
-      </div>
-      <div class="float-neto">
-        <span class="float-neto-label">Capital flotante neto (cobrado − costo futuro)</span>
-        <span class="float-neto-val" id="f-neto">—</span>
-      </div>
-    </div>
-
-    <div style="font-size:.75rem;color:var(--texto-suave);margin-bottom:.6rem">Detalle por cliente</div>
-    <div class="tabla-card">
-      <div id="floatDetalle"><div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:.85rem">Cargando...</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Ingreso -->
-<div class="modal-overlay" id="modal-ingreso">
-  <div class="modal">
-    <h3 style="color:var(--verde)">💰 Registrar ingreso</h3>
-    <p class="sub">Sesión individual o cualquier cobro</p>
-    <label>Monto (UYU) *</label>
-    <input type="number" id="ing-monto" placeholder="Ej: 1500" />
-    <label>Descripción *</label>
-    <input type="text" id="ing-desc" placeholder="Ej: Drenaje Linfático" />
-    <label>Servicio</label>
-    <select id="ing-servicio">
-      <option value="">— seleccioná —</option>
-      <option value="Método Citrino">Método Citrino ($1.500)</option>
-      <option value="Drenaje Linfático">Drenaje Linfático ($1.500)</option>
-      <option value="Masaje Descontracturante">Masaje Descontracturante ($1.200)</option>
-      <option value="Masaje Relax">Masaje Relax ($1.300)</option>
-      <option value="Masaje Modelador">Masaje Modelador ($1.500)</option>
-      <option value="Reflexología">Reflexología ($1.300)</option>
-      <option value="Reiki">Reiki ($1.200)</option>
-      <option value="Limpieza de Cutis">Limpieza de Cutis ($1.500)</option>
-      <option value="Manicuría">Manicuría ($1.300)</option>
-    </select>
-    <label>Medio de pago</label>
-    <select id="ing-medio">
-      <option value="">— seleccioná —</option>
-      <option value="efectivo">💵 Efectivo (sin comisión)</option>
-      <option value="transferencia">📲 Transferencia (sin comisión)</option>
-      <option value="debito">💳 Débito (2.75%)</option>
-      <option value="credito">💳 Crédito 1 cuota (3%)</option>
-      <option value="credito3">💳 Crédito 3 cuotas (~10%)</option>
-      <option value="mercadopago">📱 MercadoPago (8%)</option>
-    </select>
-    <div id="ing-neto-preview" style="font-size:.78rem;color:var(--texto-suave);margin-top:.4rem"></div>
-    <label>Teléfono del cliente</label>
-    <input type="text" id="ing-cliente" placeholder="Ej: 59891998151" />
-    <label>Notas</label>
-    <input type="text" id="ing-notas" placeholder="Opcional" />
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-ingreso')">Cancelar</button>
-      <button class="btn btn-verde" onclick="guardarIngreso()">Registrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Gasto -->
-<div class="modal-overlay" id="modal-gasto">
-  <div class="modal">
-    <h3 style="color:var(--rojo)">💸 Registrar gasto</h3>
-    <p class="sub">Insumos, alquiler, servicios, publicidad…</p>
-    <label>Monto (UYU) *</label>
-    <input type="number" id="gas-monto" placeholder="Ej: 3500" />
-    <label>Descripción *</label>
-    <input type="text" id="gas-desc" placeholder="Ej: Aceites de masaje" />
-    <label>Categoría</label>
-    <select id="gas-cat">
-      <option value="Insumos">Insumos</option>
-      <option value="Alquiler">Alquiler</option>
-      <option value="Servicios">Servicios (UTE, ANTEL, etc.)</option>
-      <option value="Marketing">Marketing / Publicidad</option>
-      <option value="Personal">Personal / Terapeutas</option>
-      <option value="Equipamiento">Equipamiento</option>
-      <option value="Mantenimiento">Mantenimiento</option>
-      <option value="Capacitación">Capacitación</option>
-      <option value="Otros">Otros</option>
-    </select>
-    <label>Notas</label>
-    <input type="text" id="gas-notas" placeholder="Opcional" />
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modal-gasto')">Cancelar</button>
-      <button class="btn btn-rojo" onclick="guardarGasto()">Registrar</button>
-    </div>
-  </div>
-</div>
-
+<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// INIT
-// ============================================================
-const TASAS = { efectivo:0, transferencia:0, debito:2.75, credito:3, credito3:10, mercadopago:8 };
-const PRECIOS_SERVICIOS = {"Método Citrino":1500,"Drenaje Linfático":1500,"Masaje Descontracturante":1200,"Masaje Relax":1300,"Masaje Modelador":1500,"Masaje Piedras Calientes":1500,"Reflexología":1300,"Reiki":1200,"Limpieza de Cutis":1500,"Manicuría":1300,"Podología":1300};
+let mesOffset=0;
+let medioPago='efectivo';
+let datosFinanzas={};
 
-// Generar opciones de mes
-(function() {
-  const selectors = ["filtro-mes-main", "filtro-mes-trans"];
-  selectors.forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const hoy = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-      const val = d.toISOString().slice(0, 7);
-      const label = d.toLocaleDateString("es-UY", { month: "long", year: "numeric" });
-      const opt = document.createElement("option");
-      opt.value = val; opt.textContent = label.charAt(0).toUpperCase() + label.slice(1);
-      if (i === 0) opt.selected = true;
-      sel.appendChild(opt);
+const COMISIONES={efectivo:0,debito:1,credito:3,mp:2.5,transferencia:0,otro:0};
+
+// ── TOAST ──
+function toast(msg,dur=2500){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur)}
+
+// ── INIT ──
+async function init(){
+  setMonthLabel();
+  await Promise.all([loadFinanzas(),loadFloat()]);
+}
+
+function setMonthLabel(){
+  const d=new Date();d.setMonth(d.getMonth()+mesOffset);
+  const label=d.toLocaleDateString('es-UY',{month:'long',year:'numeric'});
+  document.getElementById('monthLabel').textContent=label.charAt(0).toUpperCase()+label.slice(1);
+}
+
+function cambiarMes(dir){mesOffset+=dir;setMonthLabel();loadFinanzas();}
+
+// ── LOAD DATA ──
+async function loadFinanzas(){
+  try{
+    const r=await fetch(`/api/finanzas/stats?offset=${mesOffset}`);
+    datosFinanzas=await r.json();
+    renderHero();
+    renderMes();
+    renderTransacciones();
+  }catch(e){console.error(e)}
+}
+
+async function loadFloat(){
+  try{
+    const r=await fetch('/api/finanzas/float');
+    const d=await r.json();
+    if(d.sesiones>0){
+      document.getElementById('floatCard').style.display='block';
+      document.getElementById('floatVal').textContent='$'+(d.capital||0).toLocaleString('es-UY');
+      document.getElementById('floatSes').textContent=d.sesiones+' ses.';
+      document.getElementById('floatSub').textContent=`${d.sesiones} sesión${d.sesiones!==1?'es':''} vendida${d.sesiones!==1?'s':''} pendiente${d.sesiones!==1?'s':''}`;
     }
-  });
-})();
-
-// Autocompletar monto al elegir servicio
-document.getElementById("ing-servicio").onchange = function() {
-  if (PRECIOS_SERVICIOS[this.value]) {
-    document.getElementById("ing-monto").value = PRECIOS_SERVICIOS[this.value];
-    document.getElementById("ing-desc").value = this.value;
-    actualizarPreviewNeto();
-  }
-};
-// Preview neto al cambiar monto o medio
-["ing-monto","ing-medio"].forEach(id => {
-  document.getElementById(id).addEventListener("input", actualizarPreviewNeto);
-  document.getElementById(id).addEventListener("change", actualizarPreviewNeto);
-});
-function actualizarPreviewNeto() {
-  const monto = parseFloat(document.getElementById("ing-monto").value) || 0;
-  const medio = document.getElementById("ing-medio").value;
-  if (!monto || !medio) { document.getElementById("ing-neto-preview").textContent = ""; return; }
-  const tasa = TASAS[medio] || 0;
-  const neto = Math.round(monto * (1 - tasa/100));
-  const com = Math.round(monto * tasa/100);
-  document.getElementById("ing-neto-preview").textContent = tasa > 0
-    ? `Neto: $${neto.toLocaleString("es-UY")} (comisión: -$${com.toLocaleString("es-UY")} / ${tasa}%)`
-    : "Sin comisión";
+  }catch{}
 }
 
-// ============================================================
-// TABS
-// ============================================================
-const paneles = ["mes","transacciones","ranking","float"];
-function switchTab(nombre) {
-  document.querySelectorAll(".tab-btn").forEach((b,i) => b.classList.toggle("active", paneles[i] === nombre));
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  document.getElementById("panel-" + nombre).classList.add("active");
-  if (nombre === "ranking") cargarRanking();
-  if (nombre === "float") cargarFloat();
-  if (nombre === "transacciones") cargarTransacciones();
-}
-document.querySelectorAll(".tab-btn").forEach((b,i) => { b.onclick = () => switchTab(paneles[i]); });
-
-// ============================================================
-// CARGA
-// ============================================================
-async function cargarTodo() {
-  await Promise.all([cargarResumen(), cargarTransacciones()]);
+function renderHero(){
+  const {ingresos=0,gastos=0,neto=0}=datosFinanzas;
+  const fmt=n=>'$'+(Math.abs(n)/1000).toFixed(1)+'k';
+  document.getElementById('hIng').textContent=fmt(ingresos);
+  document.getElementById('hGas').textContent=fmt(gastos);
+  const netEl=document.getElementById('hNet');
+  netEl.textContent=fmt(neto);
+  netEl.className='stat-mini-val'+(neto>=0?' t-green':' t-red');
+  const margen=ingresos>0?Math.round((neto/ingresos)*100):0;
+  document.getElementById('marginPct').textContent=margen+'%';
+  document.getElementById('marginFill').style.width=Math.max(0,Math.min(100,margen))+'%';
 }
 
-async function cargarResumen() {
-  const mes = document.getElementById("filtro-mes-main").value;
-  try {
-    const [res, resR] = await Promise.all([
-      fetch(`/api/stats/completos?mes=${mes}`),
-      fetch(`/api/finanzas/resumen?mes=${mes}`),
-    ]);
-    const d = await res.json();
-    const r = await resR.json();
-    const fmt = n => "$" + Math.abs(Math.round(n)).toLocaleString("es-UY");
-
-    document.getElementById("s-ing").textContent = fmt(d.ingresosBrutos || 0);
-    document.getElementById("s-com").textContent = fmt(d.comisiones || 0);
-    document.getElementById("s-com-sub").textContent = `aprox. ${d.margen||0}% margen`;
-    document.getElementById("s-neto").textContent = fmt(d.ingresosNetos || 0);
-    document.getElementById("s-gas").textContent = fmt(d.gastos || 0);
-
-    const gan = d.gananciaNeta || 0;
-    const ganEl = document.getElementById("s-gan");
-    ganEl.textContent = fmt(gan);
-    ganEl.className = "sum-num " + (gan >= 0 ? "verde" : "rojo");
-    document.getElementById("s-gan-sub").textContent = gan >= 0 ? "ganancia ✓" : "pérdida";
-    document.getElementById("s-tick").textContent = d.ticketPromedio > 0 ? fmt(d.ticketPromedio) : "—";
-    document.getElementById("s-ses-sub").textContent = `${d.sesiones || 0} sesiones`;
-
-    // Barra de margen
-    const total = Math.max(d.ingresosBrutos || 1, 1);
-    const pctGan = Math.max(0, Math.min(100, (gan / total) * 100));
-    const pctGas = Math.max(0, Math.min(100, ((d.gastos||0) / total) * 100));
-    const pctCom = Math.max(0, Math.min(100, ((d.comisiones||0) / total) * 100));
-    const pctRest = Math.max(0, 100 - pctGan - pctGas - pctCom);
-    document.getElementById("margenBar").innerHTML = `
-      <div class="margen-seg" style="width:${pctGan}%;background:#4ade80"></div>
-      <div class="margen-seg" style="width:${pctRest}%;background:#a78bfa"></div>
-      <div class="margen-seg" style="width:${pctGas}%;background:var(--rojo);opacity:.7"></div>
-      <div class="margen-seg" style="width:${pctCom}%;background:var(--naranja)"></div>
-    `;
-    document.getElementById("margen-pct").textContent = `${Math.round(pctGan)}% ganancia`;
-
-    renderTendencia(r.tendencia || []);
-  } catch (e) { console.error(e); }
+function renderMes(){
+  const {ingresos=0,gastos=0,neto=0,porCategoria={},comisiones=0}=datosFinanzas;
+  const fmt=n=>'$'+(n||0).toLocaleString('es-UY');
+  const cats=Object.entries(porCategoria).sort(([,a],[,b])=>b-a);
+  document.getElementById('mesCont').innerHTML=`
+<div class="card" style="margin-bottom:8px;animation-delay:.05s">
+  ${[['💚 Ingresos',fmt(ingresos),'var(--green)'],['❤️ Gastos',fmt(gastos),'var(--red)'],['💸 Comisiones',fmt(comisiones),'var(--amber)'],['✨ Neto',fmt(neto),neto>=0?'var(--green)':'var(--red)']].map(([k,v,c])=>
+    `<div class="data-row"><span class="data-key">${k}</span><span class="data-val" style="color:${c};font-size:15px">${v}</span></div>`
+  ).join('')}
+</div>
+${cats.length?`<div class="sec-hdr"><span class="sec-hdr-title">Por categoría</span></div>`+
+cats.map(([cat,monto],i)=>`
+<div class="tx-item" style="animation-delay:${i*.04}s">
+  <div class="tx-icon tx-ing">💆</div>
+  <div class="tx-info"><div class="tx-desc">${cat}</div></div>
+  <div class="tx-amount"><div class="tx-val pos">${fmt(monto)}</div></div>
+</div>`).join(''):''}`;
 }
 
-async function cargarTransacciones() {
-  const mes = document.getElementById("filtro-mes-trans").value;
-  const tipo = document.getElementById("filtro-tipo").value;
-  let url = `/api/finanzas/transacciones?mes=${mes}`;
-  if (tipo) url += `&tipo=${tipo}`;
-  try {
-    const res = await fetch(url);
-    const trans = await res.json();
-    renderTransacciones(trans);
-  } catch (e) { console.error(e); }
+function renderTransacciones(){
+  const txs=(datosFinanzas.transacciones||[]).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  if(!txs.length){document.getElementById('txList').innerHTML='<div class="empty-state"><div class="ico">📋</div><p>Sin movimientos este mes</p></div>';return;}
+  document.getElementById('txList').innerHTML=txs.map((t,i)=>{
+    const pos=t.tipo!=='gasto';
+    const fecha=new Date(t.fecha).toLocaleDateString('es-UY',{day:'numeric',month:'short'});
+    return`<div class="tx-item" style="animation-delay:${i*.03}s">
+<div class="tx-icon ${pos?'tx-ing':'tx-gas'}">${pos?'💚':'❤️'}</div>
+<div class="tx-info"><div class="tx-desc">${t.descripcion||t.categoria||'–'}</div><div class="tx-sub">${fecha}${t.medioPago?' · '+t.medioPago:''}${t.cliente?' · '+t.cliente:''}</div></div>
+<div class="tx-amount"><div class="tx-val ${pos?'pos':'neg'}">${pos?'+':'-'}$${Math.abs(t.monto||0).toLocaleString('es-UY')}</div>${t.neto&&t.neto!==t.monto?`<div class="tx-neto">Neto: $${(t.neto||0).toLocaleString('es-UY')}</div>`:''}</div>
+</div>`}).join('');
 }
 
-async function cargarRanking() {
-  try {
-    const res = await fetch("/api/stats/ranking?limit=30");
-    const data = await res.json();
-    renderRanking(data);
-  } catch {}
+// ── RANKING ──
+async function loadRanking(){
+  try{
+    const r=await fetch('/api/finanzas/ranking');
+    const d=await r.json();
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('rankList').innerHTML=d.map((c,i)=>{
+      const ini=(c.nombre||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+      return`<div class="rank-item" style="animation-delay:${i*.04}s">
+<div class="rank-pos">${medals[i]||i+1}</div>
+<div class="rank-av">${ini}</div>
+<div class="rank-info"><div class="rank-name">${c.nombre}</div><div class="rank-sub">${c.sesiones} sesiones${c.sesRest>0?' · '+c.sesRest+' restantes':''}</div></div>
+<div class="rank-ltv">$${(c.ltv||0).toLocaleString('es-UY')}</div>
+</div>`}).join('')||'<div class="empty-state"><div class="ico">🏆</div><p>Sin datos de ranking aún</p></div>';
+  }catch{}
 }
 
-async function cargarFloat() {
-  try {
-    const res = await fetch("/api/stats/float");
-    const d = await res.json();
-    document.getElementById("f-clientes").textContent = d.clientesConSaldo || 0;
-    document.getElementById("f-sesiones").textContent = d.sesionesPendientes || 0;
-    document.getElementById("f-cobrado").textContent = "$" + Math.round(d.cobradoPendiente||0).toLocaleString("es-UY");
-    document.getElementById("f-neto").textContent = "$" + Math.round(d.capitalFlotanteNeto||0).toLocaleString("es-UY");
-
-    const detalle = (d.detalle || []).map(c => `
-      <div style="display:flex;align-items:center;gap:.7rem;padding:.55rem .9rem;border-bottom:1px solid #f5f0eb">
-        <div style="width:32px;height:32px;border-radius:50%;background:var(--verde);color:white;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0">${(c.nombre[0]||"?").toUpperCase()}</div>
-        <div style="flex:1">
-          <a href="/cliente?id=${encodeURIComponent(c.id)}" style="font-size:.83rem;font-weight:600;color:var(--verde);text-decoration:none">${c.nombre}</a>
-        </div>
-        <span style="font-size:.78rem;background:var(--verde-bg);color:var(--verde);padding:.2rem .55rem;border-radius:12px;font-weight:600">${c.sesRest} ses.</span>
-        <span style="font-size:.82rem;font-weight:700;color:var(--verde)">$${(c.valor||0).toLocaleString("es-UY")}</span>
-      </div>`).join("");
-    document.getElementById("floatDetalle").innerHTML = detalle || '<p style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:.83rem">Sin clientes con saldo</p>';
-  } catch {}
+// ── TABS ──
+let activeTab='mes';
+function setTab(el,t){
+  document.querySelectorAll('.fin-tab').forEach(x=>x.classList.remove('a'));
+  el.classList.add('a');activeTab=t;
+  document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');
+  const map={mes:'pMes',transacciones:'pTransacciones',ranking:'pRanking',agregar:'pAgregar'};
+  document.getElementById(map[t]).style.display='block';
+  if(t==='ranking')loadRanking();
 }
 
-// ============================================================
-// RENDER
-// ============================================================
-function renderTendencia(datos) {
-  const maxVal = Math.max(...datos.map(d => Math.max(d.ingresos, d.gastos)), 1);
-  document.getElementById("tendenciaRow").innerHTML = datos.map(d => {
-    const hI = Math.max(2, Math.round((d.ingresos / maxVal) * 36));
-    const hG = Math.max(2, Math.round((d.gastos / maxVal) * 36));
-    const ml = new Date(d.mes + "-15").toLocaleDateString("es-UY", { month: "short" });
-    return `<div class="tend-mes">
-      <div class="tend-label">${ml}</div>
-      <div class="bar-wrap">
-        <div class="bar ing" style="height:${hI}px" title="$${d.ingresos.toLocaleString("es-UY")}"></div>
-        <div class="bar gas" style="height:${hG}px" title="$${d.gastos.toLocaleString("es-UY")}"></div>
-      </div>
-      <div class="bar-nums">$${Math.round(d.ingresos/1000)}k<br>$${Math.round(d.gastos/1000)}k</div>
-    </div>`;
-  }).join("");
+// ── INGRESO ──
+function selMP(el,mp){
+  medioPago=mp;
+  document.querySelectorAll('.mp-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  actualizarNeto();
 }
 
-function renderTransacciones(trans) {
-  const tbody = document.getElementById("tbody-fin");
-  if (!trans.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--texto-suave)">Sin transacciones</td></tr>`;
-    return;
-  }
-  const medioLabels = { efectivo:"💵", transferencia:"📲", debito:"💳 Déb.", credito:"💳 1c", credito3:"💳 3c", mercadopago:"📱 MP" };
-  tbody.innerHTML = trans.map(t => {
-    const esI = t.tipo === "ingreso";
-    const neto = t.neto || t.monto;
-    const hayComision = esI && t.medioPago && Math.abs(neto) < Math.abs(t.monto);
-    return `<tr>
-      <td style="font-size:.75rem;white-space:nowrap">${t.fecha||"—"}</td>
-      <td><span class="badge ${esI?"b-ingreso":"b-gasto"}">${esI?"↑":"↓"} ${t.categoria||""}</span></td>
-      <td>${t.descripcion||"—"}</td>
-      <td style="text-align:right;font-weight:700;color:${esI?"var(--verde)":"var(--rojo)"}">
-        ${esI?"+":"-"}$${Math.abs(t.monto).toLocaleString("es-UY")}</td>
-      <td style="text-align:right;font-size:.75rem;color:var(--texto-suave)">
-        ${hayComision ? `$${Math.abs(neto).toLocaleString("es-UY")}` : "="}
-      </td>
-      <td>${t.medioPago ? `<span class="badge b-medio">${medioLabels[t.medioPago]||t.medioPago}</span>` : "—"}</td>
-      <td style="font-size:.72rem;color:var(--texto-suave)">${t.clienteId||"—"}</td>
-    </tr>`;
-  }).join("");
+function actualizarNeto(){
+  const monto=parseFloat(document.getElementById('iMonto').value)||0;
+  if(!monto){document.getElementById('netoPreview').classList.remove('show');return;}
+  const tasa=COMISIONES[medioPago]||0;
+  const neto=Math.round(monto*(1-tasa/100));
+  const el=document.getElementById('netoPreview');
+  el.textContent=tasa>0?`Neto tras comisión (${tasa}%): $${neto.toLocaleString('es-UY')}`:`Sin comisión — Neto: $${neto.toLocaleString('es-UY')}`;
+  el.classList.add('show');
 }
 
-function renderRanking(clientes) {
-  if (!clientes.length) {
-    document.getElementById("rankingList").innerHTML = '<p style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:.83rem">Sin datos de ranking aún</p>';
-    return;
-  }
-  document.getElementById("rankingList").innerHTML = clientes.map((c, i) => {
-    const medallas = ["🥇","🥈","🥉"];
-    return `<div class="rank-item">
-      <span class="rank-num ${i<3?"top":""}">${medallas[i] || (i+1)}</span>
-      <div class="rank-avatar">${(c.nombre[0]||"?").toUpperCase()}</div>
-      <div class="rank-info">
-        <a href="/cliente?id=${encodeURIComponent(c.id)}" style="text-decoration:none;color:inherit">
-          <div class="rank-nombre">${c.nombre}</div>
-        </a>
-        <div class="rank-sub">${c.sesionesCompradas} compradas · ${c.sesionesUsadas} usadas
-          ${c.saldo > 0 ? `· <span style="color:var(--verde)">${c.saldo} saldo</span>` : ""}
-        </div>
-      </div>
-      <div>
-        <span class="rank-ltv">$${c.ltv.toLocaleString("es-UY")}</span>
-        ${c.saldo > 0 ? `<span class="rank-saldo">${c.saldo} ses.</span>` : ""}
-      </div>
-    </div>`;
-  }).join("");
+async function guardarIngreso(){
+  const desc=document.getElementById('iDesc').value.trim();
+  const monto=parseFloat(document.getElementById('iMonto').value);
+  const cliente=document.getElementById('iCliente').value.trim();
+  const categ=document.getElementById('iCateg').value;
+  if(!desc||!monto){toast('Completá descripción y monto');return;}
+  const tasa=COMISIONES[medioPago]||0;
+  const neto=Math.round(monto*(1-tasa/100));
+  try{
+    await fetch('/api/finanzas/ingreso',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,monto,cliente,categoria:categ,medioPago,neto})});
+    toast('✅ Ingreso registrado');
+    document.getElementById('iDesc').value='';document.getElementById('iMonto').value='';document.getElementById('iCliente').value='';
+    document.getElementById('netoPreview').classList.remove('show');
+    loadFinanzas();
+  }catch{toast('❌ Error al guardar')}
 }
 
-// ============================================================
-// SCAN TICKET
-// ============================================================
-async function scanTicket(input) {
-  const file = input.files[0];
-  if (!file) return;
-  toast("🔍 Analizando ticket...");
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const base64 = e.target.result.split(",")[1];
-    const mimeType = file.type || "image/jpeg";
-    try {
-      const res = await fetch("/api/finanzas/scan-ticket", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType }),
-      });
-      const data = await res.json();
-      if (data.monto) {
-        document.getElementById("gas-monto").value = data.monto;
-        document.getElementById("gas-desc").value = data.descripcion || "";
-        document.getElementById("gas-cat").value = data.categoria || "Otros";
-        abrirModal("modal-gasto");
-        toast("✅ Ticket leído — revisá y confirmá");
-      } else {
-        toast("No pude leer el monto. Ingresalo manualmente.", true);
-        abrirModal("modal-gasto");
-      }
-    } catch { toast("Error al analizar el ticket", true); }
-    input.value = "";
+async function guardarGasto(){
+  const desc=document.getElementById('gDesc').value.trim();
+  const monto=parseFloat(document.getElementById('gMonto').value);
+  const categ=document.getElementById('gCateg').value;
+  if(!desc||!monto){toast('Completá descripción y monto');return;}
+  try{
+    await fetch('/api/finanzas/gasto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,monto,categoria:categ})});
+    toast('💸 Gasto registrado');
+    document.getElementById('gDesc').value='';document.getElementById('gMonto').value='';
+    loadFinanzas();
+  }catch{toast('❌ Error al guardar')}
+}
+
+// ── SCAN ──
+function activarScan(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';input.capture='environment';
+  input.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    toast('📷 Analizando comprobante...',5000);
+    const form=new FormData();form.append('imagen',file);
+    try{
+      const r=await fetch('/api/finanzas/scan',{method:'POST',body:form});
+      const d=await r.json();
+      if(d.monto){document.getElementById('iMonto').value=d.monto;actualizarNeto();}
+      if(d.descripcion)document.getElementById('iDesc').value=d.descripcion;
+      toast('✅ Comprobante leído');
+      setTab(document.querySelector('.fin-tab:last-child'),'agregar');
+    }catch{toast('No se pudo leer el comprobante')}
   };
-  reader.readAsDataURL(file);
+  input.click();
 }
 
-// ============================================================
-// GUARDAR
-// ============================================================
-async function guardarIngreso() {
-  const monto = parseFloat(document.getElementById("ing-monto").value);
-  const desc  = document.getElementById("ing-desc").value.trim();
-  const serv  = document.getElementById("ing-servicio").value;
-  const medio = document.getElementById("ing-medio").value;
-  const cli   = document.getElementById("ing-cliente").value.trim();
-  const notas = document.getElementById("ing-notas").value.trim();
-  if (!monto || !desc) { toast("Monto y descripción requeridos", true); return; }
-  try {
-    const res = await fetch("/api/finanzas/ingreso", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ monto, descripcion: desc, servicio: serv, medioPago: medio, clienteId: cli, notas }),
-    });
-    if (!(await res.json()).ok) throw new Error();
-    toast("Ingreso registrado ✓"); cerrarModal("modal-ingreso"); cargarTodo();
-    ["ing-monto","ing-desc","ing-cliente","ing-notas"].forEach(id => document.getElementById(id).value = "");
-  } catch { toast("Error al guardar", true); }
-}
-
-async function guardarGasto() {
-  const monto = parseFloat(document.getElementById("gas-monto").value);
-  const desc  = document.getElementById("gas-desc").value.trim();
-  const cat   = document.getElementById("gas-cat").value;
-  const notas = document.getElementById("gas-notas").value.trim();
-  if (!monto || !desc) { toast("Monto y descripción requeridos", true); return; }
-  try {
-    const res = await fetch("/api/finanzas/gasto", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ monto, descripcion: desc, categoria: cat, notas }),
-    });
-    if (!(await res.json()).ok) throw new Error();
-    toast("Gasto registrado ✓"); cerrarModal("modal-gasto"); cargarTodo();
-    ["gas-monto","gas-desc","gas-notas"].forEach(id => document.getElementById(id).value = "");
-  } catch { toast("Error al guardar", true); }
-}
-
-function abrirModal(id) { document.getElementById(id).classList.add("open"); }
-function cerrarModal(id) { document.getElementById(id).classList.remove("open"); }
-document.querySelectorAll(".modal-overlay").forEach(o => o.addEventListener("click", e => { if (e.target===o) o.classList.remove("open"); }));
-document.addEventListener("keydown", e => { if (e.key==="Escape") document.querySelectorAll(".modal-overlay.open").forEach(o => o.classList.remove("open")); });
-
-function toast(msg, error = false) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.toggle("error", error); t.classList.add("show");
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 3500);
-}
-
-// ============================================================
-// INIT
-// ============================================================
-cargarTodo();
+init();
 </script>
 </body>
 </html>
