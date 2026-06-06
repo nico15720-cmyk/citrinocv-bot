@@ -182,8 +182,10 @@ Config actual: ${JSON.stringify(configActual)}`,
       messages: [{ role: "user", content: texto }],
     });
 
-    const rawText = response.content[0].text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const resultado = JSON.parse(rawText);
+    const raw = response.content[0].text;
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const resultado = JSON.parse(jsonMatch[0]);
 
     if (!resultado.es_cambio) return null;
 
