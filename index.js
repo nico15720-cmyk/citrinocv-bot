@@ -145,11 +145,16 @@ app.post("/webhook", async (req, res) => {
     }
 
     // Verificar si es terapeuta
+    // Verificar si es terapeuta (caché 5 min para no llamar Sheets en cada mensaje)
     let esTerapeuta = false;
     let terapeutaData = null;
     try {
-      const { leerTerapeutas } = require("./bot/terapeutas");
-      const terapeutas = await leerTerapeutas();
+      if (!global._terapeutasCache || (Date.now() - global._terapeutasCacheTs) > 300000) {
+        const { leerTerapeutas } = require("./bot/terapeutas");
+        global._terapeutasCache = await leerTerapeutas();
+        global._terapeutasCacheTs = Date.now();
+      }
+      const terapeutas = global._terapeutasCache || [];
       terapeutaData = terapeutas.find(t => t.whatsapp && t.whatsapp.replace(/\D/g, "").endsWith(msg.from.replace(/\D/g, "").slice(-8)));
       esTerapeuta = !!terapeutaData;
     } catch {}
@@ -300,8 +305,8 @@ async function responderComentarioIG(senderId, textoOriginal) {
 // ============================================================
 // ESTADO GLOBAL DEL BOT
 // ============================================================
-let botActivo = false;
-let botModo = "off"; // "auto" | "pausa" | "off" — OFF por defecto, Nico lo activa manualmente
+let botActivo = true;
+let botModo = "auto"; // "auto" | "pausa" | "off" — ON por defecto
 
 // Exportar para que conversation.js pueda consultarlo
 global.getBotActivo = () => botActivo;
