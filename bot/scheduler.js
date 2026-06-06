@@ -202,70 +202,118 @@ async function verificarVencimientoToken() {
 }
 
 // ============================================================
-// RESUMEN DIARIO A LAS 20HS PARA NICO
+// RESUMEN DIARIO A LAS 20HS — CORTO Y DIRECTO
 // ============================================================
 async function enviarResumenDiario() {
   if (!OWNER) return;
   console.log("📊 Enviando resumen diario a Nico...");
 
   try {
-    const [stats, clientes, disponibilidad] = await Promise.all([
-      getStats(),
+    const [clientes, disponibilidad] = await Promise.all([
       leerTodosLosClientes(),
       getDisponibilidad(),
     ]);
 
     const hoy = new Date();
     const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
-    const mananaStr = manana.toLocaleDateString("es-UY", {
-      weekday: "long", day: "numeric", month: "long",
-      timeZone: "America/Montevideo"
-    });
+    const inicioHoy = new Date(hoy); inicioHoy.setHours(0, 0, 0, 0);
 
-    // Turno de mañana
     const turnosManana = clientes.filter(c => {
       if (!c.FechaTurno || c.Estado !== "agendado") return false;
-      const f = new Date(c.FechaTurno);
-      return f.toDateString() === manana.toDateString();
+      return new Date(c.FechaTurno).toDateString() === manana.toDateString();
     });
 
-    // Clientas que vinieron hoy
-    const inicioHoy = new Date(hoy);
-    inicioHoy.setHours(0, 0, 0, 0);
-    const vinieronHoy = clientes.filter(c => {
-      if (c.Estado !== "vino") return false;
-      const f = new Date(c.UltimoContacto);
-      return f >= inicioHoy;
-    });
+    const noConfirmados = turnosManana.filter(c => !c.Notas?.includes("confirmó"));
 
-    // Nuevos leads hoy
-    const leadsHoy = clientes.filter(c => {
-      if (c.Estado !== "lead") return false;
-      const f = new Date(c.FechaAlta);
-      return f >= inicioHoy;
-    });
+    const vinieronHoy = clientes.filter(c => c.Estado === "vino" && c.UltimoContacto && new Date(c.UltimoContacto) >= inicioHoy);
+    const leadsHoy = clientes.filter(c => c.Estado === "lead" && c.FechaAlta && new Date(c.FechaAlta) >= inicioHoy);
 
-    const disponibilidadManana = formatearDisponibilidad(
-      disponibilidad.filter(s => {
-        const f = new Date(s.fecha + "T12:00:00");
-        return f.toDateString() === manana.toDateString();
-      })
-    );
+    const diaManana = manana.toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" });
 
-    let resumen = `📊 *Resumen de hoy — ${hoy.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" })}*\n\n`;
+    // Mensaje CORTO
+    let msg = `📋 *Citrino — resumen 20hs*\n`;
+    msg += `Hoy vinieron: ${vinieronHoy.length} · Leads nuevos: ${leadsHoy.length}\n\n`;
 
-    resumen += `👥 *Clientas que vinieron hoy:* ${vinieronHoy.length > 0 ? vinieronHoy.map(c => c.Nombre || c.ID).join(", ") : "ninguna registrada"}\n\n`;
-    resumen += `🆕 *Leads nuevos hoy:* ${leadsHoy.length > 0 ? leadsHoy.map(c => c.Nombre || c.ID).join(", ") : "ninguno"}\n\n`;
-    resumen += `📅 *Turnos ${mananaStr}:*\n${turnosManana.length > 0 ? turnosManana.map(c => `• ${c.Nombre || c.ID} — ${new Date(c.FechaTurno).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })} (${c.Servicio || "sin servicio"})`).join("\n") : "ninguno agendado"}\n\n`;
-    resumen += `📈 *Total CRM:* ${stats.total} clientas | ${stats.agendados} agendadas | ${stats.leads} leads\n\n`;
-    resumen += `💰 *Ingresos estimados mes:* $${stats.ingresosEstimados?.toLocaleString("es-UY") || 0} UYU\n\n`;
-    resumen += `_Respondeme con lo que pasó hoy y lo guardo en el CRM 📝_`;
+    if (turnosManana.length > 0) {
+      msg += `📅 *${diaManana.charAt(0).toUpperCase() + diaManana.slice(1)}:*\n`;
+      turnosManana.forEach(c => {
+        const hora = new Date(c.FechaTurno).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+        msg += `• ${c.Nombre || c.ID} ${hora} — ${c.Servicio || ""}\n`;
+      });
+    } else {
+      msg += `📅 *${diaManana}:* sin turnos agendados`;
+    }
 
-    await enviarMensaje(OWNER, resumen, "whatsapp");
+    if (noConfirmados.length > 0) {
+      msg += `\n⚠️ Sin confirmar: ${noConfirmados.map(c => c.Nombre || c.ID).join(", ")}`;
+    }
+
+    await enviarMensaje(OWNER, msg.trim(), "whatsapp");
     console.log("✅ Resumen diario enviado a Nico");
   } catch (err) {
     console.error("❌ Error enviando resumen diario:", err.message);
   }
+}
+
+// ============================================================
+// AGENDA DEL DÍA SIGUIENTE POR TERAPEUTA
+// Se envía después del resumen (20:05) — por separado
+// ============================================================
+async function enviarAgendaManana() {
+  if (!OWNER) return;
+  try {
+    const { getEventosAgenda } = require("./calendar");
+    const { leerTerapeutas } = require("./terapeutas");
+
+    const manana = new Date(); manana.setDate(manana.getDate() + 1);
+    const inicioManana = new Date(manana); inicioManana.setHours(0, 0, 0, 0);
+    const finManana = new Date(manana); finManana.setHours(23, 59, 59, 0);
+
+    const [eventos, terapeutas] = await Promise.all([
+      getEventosAgenda(inicioManana, finManana),
+      leerTerapeutas().catch(() => [{ nombre: "Citrino" }]),
+    ]);
+
+    if (!eventos.length) return; // sin agenda, no molestar
+
+    const diaLabel = manana.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
+
+    // Agrupar por terapeuta
+    const grupos = {};
+    eventos.forEach(ev => {
+      const terapeuta = terapeutas.find(t => ev.titulo?.toLowerCase().includes(t.nombre?.toLowerCase())) || terapeutas[0];
+      const nombre = terapeuta?.nombre || "Citrino";
+      if (!grupos[nombre]) grupos[nombre] = [];
+      const hora = new Date(ev.inicio).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+      grupos[nombre].push(`${hora} ${ev.clienteNombre || ev.titulo}`);
+    });
+
+    let msg = `📅 *Agenda ${diaLabel.charAt(0).toUpperCase() + diaLabel.slice(1)}*\n`;
+    Object.entries(grupos).forEach(([ter, items]) => {
+      msg += `\n*${ter}:*\n`;
+      items.forEach(i => msg += `• ${i}\n`);
+    });
+    msg += `\n_Agenda confirmada ✓_`;
+
+    await enviarMensaje(OWNER, msg.trim(), "whatsapp");
+  } catch (err) {
+    console.error("❌ Error enviando agenda mañana:", err.message);
+  }
+}
+
+// ============================================================
+// ALERTA URGENTE — envía 4 mensajes de alerta + 1 descriptivo
+// ============================================================
+async function enviarAlertaUrgente(motivo) {
+  if (!OWNER) return;
+  try {
+    // 4 mensajes de alerta para que suene fuerte
+    for (let i = 0; i < 4; i++) {
+      await enviarMensaje(OWNER, "🚨 ALERTA ALERTA ALERTA 🚨", "whatsapp");
+      await new Promise(r => setTimeout(r, 800));
+    }
+    await enviarMensaje(OWNER, motivo, "whatsapp");
+  } catch {}
 }
 
 // ============================================================
@@ -340,6 +388,11 @@ function startScheduler() {
 
   // Resumen diario para Nico a las 20:00
   cron.schedule("0 20 * * *", enviarResumenDiario, {
+    timezone: "America/Montevideo",
+  });
+
+  // Agenda del día siguiente a las 20:05
+  cron.schedule("5 20 * * *", enviarAgendaManana, {
     timezone: "America/Montevideo",
   });
 
@@ -427,4 +480,4 @@ function getTemplatesMeta() {
   return TEMPLATES_META;
 }
 
-module.exports = { startScheduler, getTemplatesMeta };
+module.exports = { startScheduler, getTemplatesMeta, enviarAlertaUrgente };

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Citrino — Perfil de cliente</title>
+  <style>
+    :root {
+      --verde: #4a6f4a; --verde-bg: #eef4ee; --verde-claro: #8fbc8f;
+      --crema: #f7f2eb; --crema-card: #fff; --crema-border: #e5ddd0;
+      --texto: #1e2e1e; --texto-suave: #5a6e5a;
+      --rojo: #b33a2f; --naranja: #c96a18; --azul: #2563b0;
+      --sombra: 0 1px 4px rgba(0,0,0,0.07); --sombra-md: 0 4px 16px rgba(0,0,0,.1);
+      --radio: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--crema); color: var(--texto); min-height: 100vh; }
+
+    /* NAV */
+    nav.topnav { background: var(--verde); padding: 0 1.5rem; display: flex; align-items: center; height: 52px; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.15); gap: 0; }
+    .nav-brand { color: white; font-size: 1rem; font-weight: 700; margin-right: 1.5rem; text-decoration: none; }
+    .nav-back { color: rgba(255,255,255,.85); text-decoration: none; font-size: .82rem; display: flex; align-items: center; gap: .35rem; padding: .3rem .6rem; border-radius: 6px; transition: background .15s; }
+    .nav-back:hover { background: rgba(255,255,255,.15); }
+    .nav-title { color: white; font-size: .88rem; font-weight: 600; margin-left: .5rem; opacity: .9; }
+
+    /* LAYOUT */
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 1.4rem 1.5rem; }
+    .grid-main { display: grid; grid-template-columns: 300px 1fr; gap: 1.2rem; align-items: start; }
+
+    /* CARD */
+    .card { background: var(--crema-card); border-radius: var(--radio); border: 1px solid var(--crema-border); box-shadow: var(--sombra); overflow: hidden; }
+    .card-header { padding: .75rem 1rem; border-bottom: 1px solid var(--crema-border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
+    .card-body { padding: 1rem; }
+
+    /* PERFIL SIDEBAR */
+    .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--verde); color: white; font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; }
+    .profile-name { font-size: 1.2rem; font-weight: 800; text-align: center; margin-bottom: .2rem; }
+    .profile-phone { font-size: .82rem; color: var(--texto-suave); text-align: center; margin-bottom: .75rem; }
+    .profile-badges { display: flex; gap: .3rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
+    .badge { display: inline-flex; align-items: center; gap: 3px; padding: .2rem .6rem; border-radius: 20px; font-size: .7rem; font-weight: 600; }
+    .b-lead     { background: #fef3cd; color: #8a5a00; }
+    .b-agendado { background: #dbeafe; color: #1547a0; }
+    .b-vino     { background: #dcfce7; color: #166534; }
+    .b-no_vino  { background: #fee2e2; color: #991b1b; }
+    .b-cancelado{ background: #f3f4f6; color: #6b7280; }
+    .b-wa  { background: #d1fae5; color: #065f46; }
+    .b-fb  { background: #dbeafe; color: #1e40af; }
+    .b-ig  { background: #fce7f3; color: #9d174d; }
+    .b-manual { background: #f3e8ff; color: #6b21a8; }
+    .b-cup { background: var(--verde-bg); color: var(--verde); }
+
+    .profile-campo { display: flex; justify-content: space-between; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--crema-border); font-size: .82rem; }
+    .profile-campo:last-child { border-bottom: none; }
+    .profile-campo .label { color: var(--texto-suave); font-size: .75rem; }
+    .profile-campo .valor { font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
+
+    .acciones-rapidas { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .75rem; }
+    .btn { padding: .45rem .9rem; border: none; border-radius: 7px; cursor: pointer; font-size: .78rem; font-weight: 600; transition: opacity .15s, transform .1s; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.96); }
+    .btn-verde  { background: var(--verde); color: white; }
+    .btn-azul   { background: var(--azul); color: white; }
+    .btn-naranja{ background: var(--naranja); color: white; }
+    .btn-rojo   { background: var(--rojo); color: white; }
+    .btn-gris   { background: #e5e0d8; color: var(--texto); }
+    .btn-full   { grid-column: 1/-1; }
+
+    /* STATS */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
+    .stat-mini { background: var(--crema-card); border: 1px solid var(--crema-border); border-radius: 8px; padding: .7rem .8rem; text-align: center; box-shadow: var(--sombra); }
+    .stat-mini-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .stat-mini-label { font-size: .65rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; margin-top: .2rem; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--crema-border); margin-bottom: .75rem; }
+    .tab { padding: .5rem 1rem; font-size: .82rem; font-weight: 600; color: var(--texto-suave); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+    .tab.active { color: var(--verde); border-bottom-color: var(--verde); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* TIMELINE */
+    .timeline { display: flex; flex-direction: column; gap: .5rem; }
+    .timeline-item { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem .75rem; border-radius: 8px; background: var(--crema); border: 1px solid var(--crema-border); }
+    .tl-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .tl-icon.sesion   { background: var(--verde-bg); }
+    .tl-icon.pago     { background: #dcfce7; }
+    .tl-icon.cuponera { background: #fef3cd; }
+    .tl-body { flex: 1; min-width: 0; }
+    .tl-titulo { font-size: .83rem; font-weight: 600; }
+    .tl-sub { font-size: .73rem; color: var(--texto-suave); margin-top: 1px; }
+    .tl-monto { font-size: .85rem; font-weight: 700; color: var(--verde); margin-left: auto; white-space: nowrap; }
+    .tl-monto.gasto { color: var(--rojo); }
+    .empty-state { text-align: center; padding: 2rem; color: var(--texto-suave); font-size: .85rem; }
+
+    /* CHAT */
+    .chat-list { display: flex; flex-direction: column; gap: .5rem; max-height: 400px; overflow-y: auto; }
+    .chat-burbuja { max-width: 80%; padding: .45rem .7rem; border-radius: 10px; font-size: .81rem; line-height: 1.45; }
+    .chat-burbuja.user { background: var(--verde-bg); align-self: flex-start; border-bottom-left-radius: 2px; }
+    .chat-burbuja.bot  { background: #f0f0ec; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .chat-meta { font-size: .62rem; color: var(--texto-suave); margin-top: 2px; }
+
+    /* PERFIL IA */
+    .perfil-item { display: flex; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid var(--crema-border); font-size: .82rem; }
+    .perfil-item:last-child { border-bottom: none; }
+    .perfil-key { color: var(--texto-suave); min-width: 130px; font-size: .75rem; }
+    .perfil-val { font-weight: 500; }
+
+    /* NOTAS */
+    .notas-area { width: 100%; min-height: 90px; padding: .6rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .83rem; resize: vertical; font-family: inherit; outline: none; transition: border-color .15s; }
+    .notas-area:focus { border-color: var(--verde); }
+
+    /* PRÓXIMO TURNO */
+    .prox-turno { background: var(--verde-bg); border: 1.5px solid var(--verde-claro); border-radius: 8px; padding: .65rem .9rem; display: flex; align-items: center; gap: .6rem; margin-bottom: .75rem; font-size: .83rem; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--verde); color: white; padding: .6rem 1.2rem; border-radius: 8px; font-size: .83rem; z-index: 300; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--rojo); }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: white; border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 440px; box-shadow: var(--sombra-md); }
+    .modal h3 { font-size: 1rem; margin-bottom: .25rem; color: var(--verde); }
+    .modal .sub { font-size: .78rem; color: var(--texto-suave); margin-bottom: 1rem; }
+    .modal label { display: block; font-size: .78rem; color: var(--texto-suave); margin-top: .6rem; margin-bottom: .2rem; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: .5rem .7rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .85rem; outline: none; transition: border-color .15s; resize: vertical; font-family: inherit; }
+    .modal input:focus, .modal select:focus { border-color: var(--verde); }
+    .modal-btns { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+
+    /* LOADING */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 4rem; gap: .5rem; color: var(--texto-suave); }
+    .spinner { width: 20px; height: 20px; border: 2.5px solid var(--crema-border); border-top-color: var(--verde); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 760px) {
+      .grid-main { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="nav-brand" href="/admin">🌿 Citrino</a>
+  <a class="nav-back" href="/admin">← CRM</a>
+  <span class="nav-title" id="navNombre"></span>
+</nav>
+
+<div id="loadingWrap" class="loading"><div class="spinner"></div> Cargando perfil...</div>
+
+<div id="mainWrap" class="wrap" style="display:none">
+
+  <!-- Stats top -->
+  <div class="stats-row" id="statsRow"></div>
+
+  <!-- Próximo turno -->
+  <div id="proxTurnoWrap"></div>
+
+  <div class="grid-main">
+    <!-- SIDEBAR -->
+    <div>
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding-top:1.25rem">
+          <div class="profile-avatar" id="avatar"></div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-phone" id="profilePhone"></div>
+          <div class="profile-badges" id="profileBadges"></div>
+        </div>
+        <div class="card-body" style="padding-top:.5rem" id="profileCampos"></div>
+        <div class="card-body" style="padding-top:.25rem">
+          <div class="acciones-rapidas" id="accionesRapidas"></div>
+        </div>
+      </div>
+
+      <!-- Cuponera -->
+      <div class="card" style="margin-top:1rem" id="cuponeraCard">
+        <div class="card-header"><span class="card-title">🎟 Cuponera</span></div>
+        <div class="card-body" id="cuponeraBody"></div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div>
+      <div class="card">
+        <div class="card-body" style="padding-bottom:.25rem">
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab('timeline')">📋 Historial</div>
+            <div class="tab" onclick="switchTab('chat')">💬 Chat</div>
+            <div class="tab" onclick="switchTab('perfil')">🧠 Perfil IA</div>
+            <div class="tab" onclick="switchTab('notas')">📝 Notas</div>
+          </div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div class="tab-panel active card-body" id="panel-timeline">
+          <div class="timeline" id="timeline"></div>
+        </div>
+
+        <!-- CHAT -->
+        <div class="tab-panel card-body" id="panel-chat">
+          <div class="chat-list" id="chatList"></div>
+        </div>
+
+        <!-- PERFIL IA -->
+        <div class="tab-panel card-body" id="panel-perfil">
+          <div id="perfilIA"></div>
+        </div>
+
+        <!-- NOTAS -->
+        <div class="tab-panel card-body" id="panel-notas">
+          <textarea class="notas-area" id="notasArea" placeholder="Agregá notas sobre esta persona..."></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:.5rem">
+            <button class="btn btn-verde" onclick="guardarNota()">Guardar nota</button>
+          </div>
+          <div id="notasGuardadas" style="margin-top:.75rem;font-size:.8rem;color:var(--texto-suave)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agendar turno -->
+<div class="modal-overlay" id="modalTurno">
+  <div class="modal">
+    <h3>📅 Agendar turno</h3>
+    <p class="sub" id="modalTurnoNombre"></p>
+    <label>Servicio *</label>
+    <select id="turnoServicio">
+      <option value="Método Citrino">Método Citrino ($1.500)</option>
+      <option value="Drenaje Linfático">Drenaje Linfático ($1.500)</option>
+      <option value="Masaje Descontracturante">Masaje Descontracturante ($1.200)</option>
+      <option value="Masaje Relax">Masaje Relax ($1.300)</option>
+      <option value="Masaje Modelador">Masaje Modelador ($1.500)</option>
+      <option value="Masaje Piedras Calientes">Masaje Piedras Calientes ($1.500)</option>
+      <option value="Reflexología">Reflexología ($1.300)</option>
+      <option value="Reiki">Reiki ($1.200)</option>
+    </select>
+    <label>Fecha y hora *</label>
+    <input type="datetime-local" id="turnoFecha" />
+    <label>Duración (minutos)</label>
+    <select id="turnoDuracion">
+      <option value="90">90 minutos (estándar)</option>
+      <option value="50">50 minutos</option>
+      <option value="60">60 minutos</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn btn-gris" onclick="cerrarModal('modalTurno')">Cancelar</button>
+      <button class="btn btn-verde" onclick="confirmarTurno()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Registrar pago -->
+<div class="modal-overlay" id="modalPago">
+  <div class="modal">
+    <h3>💰 Registrar pago</h3>
+    <p class="sub" id="modalPagoNombre"></p>
+    <label>Monto (UYU) *</label>
+    <input type="number" id="pagoMonto" placeholder="Ej: 1500" />
+    <label>Descripción *</label>
+    <input type="text" id="pagoDesc" placeholder="Ej: Drenaje Linfático" />
+    <label>Notas</label>
+    <input type="text" id="pagoNotas" placeholder="Ej: pagó en efectivo" />
+    <div class="modal-btns">
+      <button class="btn btn-gris" onclick="cerrarModal('modalPago')">Cancelar</button>
+      <button class="btn btn-verde" onclick="confirmarPago()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// INIT
+// ============================================================
+const params = new URLSearchParams(location.search);
+const userId = params.get("id");
+let datos = null;
+
+if (!userId) {
+  document.getElementById("loadingWrap").innerHTML = '<p style="color:red;padding:2rem">No se especificó un cliente (falta ?id=...)</p>';
+} else {
+  cargarPerfil();
+}
+
+async function cargarPerfil() {
+  try {
+    const res = await fetch(`/api/clientes/${encodeURIComponent(userId)}/perfil-completo`);
+    datos = await res.json();
+    if (datos.error) throw new Error(datos.error);
+    renderPerfil();
+    document.getElementById("loadingWrap").style.display = "none";
+    document.getElementById("mainWrap").style.display = "block";
+  } catch (e) {
+    document.getElementById("loadingWrap").innerHTML = `<p style="color:var(--rojo);padding:2rem">Error: ${e.message}</p>`;
+  }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderPerfil() {
+  const { info, perfil, stats, turnos, pagos, chats } = datos;
+  const nombre = info.nombre || info.telefono || userId;
+
+  // Nav title
+  document.getElementById("navNombre").textContent = nombre;
+  document.title = `Citrino — ${nombre}`;
+
+  // Avatar
+  document.getElementById("avatar").textContent = (nombre[0] || "?").toUpperCase();
+
+  document.getElementById("profileName").textContent = nombre;
+  document.getElementById("profilePhone").textContent = info.telefono || userId;
+
+  // Badges
+  const badges = [];
+  const estBadge = { lead:"b-lead", agendado:"b-agendado", vino:"b-vino", no_vino:"b-no_vino", cancelado:"b-cancelado" };
+  if (info.estado) badges.push(`<span class="badge ${estBadge[info.estado]||"b-lead"}">${info.estado}</span>`);
+  const canalBadge = { whatsapp:"b-wa", facebook:"b-fb", instagram:"b-ig", dashboard:"b-manual" };
+  if (info.canal) badges.push(`<span class="badge ${canalBadge[info.canal]||""}">${info.canal}</span>`);
+  if (info.cuponera === "si") badges.push(`<span class="badge b-cup">🎟 Cuponera</span>`);
+  document.getElementById("profileBadges").innerHTML = badges.join("");
+
+  // Campos sidebar
+  const campos = [
+    ["Servicio", info.servicio || "—"],
+    ["Cliente desde", info.fechaAlta ? new Date(info.fechaAlta).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}) : "—"],
+    ["Último contacto", info.ultimoContacto ? new Date(info.ultimoContacto).toLocaleDateString("es-UY",{day:"numeric",month:"short"}) : "—"],
+    ["Canal", info.canal || "—"],
+  ];
+  document.getElementById("profileCampos").innerHTML = campos.map(([k,v]) =>
+    `<div class="profile-campo"><span class="label">${k}</span><span class="valor">${v}</span></div>`
+  ).join("");
+
+  // Acciones rápidas
+  const tel = (info.telefono || "").replace(/\D/g, "");
+  document.getElementById("accionesRapidas").innerHTML = `
+    ${tel ? `<a class="btn btn-verde" href="https://wa.me/${tel}" target="_blank">💬 WhatsApp</a>` : ""}
+    <button class="btn btn-azul" onclick="abrirModalTurno()">📅 Agendar</button>
+    <button class="btn btn-naranja" onclick="abrirModalPago()">💰 Pago</button>
+    <button class="btn btn-gris btn-full" onclick="switchTab('notas');document.querySelector('.tab[onclick*=notas]').click()">📝 Nota</button>
+  `;
+
+  // Stats
+  const statsDef = [
+    { num: stats.sesionesRegistradas || turnos.filter(t => new Date(t.inicio) < new Date()).length, label: "Sesiones", color: "verde" },
+    { num: stats.totalPagado > 0 ? `$${stats.totalPagado.toLocaleString("es-UY")}` : "—", label: "Total pagado", color: "verde" },
+    { num: stats.diasDesdeUltima !== null ? `${stats.diasDesdeUltima}d` : "—", label: "Última visita", color: stats.diasDesdeUltima > 30 ? "naranja" : "verde" },
+    { num: chats.length, label: "Mensajes", color: "azul" },
+  ];
+  document.getElementById("statsRow").innerHTML = statsDef.map(s =>
+    `<div class="stat-mini">
+      <div class="stat-mini-num" style="color:var(--${s.color})">${s.num}</div>
+      <div class="stat-mini-label">${s.label}</div>
+    </div>`
+  ).join("");
+
+  // Próximo turno
+  if (stats.proximoTurno) {
+    const pt = stats.proximoTurno;
+    const fechaLabel = new Date(pt.inicio).toLocaleString("es-UY",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"});
+    document.getElementById("proxTurnoWrap").innerHTML = `
+      <div class="prox-turno">
+        📅 <strong>Próximo turno:</strong> ${fechaLabel}
+        ${pt.clienteServicio ? `· ${pt.clienteServicio}` : ""}
+      </div>`;
+  }
+
+  // Cuponera
+  if (info.cuponera === "si") {
+    const pct = Math.max(0, Math.min(100, (info.sesRest / 8) * 100));
+    document.getElementById("cuponeraBody").innerHTML = `
+      <div style="font-size:.85rem;margin-bottom:.4rem">Sesiones restantes: <strong>${info.sesRest}</strong></div>
+      <div style="background:var(--crema-border);border-radius:6px;height:10px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--verde);border-radius:6px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--texto-suave);margin-top:.25rem">${pct.toFixed(0)}% disponible</div>
+    `;
+  } else {
+    document.getElementById("cuponeraBody").innerHTML = `
+      <p style="font-size:.82rem;color:var(--texto-suave)">Sin cuponera activa</p>
+      <button class="btn btn-naranja" style="margin-top:.5rem;width:100%;font-size:.78rem" onclick="registrarCuponera()">+ Registrar pack</button>
+    `;
+  }
+
+  // Timeline (turnos + pagos mezclados y ordenados por fecha)
+  renderTimeline(turnos, pagos);
+
+  // Chat
+  renderChat(chats);
+
+  // Perfil IA
+  renderPerfilIA(perfil);
+
+  // Notas existentes
+  const notasGuardadas = info.notas;
+  if (notasGuardadas) {
+    document.getElementById("notasGuardadas").innerHTML = `<strong>Notas guardadas:</strong><br>${notasGuardadas.replace(/\n/g,"<br>")}`;
+  }
+}
+
+function renderTimeline(turnos, pagos) {
+  const eventos = [];
+  turnos.forEach(t => eventos.push({ tipo: "sesion", fecha: t.inicio, titulo: t.clienteServicio || t.titulo, sub: new Date(t.inicio).toLocaleString("es-UY",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) }));
+  pagos.forEach(p => eventos.push({ tipo: p.categoria === "Cuponera" ? "cuponera" : "pago", fecha: p.fecha + "T12:00:00", titulo: p.descripcion, sub: new Date(p.fecha).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}), monto: p.monto }));
+  eventos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  if (!eventos.length) {
+    document.getElementById("timeline").innerHTML = '<p class="empty-state">Sin historial todavía</p>';
+    return;
+  }
+
+  document.getElementById("timeline").innerHTML = eventos.map(ev => {
+    const iconos = { sesion: "💆", pago: "💰", cuponera: "🎟" };
+    const futuro = new Date(ev.fecha) > new Date();
+    return `<div class="timeline-item" style="${futuro ? "border-color:var(--verde-claro);background:var(--verde-bg)" : ""}">
+      <div class="tl-icon ${ev.tipo}">${iconos[ev.tipo] || "•"}</div>
+      <div class="tl-body">
+        <div class="tl-titulo">${ev.titulo || "—"}${futuro ? " <em style='font-size:.7rem;color:var(--verde)'>(próximo)</em>" : ""}</div>
+        <div class="tl-sub">${ev.sub}</div>
+      </div>
+      ${ev.monto ? `<div class="tl-monto ${ev.monto < 0 ? "gasto":""}">${ev.monto > 0 ? "+" : ""}$${Math.abs(ev.monto).toLocaleString("es-UY")}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function renderChat(chats) {
+  if (!chats.length) {
+    document.getElementById("chatList").innerHTML = '<p class="empty-state">Sin historial de chat todavía</p>';
+    return;
+  }
+  document.getElementById("chatList").innerHTML = chats.map(c => {
+    const fecha = c.fecha ? new Date(c.fecha).toLocaleString("es-UY",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) : "";
+    return `<div style="display:flex;flex-direction:column;align-items:${c.rol==="bot"?"flex-end":"flex-start"}">
+      <div class="chat-burbuja ${c.rol==="bot"?"bot":"user"}">${(c.msg||"").replace(/\n/g,"<br>")}</div>
+      <div class="chat-meta">${c.rol==="bot"?"🌿 Marta":"👤 Cliente"} · ${fecha}</div>
+    </div>`;
+  }).join("");
+  setTimeout(() => { const l = document.getElementById("chatList"); l.scrollTop = l.scrollHeight; }, 50);
+}
+
+function renderPerfilIA(perfil) {
+  if (!perfil || !Object.keys(perfil).length) {
+    document.getElementById("perfilIA").innerHTML = '<p class="empty-state">Aún no hay perfil aprendido para este cliente</p>';
+    return;
+  }
+  const labels = {
+    horarios_preferidos: "Horarios preferidos",
+    ocupacion: "Ocupación",
+    servicios_preferidos: "Servicios",
+    condiciones_fisicas: "Condiciones físicas",
+    personalidad: "Personalidad",
+    motivacion: "Motivación",
+    sensibilidad_precio: "Sensibilidad al precio",
+    notas_extra: "Notas extra",
+    ultima_actualizacion: "Última actualización",
+  };
+  const items = Object.entries(perfil)
+    .filter(([k]) => k !== "ultima_actualizacion")
+    .map(([k, v]) => `<div class="perfil-item">
+      <span class="perfil-key">${labels[k] || k}</span>
+      <span class="perfil-val">${Array.isArray(v) ? v.join(", ") : v}</span>
+    </div>`);
+  if (perfil.ultima_actualizacion) {
+    items.push(`<div style="font-size:.68rem;color:var(--texto-suave);margin-top:.5rem">Actualizado: ${new Date(perfil.ultima_actualizacion).toLocaleDateString("es-UY")}</div>`);
+  }
+  document.getElementById("perfilIA").innerHTML = items.join("") || '<p class="empty-state">Sin datos</p>';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(nombre) {
+  document.querySelectorAll(".tab").forEach((t, i) => {
+    const panelName = ["timeline","chat","perfil","notas"][i];
+    t.classList.toggle("active", panelName === nombre);
+  });
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-" + nombre).classList.add("active");
+  if (nombre === "chat") setTimeout(() => { const l = document.getElementById("chatList"); l.scrollTop = l.scrollHeight; }, 50);
+}
+// Fix: tabs click handler
+document.querySelectorAll(".tab").forEach((tab, i) => {
+  const nombres = ["timeline","chat","perfil","notas"];
+  tab.onclick = () => switchTab(nombres[i]);
+});
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function abrirModalTurno() {
+  const nombre = datos?.info?.nombre || userId;
+  document.getElementById("modalTurnoNombre").textContent = nombre;
+  // Default: próximo día hábil a las 10am
+  const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0);
+  document.getElementById("turnoFecha").value = d.toISOString().slice(0,16);
+  document.getElementById("modalTurno").classList.add("open");
+}
+
+async function confirmarTurno() {
+  const servicio = document.getElementById("turnoServicio").value;
+  const fechaStr = document.getElementById("turnoFecha").value;
+  const durMin = parseInt(document.getElementById("turnoDuracion").value) || 90;
+  if (!fechaStr) { toast("Seleccioná fecha y hora", true); return; }
+
+  const inicio = new Date(fechaStr);
+  const fin = new Date(inicio.getTime() + durMin * 60000);
+  const pad = n => String(n).padStart(2, "0");
+  const tz = "-03:00";
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00${tz}`;
+
+  try {
+    const res = await fetch("/api/agenda/turno", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: datos?.info?.nombre || userId,
+        telefono: datos?.info?.telefono || userId,
+        servicio,
+        inicioISO: fmt(inicio),
+        finISO: fmt(fin),
+        slotLabel: `${fechaStr.replace("T"," ")}`,
+      }),
+    });
+    const d = await res.json();
+    if (d.ok) { toast("Turno agendado ✓"); cerrarModal("modalTurno"); cargarPerfil(); }
+    else toast("Error: " + d.error, true);
+  } catch { toast("Error de red", true); }
+}
+
+function abrirModalPago() {
+  document.getElementById("modalPagoNombre").textContent = datos?.info?.nombre || userId;
+  document.getElementById("pagoMonto").value = "";
+  document.getElementById("pagoDesc").value = datos?.info?.servicio || "";
+  document.getElementById("modalPago").classList.add("open");
+}
+
+async function confirmarPago() {
+  const monto = parseFloat(document.getElementById("pagoMonto").value);
+  const desc  = document.getElementById("pagoDesc").value.trim();
+  if (!monto || !desc) { toast("Monto y descripción requeridos", true); return; }
+  try {
+    const res = await fetch("/api/finanzas/ingreso", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ monto, descripcion: desc, clienteId: userId, notas: document.getElementById("pagoNotas").value }),
+    });
+    const d = await res.json();
+    if (d.ok) { toast("Pago registrado ✓"); cerrarModal("modalPago"); cargarPerfil(); }
+    else toast("Error: " + d.error, true);
+  } catch { toast("Error de red", true); }
+}
+
+async function guardarNota() {
+  const nota = document.getElementById("notasArea").value.trim();
+  if (!nota) return;
+  try {
+    await fetch(`/api/clientes/${encodeURIComponent(userId)}/nota`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nota }),
+    });
+    toast("Nota guardada ✓");
+    document.getElementById("notasArea").value = "";
+    cargarPerfil();
+  } catch { toast("Error", true); }
+}
+
+async function registrarCuponera() {
+  const ses = prompt("¿Cuántas sesiones? (4, 6 u 8)");
+  if (!ses) return;
+  try {
+    await fetch(`/api/clientes/${encodeURIComponent(userId)}/cuponera`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sesiones: parseInt(ses) }),
+    });
+    toast("Cuponera registrada ✓"); cargarPerfil();
+  } catch { toast("Error", true); }
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".modal-overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); }));
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(o => o.classList.remove("open")); });
+
+function toast(msg, error = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.toggle("error", error); t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 3200);
+}
+</script>
+</body>
+</html>

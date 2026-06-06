@@ -26,6 +26,7 @@ const COL = {
   ULTIMO_CONT:  12,  // M: Último contacto (timestamp)
   REMARKETING:  13,  // N: Fecha de último remarketing enviado
   PERFIL:       14,  // O: Perfil JSON del cliente (aprendizaje)
+  CHATS:        15,  // P: Historial de chats (JSON últimos 20 mensajes)
 };
 
 // ============================================================
@@ -85,13 +86,13 @@ async function inicializarSheet() {
   if (!header || header[0] !== "ID") {
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A1:O1`,
+      range: `${SHEET_NAME}!A1:P1`,
       valueInputOption: "RAW",
       resource: {
         values: [[
           "ID", "Nombre", "Teléfono", "Canal", "Servicio", "Estado",
           "Cuponera", "Ses. Rest.", "Fecha Alta", "Fecha Turno",
-          "Event ID", "Notas", "Último Contacto", "Remarketing", "Perfil"
+          "Event ID", "Notas", "Último Contacto", "Remarketing", "Perfil", "Chats"
         ]],
       },
     });
@@ -234,12 +235,12 @@ async function registrarAsistencia(userId, vino = true) {
   await actualizarEstado(userId, vino ? "vino" : "no_vino");
 
   if (vino) {
-    // Descontar sesión de cuponera si tiene
     const cliente = await buscarCliente(userId);
     if (!cliente) return;
     const sesRest = parseInt(cliente.datos[COL.SES_REST]) || 0;
     const tieneCuponera = cliente.datos[COL.CUPONERA] === "si" && sesRest > 0;
 
+    // Descontar sesión de cuponera si tiene
     if (tieneCuponera) {
       const sheets = await getSheets();
       await sheets.spreadsheets.values.update({
@@ -249,6 +250,18 @@ async function registrarAsistencia(userId, vino = true) {
         resource: { values: [[String(sesRest - 1)]] },
       });
     }
+
+    // Registrar ingreso automático en Finanzas
+    try {
+      const { registrarIngreso } = require("./finanzas");
+      const servicio = cliente.datos[COL.SERVICIO] || "";
+      const notasCuponera = tieneCuponera ? `Cuponera (quedan ${sesRest - 1} ses.)` : "";
+      await registrarIngreso({
+        clienteId: userId,
+        servicio,
+        notas: notasCuponera,
+      });
+    } catch {}
   }
 }
 
@@ -481,6 +494,44 @@ async function obtenerTodosLosPerfiles() {
 }
 
 // ============================================================
+// HISTORIAL DE CHATS — guarda los últimos 20 mensajes por cliente
+// ============================================================
+async function guardarMensajeChat(userId, rol, mensaje) {
+  try {
+    const cliente = await buscarCliente(userId);
+    if (!cliente) return;
+
+    let chats = [];
+    try { chats = JSON.parse(cliente.datos[COL.CHATS] || "[]"); } catch {}
+
+    chats.push({
+      rol,        // "user" | "bot"
+      msg: (mensaje || "").substring(0, 500), // truncar mensajes muy largos
+      fecha: new Date().toISOString(),
+    });
+
+    // Mantener solo los últimos 30 mensajes
+    if (chats.length > 30) chats = chats.slice(-30);
+
+    const sheets = await getSheets();
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_NAME}!P${cliente.rowIndex}`,
+      valueInputOption: "RAW",
+      resource: { values: [[JSON.stringify(chats)]] },
+    });
+  } catch {
+    // No es crítico
+  }
+}
+
+async function obtenerChats(userId) {
+  const cliente = await buscarCliente(userId);
+  if (!cliente || !cliente.datos[COL.CHATS]) return [];
+  try { return JSON.parse(cliente.datos[COL.CHATS]); } catch { return []; }
+}
+
+// ============================================================
 // REGISTRAR ENVÍO DE REMARKETING
 // ============================================================
 async function registrarRemarketing(userId) {
@@ -540,7 +591,7 @@ async function leerTodosLosClientes() {
   const filas = await leerTodasLasFilas();
   if (filas.length <= 1) return [];
 
-  const headers = ["ID","Nombre","Teléfono","Canal","Servicio","Estado","Cuponera","Ses.Rest.","FechaAlta","FechaTurno","EventID","Notas","UltimoContacto","Remarketing"];
+  const headers = ["ID","Nombre","Teléfono","Canal","Servicio","Estado","Cuponera","Ses.Rest.","FechaAlta","FechaTurno","EventID","Notas","UltimoContacto","Remarketing","Perfil","Chats"];
 
   return filas.slice(1).map((fila) => {
     const obj = {};
@@ -569,4 +620,6 @@ module.exports = {
   actualizarPerfil,
   obtenerTodosLosPerfiles,
   calcularScore,
+  guardarMensajeChat,
+  obtenerChats,
 };

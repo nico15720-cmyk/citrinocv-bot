@@ -328,9 +328,10 @@
 <header>
   <h1>🌿 Citrino</h1>
   <nav>
-    <a href="/admin">CRM</a>
-    <a href="/agenda" class="active">Agenda</a>
-    <a href="/dashboard">Dashboard</a>
+    <a href="/admin" style="color:rgba(255,255,255,.75);text-decoration:none;margin-left:1rem;font-size:.82rem;opacity:.85">👥 CRM</a>
+    <a href="/agenda" class="active" style="color:white;text-decoration:none;margin-left:1rem;font-size:.82rem;font-weight:600">📅 Agenda</a>
+    <a href="/finanzas" style="color:rgba(255,255,255,.75);text-decoration:none;margin-left:1rem;font-size:.82rem;opacity:.85">💰 Finanzas</a>
+    <a href="/dashboard" style="color:rgba(255,255,255,.75);text-decoration:none;margin-left:1rem;font-size:.82rem;opacity:.85">📊 Dashboard</a>
   </nav>
 </header>
 
@@ -343,6 +344,7 @@
   </div>
   <h2 id="tituloPagina">Agenda semanal</h2>
   <button class="btn btn-verde" id="btnNuevoTurno">+ Nuevo turno</button>
+  <button class="btn btn-gris" onclick="document.getElementById('modalTerapeutas').classList.add('open');renderListaTerapeutasModal()" style="font-size:.76rem">👩‍⚕️ Terapeutas</button>
 </div>
 
 <div class="main">
@@ -403,6 +405,35 @@
     <div class="modal-botones">
       <button class="btn btn-gris" id="btnCancelarModal">Cancelar</button>
       <button class="btn btn-verde" id="btnConfirmarTurno">Confirmar turno</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Gestionar terapeutas -->
+<div class="modal-overlay" id="modalTerapeutas">
+  <div class="modal" style="max-width:520px">
+    <h3>👩‍⚕️ Terapeutas</h3>
+    <div id="lista-terapeutas-modal" style="margin-bottom:1rem"></div>
+    <hr style="border:none;border-top:1px solid var(--crema-border);margin-bottom:1rem" />
+    <h4 style="font-size:.85rem;margin-bottom:.5rem" id="ter-form-title">Nueva terapeuta</h4>
+    <input type="hidden" id="ter-id" />
+    <div style="display:grid;grid-template-columns:1fr 80px;gap:.5rem">
+      <div>
+        <label style="font-size:.75rem;color:var(--gris)">Nombre</label>
+        <input type="text" id="ter-nombre" placeholder="Ej: Ana García" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--crema-border);border-radius:6px;font-size:.85rem;outline:none" />
+      </div>
+      <div>
+        <label style="font-size:.75rem;color:var(--gris)">Color</label>
+        <input type="color" id="ter-color" value="#4a6f4a" style="width:100%;height:36px;border:1.5px solid var(--crema-border);border-radius:6px;cursor:pointer;padding:2px" />
+      </div>
+    </div>
+    <label style="font-size:.75rem;color:var(--gris);display:block;margin-top:.5rem">Google Calendar ID (dejar vacío para usar el principal)</label>
+    <input type="text" id="ter-cal" placeholder="Ej: ejemplo@group.calendar.google.com" style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--crema-border);border-radius:6px;font-size:.82rem;outline:none" />
+    <label style="font-size:.75rem;color:var(--gris);display:block;margin-top:.6rem;margin-bottom:.4rem">Horarios por día</label>
+    <div id="ter-horarios-wrap" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.35rem;font-size:.78rem"></div>
+    <div class="modal-botones" style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-gris" onclick="cancelarEditTerapeuta()">Cancelar</button>
+      <button class="btn btn-verde" onclick="guardarTerapeuta()">Guardar</button>
     </div>
   </div>
 </div>
@@ -791,6 +822,116 @@ cargarDatos();
 
 // Auto-refresh cada 5 minutos
 setInterval(cargarDatos, 5 * 60 * 1000);
+
+// ============================================================
+// GESTIÓN DE TERAPEUTAS
+// ============================================================
+const DIAS_SEM = { 1:"Lunes", 2:"Martes", 3:"Miércoles", 4:"Jueves", 5:"Viernes", 6:"Sábado" };
+
+function initHorariosWrap() {
+  const wrap = document.getElementById("ter-horarios-wrap");
+  wrap.innerHTML = Object.entries(DIAS_SEM).map(([num, dia]) =>
+    `<label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+      <input type="checkbox" data-dia="${num}" class="ter-dia-check" />
+      <span>${dia}</span>
+      <input type="text" data-dia-range="${num}" placeholder="8-18" style="width:64px;padding:.2rem .4rem;border:1px solid var(--gris-claro);border-radius:4px;font-size:.75rem" />
+    </label>`
+  ).join("");
+}
+
+function renderListaTerapeutasModal() {
+  initHorariosWrap();
+  const lista = document.getElementById("lista-terapeutas-modal");
+  if (!terapeutas.length) { lista.innerHTML = '<p style="font-size:.8rem;color:var(--gris)">Sin terapeutas aún</p>'; return; }
+  lista.innerHTML = terapeutas.map(t =>
+    `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--crema-border)">
+      <span style="width:14px;height:14px;border-radius:50%;background:${t.color};flex-shrink:0"></span>
+      <span style="flex:1;font-size:.85rem;font-weight:600">${t.nombre}</span>
+      <span style="font-size:.7rem;color:var(--gris)">${Object.keys(t.horarios||{}).length} días</span>
+      <button class="btn btn-gris" style="padding:.2rem .5rem;font-size:.72rem" onclick="editarTerapeuta('${t.id}')">✏️</button>
+      ${t.id !== 'default' ? `<button class="btn btn-rojo" style="padding:.2rem .5rem;font-size:.72rem" onclick="borrarTerapeuta('${t.id}')">🗑</button>` : ""}
+    </div>`
+  ).join("");
+}
+
+function editarTerapeuta(id) {
+  const t = terapeutas.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById("ter-id").value = t.id;
+  document.getElementById("ter-nombre").value = t.nombre;
+  document.getElementById("ter-color").value = t.color;
+  document.getElementById("ter-cal").value = "";
+  document.getElementById("ter-form-title").textContent = "Editar: " + t.nombre;
+  initHorariosWrap();
+  // Marcar días activos
+  Object.entries(t.horarios || {}).forEach(([num, h]) => {
+    const check = document.querySelector(`input[data-dia="${num}"]`);
+    const range = document.querySelector(`input[data-dia-range="${num}"]`);
+    if (check) check.checked = true;
+    if (range && h.franjas?.[0]) range.value = `${h.franjas[0].inicio}-${h.franjas[0].fin}`;
+  });
+}
+
+function cancelarEditTerapeuta() {
+  document.getElementById("ter-id").value = "";
+  document.getElementById("ter-nombre").value = "";
+  document.getElementById("ter-color").value = "#4a6f4a";
+  document.getElementById("ter-cal").value = "";
+  document.getElementById("ter-form-title").textContent = "Nueva terapeuta";
+  initHorariosWrap();
+}
+
+async function guardarTerapeuta() {
+  const nombre = document.getElementById("ter-nombre").value.trim();
+  if (!nombre) { mostrarToast("Ingresá un nombre", "rojo"); return; }
+
+  const color = document.getElementById("ter-color").value;
+  const calendarId = document.getElementById("ter-cal").value.trim();
+  const id = document.getElementById("ter-id").value;
+
+  // Construir horarios desde checkboxes
+  const horarios = {};
+  document.querySelectorAll(".ter-dia-check:checked").forEach(check => {
+    const num = check.dataset.dia;
+    const rangeEl = document.querySelector(`input[data-dia-range="${num}"]`);
+    const [ini, fin] = (rangeEl?.value || "8-18").split("-").map(Number);
+    horarios[num] = { dia: DIAS_SEM[num], franjas: [{ inicio: ini || 8, fin: fin || 18 }] };
+  });
+
+  try {
+    const method = id ? "PUT" : "POST";
+    const url = id ? `/api/terapeutas/${id}` : "/api/terapeutas";
+    const res = await fetch(url, {
+      method, headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, color, horarios, calendarId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      mostrarToast("Terapeuta guardada ✓", "verde");
+      cancelarEditTerapeuta();
+      await cargarDatos();
+      renderListaTerapeutasModal();
+    } else { mostrarToast("Error: " + data.error, "rojo"); }
+  } catch (e) { mostrarToast("Error de red", "rojo"); }
+}
+
+async function borrarTerapeuta(id) {
+  if (!confirm("¿Eliminar esta terapeuta?")) return;
+  try {
+    await fetch(`/api/terapeutas/${id}`, { method: "DELETE" });
+    mostrarToast("Terapeuta eliminada", "verde");
+    await cargarDatos();
+    renderListaTerapeutasModal();
+  } catch { mostrarToast("Error", "rojo"); }
+}
+
+// Cerrar modal terapeutas con Escape
+document.getElementById("modalTerapeutas").addEventListener("click", e => {
+  if (e.target === document.getElementById("modalTerapeutas")) {
+    document.getElementById("modalTerapeutas").classList.remove("open");
+    cancelarEditTerapeuta();
+  }
+});
 </script>
 </body>
 </html>

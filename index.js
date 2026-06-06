@@ -14,6 +14,43 @@ const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
 const modoAdmin = new Set(); // números que activaron /admin temporalmente
 const modoMarta = new Set(); // números que activaron /marta (override admin)
 
+// ============================================================
+// MESSAGE BATCHING — acumula mensajes durante 8 segundos
+// para que Marta responda después de que la persona termina
+// ============================================================
+const MESSAGE_BATCH_DELAY_MS = 8000;
+const messageBatch = new Map(); // userId → { messages, media, platform, messageId, timer }
+
+function encolarMensaje(userId, texto, platform, messageId, media) {
+  if (!messageBatch.has(userId)) {
+    messageBatch.set(userId, { messages: [], media: null, platform, messageId });
+  }
+  const batch = messageBatch.get(userId);
+  if (texto) batch.messages.push(texto);
+  if (media)  batch.media = media; // guardamos el último media recibido
+  batch.platform  = platform;
+  batch.messageId = messageId || batch.messageId;
+
+  // Resetear el timer cada vez que llega un mensaje nuevo
+  if (batch.timer) clearTimeout(batch.timer);
+  batch.timer = setTimeout(() => procesarBatch(userId), MESSAGE_BATCH_DELAY_MS);
+}
+
+async function procesarBatch(userId) {
+  const batch = messageBatch.get(userId);
+  if (!batch) return;
+  messageBatch.delete(userId);
+
+  const textoFinal = batch.messages.join("\n").trim();
+  await handleIncomingMessage({
+    userId,
+    text: textoFinal,
+    platform: batch.platform,
+    messageId: batch.messageId,
+    media: batch.media,
+  });
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -60,6 +97,25 @@ app.post("/webhook", async (req, res) => {
 
     // Comandos de modo (solo desde texto)
     if (msg.type === "text") {
+      // Comando especial: /alerta — Nico activa alerta urgente sobre algo
+      if (texto.toLowerCase().startsWith("/alerta ") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
+        const { enviarAlertaUrgente } = require("./bot/scheduler");
+        const motivo = texto.substring(8).trim();
+        await enviarAlertaUrgente(`⚠️ *Alerta manual de Nico:*\n${motivo}`);
+        const { enviarMensaje } = require("./bot/sender");
+        await enviarMensaje(msg.from, "✅ Alerta enviada", "whatsapp");
+        return;
+      }
+      // Comando /nollego — cliente no llegó aún
+      if (texto.toLowerCase().startsWith("/nollego") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
+        const nombreCliente = texto.substring(8).trim();
+        const { enviarMensaje: enviar } = require("./bot/sender");
+        const msgEspera = nombreCliente
+          ? `¡Hola ${nombreCliente}! 🌿 Te estamos esperando, ¿estás en camino? Cualquier cosa avisanos 😊`
+          : `¡Hola! 🌿 Te estamos esperando para tu turno. ¿Estás en camino? Avisanos si necesitás algo 😊`;
+        await enviar(msg.from, `¿A qué número le mando el "no llegó aún"? Respondeme con el número y el mensaje o usá /nollego NOMBRE NUMERO`, "whatsapp");
+        return;
+      }
       if (texto.toLowerCase() === "/admin") {
         modoAdmin.add(msg.from);
         modoMarta.delete(msg.from);
@@ -92,7 +148,24 @@ app.post("/webhook", async (req, res) => {
     const esAdmin = !modoMarta.has(msg.from) &&
       ((OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from));
     if (esAdmin) {
-      // Admin solo procesa texto por ahora
+      if (msg.type === "audio") {
+        // Audio del dueño — pedirle que use texto hasta tener Whisper
+        const { enviarMensaje } = require("./bot/sender");
+        await enviarMensaje(msg.from,
+          "🎤 Recibí tu audio pero por ahora no puedo transcribirlo automáticamente.\n\nEscribime lo que necesitás registrar, por ejemplo:\n_\"Vino María, pagó $1500 con débito. No vino Juan.\"_",
+          "whatsapp"
+        );
+        return;
+      }
+      if (msg.type === "image" || msg.type === "document") {
+        // Imagen del dueño — procesarla con Claude Vision
+        await handleAdminMessage({
+          text: `[El dueño envió una imagen: ${media?.mimeType || "imagen"}. ${media?.caption || ""}]`,
+          platform: "whatsapp",
+          media,
+        });
+        return;
+      }
       if (msg.type !== "text") return;
       await handleAdminMessage({
         text: texto,
@@ -101,35 +174,22 @@ app.post("/webhook", async (req, res) => {
       return;
     }
 
-    await handleIncomingMessage({
-      userId: msg.from,
-      text: texto,
-      platform: "whatsapp",
-      messageId: msg.id,
-      media,
-    });
+    // Encolar — espera 8s para juntar mensajes múltiples
+    encolarMensaje(msg.from, texto, "whatsapp", msg.id, media);
   }
 
   // Facebook Messenger
   if (body.object === "page") {
     const msg = entry.messaging?.[0];
     if (!msg?.message?.text) return;
-    await handleIncomingMessage({
-      userId: msg.sender.id,
-      text: msg.message.text,
-      platform: "facebook",
-    });
+    encolarMensaje(msg.sender.id, msg.message.text, "facebook", null, null);
   }
 
   // Instagram
   if (body.object === "instagram") {
     const msg = entry.messaging?.[0];
     if (!msg?.message?.text) return;
-    await handleIncomingMessage({
-      userId: msg.sender.id,
-      text: msg.message.text,
-      platform: "instagram",
-    });
+    encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
   }
 });
 
@@ -244,6 +304,10 @@ app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
+app.get("/cliente", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "cliente.html"));
+});
+
 // ============================================================
 // ADMIN API — gestión de clientes sin tocar el Sheet
 // ============================================================
@@ -276,6 +340,131 @@ app.post("/api/clientes/:userId/cuponera", async (req, res) => {
     const sesiones = parseInt(req.body.sesiones) || 5;
     await registrarCuponera(req.params.userId, sesiones);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PERFIL COMPLETO DE CLIENTE ──────────────────────────────
+// Agrega: CRM + turnos Google Calendar + pagos Finanzas + chats + perfil IA
+app.get("/api/clientes/:userId/perfil-completo", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { buscarCliente, obtenerPerfil, obtenerChats } = require("./bot/crm");
+    const { getEventosAgenda } = require("./bot/calendar");
+    const { leerTransacciones } = require("./bot/finanzas");
+
+    const [clienteCRM, perfil, chats, todasTransacciones, eventos] = await Promise.all([
+      buscarCliente(userId),
+      obtenerPerfil(userId),
+      obtenerChats(userId),
+      leerTransacciones(),
+      getEventosAgenda(
+        new Date(Date.now() - 365 * 86400000), // último año
+        new Date(Date.now() + 90 * 86400000)   // + 90 días hacia adelante
+      ),
+    ]);
+
+    // Pagos de este cliente en Finanzas
+    const pagos = todasTransacciones.filter(t =>
+      t.clienteId && (
+        t.clienteId === userId ||
+        t.clienteId.replace(/\D/g, "").includes(userId.replace(/\D/g, "").slice(-8))
+      )
+    );
+
+    // Turnos de este cliente en Google Calendar
+    const tel = userId.replace(/\D/g, "");
+    const turnos = eventos.filter(ev =>
+      ev.clienteTelefono && ev.clienteTelefono.replace(/\D/g, "").includes(tel.slice(-8))
+    );
+
+    // Stats calculados
+    const datos = clienteCRM?.datos || [];
+    const sesionesRegistradas = pagos.filter(p => p.tipo === "ingreso" && p.categoria === "Servicio").length;
+    const totalPagado = pagos.filter(p => p.tipo === "ingreso").reduce((s, p) => s + Math.abs(p.monto), 0);
+    const ultimoTurno = turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio))[0];
+    const diasDesdeUltima = ultimoTurno
+      ? Math.floor((Date.now() - new Date(ultimoTurno.inicio)) / 86400000)
+      : null;
+
+    res.json({
+      info: {
+        id: datos[0] || userId,
+        nombre: datos[1] || "",
+        telefono: datos[2] || userId,
+        canal: datos[3] || "",
+        servicio: datos[4] || "",
+        estado: datos[5] || "lead",
+        cuponera: datos[6] || "no",
+        sesRest: parseInt(datos[7]) || 0,
+        fechaAlta: datos[8] || "",
+        fechaTurno: datos[9] || "",
+        notas: datos[11] || "",
+        ultimoContacto: datos[12] || "",
+      },
+      perfil,
+      stats: {
+        sesionesRegistradas,
+        totalPagado,
+        diasDesdeUltima,
+        proximoTurno: turnos.find(ev => new Date(ev.inicio) > new Date()) || null,
+      },
+      turnos: turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio)),
+      pagos: pagos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
+      chats: chats.slice(-50), // últimos 50 mensajes
+    });
+  } catch (e) {
+    console.error("❌ perfil-completo:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── ALTA MANUAL DE CLIENTE + TURNO OPCIONAL ──────────────────
+app.post("/api/clientes/nuevo", async (req, res) => {
+  try {
+    const { registrarCliente, registrarTurno } = require("./bot/crm");
+    const { crearTurno, resolverSlot } = require("./bot/calendar");
+    const { nombre, telefono, servicio, canal, notas, slotLabel, inicioISO, finISO } = req.body;
+
+    if (!nombre || !telefono) return res.status(400).json({ error: "nombre y teléfono requeridos" });
+
+    const userId = telefono.replace(/\s/g, "");
+    await registrarCliente({ userId, nombre, canal: canal || "dashboard", servicio });
+
+    let eventoId = null;
+    if (slotLabel || (inicioISO && finISO)) {
+      let slot;
+      if (inicioISO && finISO) {
+        slot = { inicioISO, finISO, label: slotLabel || inicioISO };
+      } else {
+        const partes = slotLabel.split(" ");
+        slot = await resolverSlot(partes.slice(0, -1).join(" "), partes[partes.length - 1]);
+      }
+      if (slot) {
+        const evento = await crearTurno({ nombre, telefono: userId, servicio: servicio || "Consulta", slot });
+        await registrarTurno(userId, { fechaTurno: slot.inicioISO, eventId: evento.id, servicio });
+        eventoId = evento.id;
+      }
+    }
+
+    if (notas) {
+      const { actualizarNotas } = require("./bot/crm");
+      await actualizarNotas(userId, notas);
+    }
+
+    res.json({ ok: true, userId, eventoId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Obtener historial de chats de un cliente
+app.get("/api/clientes/:userId/chats", async (req, res) => {
+  try {
+    const { obtenerChats } = require("./bot/crm");
+    const chats = await obtenerChats(req.params.userId);
+    res.json(chats);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -367,18 +556,49 @@ app.get("/api/agenda/eventos", async (req, res) => {
   }
 });
 
-// Obtener configuración de terapeutas y sus horarios
-app.get("/api/agenda/terapeutas", (req, res) => {
-  const { TERAPEUTAS } = require("./bot/calendar");
-  // No enviar el calendarId completo al frontend
-  const safe = TERAPEUTAS.map(({ id, nombre, color, colorBadge, horarios }) => ({
-    id,
-    nombre,
-    color,
-    colorBadge,
-    horarios,
-  }));
-  res.json(safe);
+// Obtener configuración de terapeutas (desde Sheets)
+app.get("/api/agenda/terapeutas", async (req, res) => {
+  try {
+    const { leerTerapeutas } = require("./bot/terapeutas");
+    const terapeutas = await leerTerapeutas();
+    res.json(terapeutas.map(({ id, nombre, color, horarios }) => ({ id, nombre, color, horarios })));
+  } catch (e) {
+    // Fallback a config hardcoded
+    const { TERAPEUTAS } = require("./bot/calendar");
+    res.json(TERAPEUTAS.map(({ id, nombre, color, horarios }) => ({ id, nombre, color, horarios })));
+  }
+});
+
+// CRUD de terapeutas
+app.get("/api/terapeutas", async (req, res) => {
+  try {
+    const { leerTerapeutas } = require("./bot/terapeutas");
+    res.json(await leerTerapeutas());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/terapeutas", async (req, res) => {
+  try {
+    const { guardarTerapeuta } = require("./bot/terapeutas");
+    const id = await guardarTerapeuta(req.body);
+    res.json({ ok: true, id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/terapeutas/:id", async (req, res) => {
+  try {
+    const { guardarTerapeuta } = require("./bot/terapeutas");
+    await guardarTerapeuta({ ...req.body, id: req.params.id });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/terapeutas/:id", async (req, res) => {
+  try {
+    const { eliminarTerapeuta } = require("./bot/terapeutas");
+    await eliminarTerapeuta(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Obtener slots disponibles (para mostrar en la agenda)
@@ -501,18 +721,150 @@ Usá un tono práctico y directo, como si le hablaras al dueño del negocio.`,
 });
 
 // ============================================================
+// API FINANZAS
+// ============================================================
+app.get("/finanzas", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "finanzas.html"));
+});
+
+app.get("/api/finanzas/resumen", async (req, res) => {
+  try {
+    const { getResumenMes } = require("./bot/finanzas");
+    const resumen = await getResumenMes(req.query.mes || null);
+    res.json(resumen);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/finanzas/transacciones", async (req, res) => {
+  try {
+    const { leerTransacciones } = require("./bot/finanzas");
+    let transacciones = await leerTransacciones();
+    // Filtrar por mes si se pide
+    if (req.query.mes) transacciones = transacciones.filter(t => t.fecha?.startsWith(req.query.mes));
+    if (req.query.tipo) transacciones = transacciones.filter(t => t.tipo === req.query.tipo);
+    res.json(transacciones.reverse()); // más recientes primero
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/finanzas/ingreso", async (req, res) => {
+  try {
+    const { registrarIngreso } = require("./bot/finanzas");
+    const { clienteId, servicio, monto, descripcion, notas } = req.body;
+    if (!monto) return res.status(400).json({ error: "monto requerido" });
+    await registrarIngreso({ clienteId, servicio, monto: Number(monto), descripcion, notas });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/finanzas/cuponera", async (req, res) => {
+  try {
+    const { registrarIngresoCuponera } = require("./bot/finanzas");
+    const { clienteId, sesiones, monto, descripcion } = req.body;
+    await registrarIngresoCuponera({ clienteId, sesiones: Number(sesiones) || 4, monto: Number(monto), descripcion });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/finanzas/gasto", async (req, res) => {
+  try {
+    const { registrarGasto } = require("./bot/finanzas");
+    const { categoria, descripcion, monto, notas } = req.body;
+    if (!monto || !descripcion) return res.status(400).json({ error: "monto y descripción requeridos" });
+    await registrarGasto({ categoria, descripcion, monto: Number(monto), notas });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Scan ticket con Claude Vision — sube imagen, devuelve monto+descripción
+app.post("/api/finanzas/scan-ticket", async (req, res) => {
+  try {
+    const Anthropic = require("@anthropic-ai/sdk");
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const { imageBase64, mimeType } = req.body;
+    if (!imageBase64) return res.status(400).json({ error: "imageBase64 requerido" });
+
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 200,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mimeType || "image/jpeg", data: imageBase64 }
+          },
+          {
+            type: "text",
+            text: `Analizá este ticket o comprobante de gasto. Extraé los datos principales.
+Respondé SOLO con JSON válido, sin texto adicional:
+{"monto": 1500, "descripcion": "descripción breve del gasto", "categoria": "Insumos|Alquiler|Servicios|Marketing|Personal|Equipamiento|Mantenimiento|Otros"}
+Si no podés leer el monto, ponés 0. Si no identificás la categoría, ponés "Otros".`,
+          }
+        ]
+      }]
+    });
+
+    const txt = response.content[0].text.trim().replace(/```json\n?|\n?```/g, "");
+    const data = JSON.parse(txt);
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message, monto: 0, descripcion: "", categoria: "Otros" }); }
+});
+
+// ── STATS AVANZADOS ──────────────────────────────────────────
+app.get("/api/stats/float", async (req, res) => {
+  try {
+    const { getFloat } = require("./bot/stats");
+    res.json(await getFloat());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/stats/ranking", async (req, res) => {
+  try {
+    const { getRankingClientes } = require("./bot/stats");
+    res.json(await getRankingClientes(parseInt(req.query.limit) || 30));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/stats/completos", async (req, res) => {
+  try {
+    const { getStatsCompletos } = require("./bot/stats");
+    res.json(await getStatsCompletos(req.query.mes || null));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/clientes/:userId/ltv", async (req, res) => {
+  try {
+    const { getLTVCliente } = require("./bot/stats");
+    const ltv = await getLTVCliente(req.params.userId);
+    res.json({ ltv });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============================================================
 // INICIAR
 // ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🚀 Citrino Bot v2 corriendo en puerto ${PORT}`);
 
-  // Inicializar CRM (crea headers si el sheet está vacío)
+  // Inicializar CRM y Finanzas
   try {
     const { inicializarSheet } = require("./bot/crm");
     await inicializarSheet();
   } catch (err) {
-    console.warn("⚠️ No se pudo inicializar el Sheet (¿está configurado Google Sheets?):", err.message);
+    console.warn("⚠️ No se pudo inicializar el Sheet CRM:", err.message);
+  }
+  try {
+    const { inicializarHojaFinanzas } = require("./bot/finanzas");
+    await inicializarHojaFinanzas();
+  } catch (err) {
+    console.warn("⚠️ No se pudo inicializar la hoja Finanzas:", err.message);
+  }
+  try {
+    const { inicializarHojaTerapeutas } = require("./bot/terapeutas");
+    await inicializarHojaTerapeutas();
+  } catch (err) {
+    console.warn("⚠️ No se pudo inicializar la hoja Terapeutas:", err.message);
   }
 
   startScheduler(); // recordatorios + remarketing
