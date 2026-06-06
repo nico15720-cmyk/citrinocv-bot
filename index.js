@@ -1039,6 +1039,11 @@ app.get("/api/stats/completos", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get("/api/tokens", (req, res) => {
+  const { getResumenTokens } = require("./bot/token-tracker");
+  res.json(getResumenTokens());
+});
+
 app.get("/api/clientes/:userId/ltv", async (req, res) => {
   try {
     const { getLTVCliente } = require("./bot/stats");

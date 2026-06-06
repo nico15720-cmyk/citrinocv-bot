@@ -27,6 +27,7 @@ const {
 } = require("./crm");
 const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
+const { registrarUso } = require("./token-tracker");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -561,6 +562,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
       messages: mensajes,
     });
     respuestaBot = response.content[0].text;
+    registrarUso(response.usage, "chat");
   } catch (err) {
     console.error("❌ Error con Claude:", err.message);
     respuestaBot = "Uy, tuve un problemita técnico. Intentá de nuevo en un momento 🙏";
@@ -630,6 +632,7 @@ Campos posibles:
       await actualizarPerfil(userId, insights);
       console.log(`🧠 Perfil actualizado para ${userId}:`, insights);
     }
+    registrarUso(response.usage, "insights");
   } catch {
     // No es crítico — sigue funcionando aunque falle
   }
