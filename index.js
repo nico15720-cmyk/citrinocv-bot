@@ -300,8 +300,8 @@ async function responderComentarioIG(senderId, textoOriginal) {
 // ============================================================
 // ESTADO GLOBAL DEL BOT
 // ============================================================
-let botActivo = true;
-let botModo = "auto"; // "auto" | "pausa" | "off"
+let botActivo = false;
+let botModo = "off"; // "auto" | "pausa" | "off" — OFF por defecto, Nico lo activa manualmente
 
 // Exportar para que conversation.js pueda consultarlo
 global.getBotActivo = () => botActivo;
@@ -317,15 +317,27 @@ app.get("/api/control/estado", (req, res) => {
 });
 
 // Cambiar modo del bot
-app.post("/api/control/modo", (req, res) => {
+app.post("/api/control/modo", async (req, res) => {
   const { modo } = req.body;
   if (!["auto", "pausa", "off"].includes(modo)) {
     return res.status(400).json({ error: "Modo inválido. Usar: auto, pausa, off" });
   }
+  const modoAnterior = botModo;
   botModo = modo;
   botActivo = modo === "auto";
   console.log(`🎛️ Bot modo cambiado a: ${modo}`);
   res.json({ ok: true, modo, activo: botActivo });
+
+  // Notificar a Nico si cambió el estado
+  if (modo !== modoAnterior && OWNER_WHATSAPP) {
+    const emojis = { auto: "🟢", pausa: "⏸️", off: "🔴" };
+    const textos = { auto: "ENCENDIDO — Marta está respondiendo", pausa: "EN PAUSA — lee mensajes pero no responde", off: "APAGADO — no responde nada" };
+    const { enviarMensaje: enviar } = require("./bot/sender");
+    enviar(OWNER_WHATSAPP,
+      `${emojis[modo]} *Bot ${textos[modo]}*`,
+      "whatsapp"
+    ).catch(() => {});
+  }
 });
 
 // Actualizar score manual de un cliente

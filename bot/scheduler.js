@@ -206,52 +206,103 @@ async function verificarVencimientoToken() {
 // ============================================================
 async function enviarResumenDiario() {
   if (!OWNER) return;
-  console.log("📊 Enviando resumen diario a Nico...");
-
   try {
-    const [clientes, disponibilidad] = await Promise.all([
-      leerTodosLosClientes(),
-      getDisponibilidad(),
-    ]);
-
+    const clientes = await leerTodosLosClientes();
     const hoy = new Date();
     const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
     const inicioHoy = new Date(hoy); inicioHoy.setHours(0, 0, 0, 0);
 
-    const turnosManana = clientes.filter(c => {
-      if (!c.FechaTurno || c.Estado !== "agendado") return false;
-      return new Date(c.FechaTurno).toDateString() === manana.toDateString();
-    });
-
-    const noConfirmados = turnosManana.filter(c => !c.Notas?.includes("confirmó"));
-
-    const vinieronHoy = clientes.filter(c => c.Estado === "vino" && c.UltimoContacto && new Date(c.UltimoContacto) >= inicioHoy);
-    const leadsHoy = clientes.filter(c => c.Estado === "lead" && c.FechaAlta && new Date(c.FechaAlta) >= inicioHoy);
-
+    const turnosManana = clientes.filter(c =>
+      c.FechaTurno && c.Estado === "agendado" &&
+      new Date(c.FechaTurno).toDateString() === manana.toDateString()
+    );
+    const leadsHoy = clientes.filter(c => c.FechaAlta && new Date(c.FechaAlta) >= inicioHoy).length;
     const diaManana = manana.toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" });
 
-    // Mensaje CORTO
-    let msg = `📋 *Citrino — resumen 20hs*\n`;
-    msg += `Hoy vinieron: ${vinieronHoy.length} · Leads nuevos: ${leadsHoy.length}\n\n`;
-
+    // Mensaje ultra-corto
+    let msg = `🌿 *Citrino — ${hoy.toLocaleDateString("es-UY", { day: "numeric", month: "short" })}*\n`;
+    msg += leadsHoy > 0 ? `Leads hoy: ${leadsHoy} 🆕\n` : "";
     if (turnosManana.length > 0) {
-      msg += `📅 *${diaManana.charAt(0).toUpperCase() + diaManana.slice(1)}:*\n`;
+      msg += `\n📅 *${diaManana.charAt(0).toUpperCase()+diaManana.slice(1)}* (${turnosManana.length} turnos):\n`;
       turnosManana.forEach(c => {
-        const hora = new Date(c.FechaTurno).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
-        msg += `• ${c.Nombre || c.ID} ${hora} — ${c.Servicio || ""}\n`;
+        const h = new Date(c.FechaTurno).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"});
+        msg += `• ${h} ${c.Nombre||"–"}\n`;
       });
     } else {
-      msg += `📅 *${diaManana}:* sin turnos agendados`;
-    }
-
-    if (noConfirmados.length > 0) {
-      msg += `\n⚠️ Sin confirmar: ${noConfirmados.map(c => c.Nombre || c.ID).join(", ")}`;
+      msg += `📅 *${diaManana}:* sin turnos`;
     }
 
     await enviarMensaje(OWNER, msg.trim(), "whatsapp");
-    console.log("✅ Resumen diario enviado a Nico");
   } catch (err) {
-    console.error("❌ Error enviando resumen diario:", err.message);
+    console.error("❌ Error resumen diario:", err.message);
+  }
+}
+
+// ============================================================
+// RESUMEN SEMANAL — lunes a las 8:00
+// ============================================================
+async function enviarResumenSemanal() {
+  if (!OWNER) return;
+  try {
+    const clientes = await leerTodosLosClientes();
+    const ahora = new Date();
+    const hace7 = new Date(ahora.getTime() - 7 * 86400000);
+
+    const nuevos = clientes.filter(c => c.FechaAlta && new Date(c.FechaAlta) >= hace7).length;
+    const vinieron = clientes.filter(c => c.UltimoContacto && new Date(c.UltimoContacto) >= hace7 && c.Estado === "vino").length;
+    const agendados = clientes.filter(c => c.Estado === "agendado").length;
+    const conCuponera = clientes.filter(c => c.Cuponera === "si").length;
+
+    const msg =
+      `📊 *Resumen semanal Citrino*\n` +
+      `Semana del ${hace7.toLocaleDateString("es-UY",{day:"numeric",month:"short"})} al ${ahora.toLocaleDateString("es-UY",{day:"numeric",month:"short"})}\n\n` +
+      `🆕 Nuevos contactos: ${nuevos}\n` +
+      `✅ Vinieron: ${vinieron}\n` +
+      `📅 Agendados activos: ${agendados}\n` +
+      `🎟 Con cuponera: ${conCuponera}\n\n` +
+      `Total clientes: ${clientes.length}`;
+
+    await enviarMensaje(OWNER, msg, "whatsapp");
+  } catch (err) {
+    console.error("❌ Error resumen semanal:", err.message);
+  }
+}
+
+// ============================================================
+// RESUMEN MENSUAL — día 1 de cada mes a las 9:00
+// ============================================================
+async function enviarResumenMensual() {
+  if (!OWNER) return;
+  try {
+    const clientes = await leerTodosLosClientes();
+    const ahora = new Date();
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+    const finMes = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
+
+    const nuevos = clientes.filter(c => {
+      if (!c.FechaAlta) return false;
+      const f = new Date(c.FechaAlta);
+      return f >= inicioMes && f <= finMes;
+    }).length;
+    const vinieron = clientes.filter(c => {
+      if (!c.UltimoContacto || c.Estado !== "vino") return false;
+      const f = new Date(c.UltimoContacto);
+      return f >= inicioMes && f <= finMes;
+    }).length;
+    const conCuponera = clientes.filter(c => c.Cuponera === "si").length;
+    const mesNombre = inicioMes.toLocaleDateString("es-UY", { month: "long", year: "numeric" });
+
+    const msg =
+      `📅 *Resumen mensual — ${mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1)}*\n\n` +
+      `🆕 Nuevos clientes: ${nuevos}\n` +
+      `✅ Sesiones realizadas: ${vinieron}\n` +
+      `🎟 Cuponeras activas: ${conCuponera}\n` +
+      `👥 Total acumulado: ${clientes.length} clientes\n\n` +
+      `¡Buen trabajo este mes! 💛`;
+
+    await enviarMensaje(OWNER, msg, "whatsapp");
+  } catch (err) {
+    console.error("❌ Error resumen mensual:", err.message);
   }
 }
 
@@ -518,6 +569,16 @@ function startScheduler() {
 
   // Agenda para terapeutas a las 19:00
   cron.schedule("0 19 * * *", enviarAgendaTerapeutas, {
+    timezone: "America/Montevideo",
+  });
+
+  // Resumen semanal — lunes a las 8:00
+  cron.schedule("0 8 * * 1", enviarResumenSemanal, {
+    timezone: "America/Montevideo",
+  });
+
+  // Resumen mensual — día 1 de cada mes a las 9:00
+  cron.schedule("0 9 1 * *", enviarResumenMensual, {
     timezone: "America/Montevideo",
   });
 

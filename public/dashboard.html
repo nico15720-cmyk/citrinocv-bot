@@ -10,8 +10,10 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#FFF8F3;color:#1a1a1a;min-height:100vh;padding-bottom:76px}
 
-/* HERO */
-.hero{background:linear-gradient(135deg,#991B1B 0%,#C2410C 40%,#EA580C 70%,#D97706 100%);padding:16px 16px 20px;position:relative;overflow:hidden}
+/* HERO — cambia de color según estado del bot */
+.hero{background:linear-gradient(135deg,#6b7280 0%,#4b5563 60%,#374151 100%);padding:16px 16px 20px;position:relative;overflow:hidden;transition:background 0.6s ease}
+.hero.on{background:linear-gradient(135deg,#166534 0%,#15803d 50%,#16a34a 100%)}
+.hero.pausa{background:linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)}
 .hero::after{content:'';position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07)}
 .hero-date{font-size:12px;color:rgba(255,255,255,.75);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
 .hero-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:0px}
@@ -350,6 +352,13 @@ function applyEstado(d){
   const p=document.getElementById('modePill');
   p.textContent={auto:'Auto',pausa:'Pausa',off:'Apagado'}[d.modo]||'Auto';
   setStatus(d.activo, d.activo?'Online': d.modo==='pausa'?'Pausado':'Apagado');
+  // Color del hero según estado
+  const hero=document.querySelector('.hero');
+  hero.classList.remove('on','pausa');
+  if(d.modo==='auto') hero.classList.add('on');
+  else if(d.modo==='pausa') hero.classList.add('pausa');
+  // Actualizar botón primario según estado
+  document.querySelectorAll('.hbtn.primary').forEach(b=>b.style.color=d.modo==='auto'?'#166534':d.modo==='pausa'?'#92400e':'#374151');
   ['Auto','Pausa','Off'].forEach(m=>{
     const el=document.getElementById('mo'+m);
     if(el){
