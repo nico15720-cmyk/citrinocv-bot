@@ -4,871 +4,480 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="theme-color" content="#0a0f0d"/>
+<meta name="theme-color" content="#B5541A"/>
 <title>Citrino — Agenda</title>
 <link rel="stylesheet" href="/citrino-ui.css"/>
 <style>
-:root{
-  --verde:#1a7a4a;--verde2:#15a058;--verde-light:#e8f5ee;
-  --gris:#6b7280;--gris-light:#f3f4f6;--gris-border:#e5e7eb;
-  --texto:#111827;--texto2:#6b7280;
-  --blanco:#fff;--crema:#fafaf9;
-  --rojo:#ef4444;--azul:#3b82f6;--naranja:#f59e0b;--morado:#8b5cf6;
-  --radio:14px;--sombra:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
-  --nav-h:64px;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--crema);color:var(--texto);display:flex;flex-direction:column}
-
 /* ── TOP BAR ── */
-.topbar{
-  background:var(--verde);
-  padding:env(safe-area-inset-top) 0 0;
-  flex-shrink:0;
-  z-index:100;
-}
-.topbar-inner{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 16px 10px;gap:8px;
-}
-.topbar-left{display:flex;align-items:center;gap:10px}
-.menu-btn{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.15s}
-.menu-btn:active{background:rgba(255,255,255,.15)}
-.topbar-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
-.topbar-right{display:flex;align-items:center;gap:6px}
-.icon-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:.15s;flex-shrink:0}
-.icon-btn:active{background:rgba(255,255,255,.25)}
+.topbar{background:linear-gradient(135deg,#7C2D12,#B5541A,#C96030);padding:calc(env(safe-area-inset-top,0px)+12px) 16px 0;flex-shrink:0}
+.tb-inner{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.tb-title{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-btn{background:rgba(255,255,255,.18);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:.15s}
+.tb-btn:active{background:rgba(255,255,255,.3)}
 
 /* ── WEEK STRIP ── */
-.week-strip{
-  background:var(--verde);
-  padding:0 8px 12px;
-  flex-shrink:0;
-}
-.week-nav{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px}
+.week-strip{background:linear-gradient(135deg,#7C2D12,#B5541A,#C96030);padding:0 12px 14px}
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px}
 .week-label{font-size:13px;color:rgba(255,255,255,.85);font-weight:500}
-.week-arrow{background:none;border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:.15s}
-.week-arrow:active{background:rgba(255,255,255,.15)}
-.days-row{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.day-cell{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:10px;cursor:pointer;transition:.15s;position:relative}
-.day-cell:active{background:rgba(255,255,255,.1)}
-.day-cell.selected{background:rgba(255,255,255,.2)}
-.day-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-.day-num{font-size:20px;font-weight:700;color:#fff;line-height:1.1;margin-top:2px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.15s}
-.day-cell.hoy .day-num{background:#fff;color:var(--verde)}
-.day-cell.selected:not(.hoy) .day-num{background:rgba(255,255,255,.3)}
-.day-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.7);margin-top:3px;opacity:0}
-.day-dot.show{opacity:1}
+.wk-arrow{background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 6px;border-radius:8px;transition:.15s;line-height:1}
+.wk-arrow:active{background:rgba(255,255,255,.15)}
+.days-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.day-cell{display:flex;flex-direction:column;align-items:center;padding:4px 2px;border-radius:11px;cursor:pointer;transition:.15s;position:relative}
+.day-cell:active{background:rgba(255,255,255,.12)}
+.day-cell.sel{background:rgba(255,255,255,.18)}
+.d-name{font-size:10px;color:rgba(255,255,255,.7);font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+.d-num{font-size:20px;font-weight:700;color:#fff;line-height:1.15;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;margin-top:2px;transition:.15s}
+.day-cell.hoy .d-num{background:#fff;color:#B5541A;font-weight:800}
+.day-cell.sel:not(.hoy) .d-num{background:rgba(255,255,255,.25)}
+.d-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.6);margin-top:3px;opacity:0}
+.d-dot.show{opacity:1}
 
-/* ── CONTENT ── */
-.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom))}
+/* ── TIME GRID ── */
+.scroll-content{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav) + var(--safe-b) + 20px);flex:1}
+.day-label{padding:14px 16px 6px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid var(--border)}
+.day-label-text{font-size:14px;font-weight:700;color:var(--text)}
+.day-label-count{font-size:12px;color:var(--text3);background:var(--surface3);padding:2px 8px;border-radius:20px}
 
-/* ── DAY HEADER ── */
-.day-header{
-  display:flex;align-items:center;gap:10px;
-  padding:16px 16px 8px;
-  position:sticky;top:0;background:var(--crema);z-index:10;
+/* The grid */
+.time-grid{padding:0 16px}
+.time-row{display:flex;gap:8px;min-height:64px;position:relative}
+.time-row:last-child{min-height:40px}
+.time-col{width:42px;flex-shrink:0;padding-top:0;display:flex;align-items:flex-start;justify-content:flex-end}
+.time-txt{font-size:11px;color:var(--text4);font-weight:500;transform:translateY(-6px)}
+.slot-col{flex:1;border-top:1px solid var(--border);position:relative;cursor:pointer;transition:.15s;border-radius:0 6px 6px 0;min-height:64px}
+.slot-col:hover{background:rgba(181,84,26,.04)}
+.slot-col:active{background:rgba(181,84,26,.08)}
+.slot-col.last{border-radius:0 6px 6px 0}
+.slot-empty-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--text4);opacity:0;transition:.2s;white-space:nowrap;pointer-events:none}
+.slot-col:hover .slot-empty-hint{opacity:1}
+.slot-col.has-event{cursor:default}
+.slot-col.has-event:hover{background:transparent}
+
+/* Turno event */
+.turno-event{
+  background:#fff;border:1.5px solid rgba(181,84,26,.2);
+  border-left:4px solid var(--terra);border-radius:10px;
+  padding:9px 11px;margin:2px 0;
+  box-shadow:0 2px 8px rgba(100,60,20,.08);
+  cursor:pointer;transition:all .18s;
+  animation:fadeUp .2s cubic-bezier(.4,0,.2,1);
 }
-.day-header-date{font-size:14px;font-weight:700;color:var(--texto)}
-.day-header-count{font-size:12px;color:var(--texto2);background:var(--gris-light);padding:2px 8px;border-radius:20px}
+.turno-event:active{transform:scale(.97);box-shadow:0 1px 4px rgba(100,60,20,.06)}
+.te-hora{font-size:10px;font-weight:700;color:var(--terra);margin-bottom:3px;letter-spacing:.02em}
+.te-nombre{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
+.te-servicio{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.te-chips{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.te-chip{font-size:9px;padding:1px 7px;border-radius:20px;font-weight:700}
+.te-chip-ter{background:var(--terra-light);color:var(--terra)}
+.te-chip-cup{background:var(--sage-light);color:var(--sage)}
 
-/* ── TIMELINE ── */
-.timeline{padding:0 16px}
-.time-block{display:flex;gap:12px;margin-bottom:4px;min-height:52px;align-items:flex-start}
-.time-label{font-size:11px;color:var(--texto2);width:40px;flex-shrink:0;padding-top:6px;text-align:right}
-.time-line{flex:1;border-top:1px solid var(--gris-border);padding-top:6px;min-height:52px}
+/* Quick actions under event */
+.te-actions{display:flex;gap:5px;margin-top:8px;padding-top:7px;border-top:1px solid var(--border)}
+.te-act{flex:1;padding:6px 0;border:none;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;transition:.12s}
+.te-act:active{transform:scale(.93)}
+.te-act-vino{background:var(--sage-light);color:var(--sage)}
+.te-act-no{background:var(--red-light);color:var(--red)}
+.te-act-wa{background:var(--surface3);color:var(--text2)}
 
-/* ── TURNO CARD ── */
-.turno-card{
-  background:var(--blanco);
-  border-radius:12px;
-  padding:12px 14px;
-  margin-bottom:8px;
-  box-shadow:var(--sombra);
-  border-left:4px solid var(--verde);
-  cursor:pointer;
-  transition:transform .15s,box-shadow .15s;
-  position:relative;
-  overflow:hidden;
-}
-.turno-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(26,122,74,.04),transparent);pointer-events:none}
-.turno-card:active{transform:scale(.98);box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.turno-hora{font-size:12px;font-weight:700;color:var(--texto2);margin-bottom:4px;display:flex;align-items:center;gap:6px}
-.turno-hora-badge{background:var(--verde-light);color:var(--verde);padding:1px 7px;border-radius:20px;font-size:11px}
-.turno-nombre{font-size:15px;font-weight:700;color:var(--texto);margin-bottom:2px}
-.turno-servicio{font-size:12px;color:var(--texto2)}
-.turno-chips{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
-.chip{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-.chip-verde{background:var(--verde-light);color:var(--verde)}
-.chip-naranja{background:#fef3c7;color:#92400e}
-.chip-azul{background:#dbeafe;color:#1d4ed8}
-.chip-rojo{background:#fee2e2;color:#991b1b}
-.turno-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--gris-border)}
-.tact{flex:1;padding:7px 0;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.1s}
-.tact:active{opacity:.7}
-.tact-vino{background:var(--verde-light);color:var(--verde)}
-.tact-novino{background:#fee2e2;color:#991b1b}
-.tact-msg{background:var(--gris-light);color:var(--texto)}
+/* Empty state */
+.no-eventos{text-align:center;padding:40px 24px}
+.no-ev-ico{font-size:40px;opacity:.3;margin-bottom:10px}
+.no-ev-txt{font-size:14px;color:var(--text3);line-height:1.5}
 
-/* ── EMPTY STATE ── */
-.empty-day{text-align:center;padding:48px 24px;color:var(--texto2)}
-.empty-day .empty-icon{font-size:48px;margin-bottom:12px}
-.empty-day p{font-size:14px;line-height:1.5}
+/* PIN screen */
+#pinScreen{display:none;position:fixed;inset:0;background:linear-gradient(135deg,#7C2D12,#B5541A,#C96030);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.pin-logo{text-align:center;color:#fff}
+.pin-logo .p-ico{font-size:44px;margin-bottom:8px}
+.pin-logo h2{font-size:20px;font-weight:800;margin-bottom:3px}
+.pin-logo p{font-size:13px;opacity:.75}
+.pin-card{background:rgba(255,255,255,.14);backdrop-filter:blur(16px);border-radius:22px;padding:22px;width:272px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:18px}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.3);transition:.2s}
+.pin-dot.filled{background:#fff}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pk{padding:15px;border:none;border-radius:13px;font-size:20px;font-weight:700;cursor:pointer;transition:.15s;background:rgba(255,255,255,.16);color:#fff}
+.pk:active{background:rgba(255,255,255,.3);transform:scale(.93)}
+.pk.clr{background:rgba(239,68,68,.3)}
+.pk.del{background:rgba(255,255,255,.08)}
+.pin-err{color:rgba(255,200,180,1);font-size:12px;text-align:center;margin-top:6px;height:18px}
+.pin-admin{background:none;border:none;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;text-decoration:underline}
 
-/* ── FAB ── */
-.fab{
-  position:fixed;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom));right:16px;
-  width:56px;height:56px;border-radius:50%;
-  background:linear-gradient(135deg,var(--verde),var(--verde2));
-  color:#fff;border:none;font-size:26px;cursor:pointer;
-  box-shadow:0 4px 14px rgba(26,122,74,.4);
-  display:flex;align-items:center;justify-content:center;
-  transition:transform .2s,box-shadow .2s;z-index:50;
-}
-.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(26,122,74,.3)}
-
-/* ── BOTTOM NAV ── */
-.bnav{
-  position:fixed;bottom:0;left:0;right:0;
-  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
-  background:var(--blanco);
-  border-top:1px solid var(--gris-border);
-  display:flex;align-items:flex-start;
-  padding-top:6px;
-  z-index:100;
-  box-shadow:0 -2px 12px rgba(0,0,0,.06);
-}
-.bnt{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:none;border:none;padding:4px 0;color:var(--gris);font-size:10px;font-weight:500;transition:.1s}
-.bnt .ico{font-size:22px;line-height:1}
-.bnt.act{color:var(--verde)}
-.bnt.act .ico-wrap{background:var(--verde-light);border-radius:16px;padding:2px 16px}
-
-/* ── DRAWER ── */
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
-.drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{
-  position:fixed;top:0;left:0;bottom:0;width:280px;
-  background:var(--blanco);z-index:201;
-  transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-  overflow-y:auto;
-  padding:env(safe-area-inset-top) 0 0;
-  display:flex;flex-direction:column;
-}
-.drawer.open{transform:translateX(0)}
-.drawer-head{background:var(--verde);padding:20px 20px 16px;color:#fff}
-.drawer-logo{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:2px}
-.drawer-sub{font-size:12px;opacity:.8}
-.drawer-nav{padding:12px 0}
-.drawer-item{display:flex;align-items:center;gap:14px;padding:13px 20px;font-size:14px;font-weight:500;color:var(--texto);cursor:pointer;transition:.1s;text-decoration:none}
-.drawer-item:active{background:var(--gris-light)}
-.drawer-item.act{background:var(--verde-light);color:var(--verde);font-weight:700}
-.drawer-item .d-ico{font-size:20px;width:28px;text-align:center}
-.drawer-sep{height:1px;background:var(--gris-border);margin:8px 20px}
-.drawer-section-title{font-size:11px;font-weight:700;color:var(--texto2);text-transform:uppercase;letter-spacing:.06em;padding:12px 20px 4px}
-
-/* ── TERAPEUTAS CHIPS ── */
-.ter-chips{display:flex;flex-direction:column;gap:4px;padding:0 16px}
-.ter-chip{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;cursor:pointer;transition:.1s;border:2px solid transparent}
-.ter-chip.sel{border-color:currentColor;background:rgba(0,0,0,.03)}
-.ter-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.ter-name{font-size:13px;font-weight:600}
-
-/* ── MODAL NUEVO TURNO ── */
-.modal-over{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s}
+/* Modal nuevo turno */
+.modal-over{position:fixed;inset:0;background:rgba(28,16,7,.5);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(3px)}
 .modal-over.open{opacity:1;pointer-events:all}
-.modal-sheet{
-  background:var(--blanco);border-radius:20px 20px 0 0;
-  padding:0 0 env(safe-area-inset-bottom);
-  width:100%;max-height:92vh;overflow-y:auto;
-  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-}
+.modal-sheet{background:var(--surface);border-radius:22px 22px 0 0;padding:0 0 calc(env(safe-area-inset-bottom,0px)+20px);width:100%;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 30px rgba(100,60,20,.12)}
 .modal-over.open .modal-sheet{transform:translateY(0)}
-.modal-handle{width:36px;height:4px;background:var(--gris-border);border-radius:2px;margin:12px auto 0}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px}
-.modal-title{font-size:17px;font-weight:700}
-.modal-close{background:var(--gris-light);border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--texto2)}
-.modal-body{padding:0 20px 20px}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:12px;font-weight:700;color:var(--texto2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
-.field input,.field select,.field textarea{
-  width:100%;padding:12px 14px;border:1.5px solid var(--gris-border);border-radius:12px;
-  font-size:14px;color:var(--texto);background:var(--blanco);outline:none;
-  font-family:inherit;transition:border-color .15s;appearance:none;
-}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--verde)}
-.field textarea{resize:none;min-height:80px}
-.btn-full{
-  width:100%;padding:14px;border:none;border-radius:14px;
-  background:linear-gradient(135deg,var(--verde),var(--verde2));
-  color:#fff;font-size:15px;font-weight:700;cursor:pointer;
-  transition:opacity .15s;margin-top:8px;
-}
-.btn-full:active{opacity:.85}
-.btn-full.sec{background:var(--gris-light);color:var(--texto);margin-top:6px}
+.m-handle{width:34px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0}
+.m-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px}
+.m-title{font-size:17px;font-weight:700;color:var(--text)}
+.m-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.m-close:active{transform:scale(.85)}
+.m-body{padding:0 20px 8px}
 
-/* ── TURNO DETAIL MODAL ── */
-.det-header{padding:24px 20px 16px;text-align:center}
-.det-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin:0 auto 12px;background:var(--verde-light);color:var(--verde)}
-.det-nombre{font-size:20px;font-weight:800;margin-bottom:4px}
-.det-hora{font-size:14px;color:var(--texto2)}
-.det-info{padding:0 20px}
-.det-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gris-border)}
-.det-row:last-child{border-bottom:none}
-.det-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0}
-.det-val{font-size:14px;color:var(--texto);flex:1}
-.det-val strong{display:block;font-size:13px;color:var(--texto2);font-weight:500;margin-bottom:1px}
-.det-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 20px}
-.det-btn{padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:.1s}
-.det-btn:active{opacity:.75}
-.det-btn-vino{background:var(--verde-light);color:var(--verde);grid-column:1/-1}
-.det-btn-msg{background:#dbeafe;color:#1d4ed8}
-.det-btn-cancel{background:#fee2e2;color:#991b1b}
-.det-btn-edit{background:var(--gris-light);color:var(--texto)}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
-  left:50%;transform:translateX(-50%) translateY(20px);
-  background:#1f2937;color:#fff;padding:10px 18px;border-radius:24px;
-  font-size:13px;font-weight:500;white-space:nowrap;
-  opacity:0;transition:all .25s;z-index:400;pointer-events:none;
-}
+/* Toast */
+.toast{position:fixed;bottom:calc(var(--nav) + var(--safe-b) + 12px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:#FAF7F3;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:all .25s;z-index:500;pointer-events:none;box-shadow:0 4px 20px rgba(100,60,20,.25)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ── PIN SCREEN ── */
-#pinScreen{
-  display:none;position:fixed;inset:0;
-  background:linear-gradient(135deg,#0f4c2a,#1a7a4a);
-  z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:24px;
-}
-.pin-logo{text-align:center;color:#fff}
-.pin-logo .p-icon{font-size:48px;margin-bottom:8px}
-.pin-logo h2{font-size:22px;font-weight:800;margin-bottom:4px}
-.pin-logo p{font-size:14px;opacity:.75}
-.pin-card{background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border-radius:24px;padding:24px;width:280px}
-.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:20px}
-.pin-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.3);transition:.2s}
-.pin-dot.filled{background:#fff}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.pin-key{
-  padding:16px;border:none;border-radius:14px;
-  font-size:20px;font-weight:700;cursor:pointer;transition:.15s;
-  background:rgba(255,255,255,.15);color:#fff;
-}
-.pin-key:active{background:rgba(255,255,255,.3);transform:scale(.94)}
-.pin-key.del{background:rgba(255,255,255,.08)}
-.pin-key.clr{background:rgba(239,68,68,.3)}
-.pin-error{color:#fca5a5;font-size:13px;text-align:center;margin-top:8px;height:20px}
-.pin-admin{background:none;border:none;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;text-decoration:underline;margin-top:8px}
+/* bottom nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:calc(var(--nav) + var(--safe-b));background:rgba(250,247,243,.94);backdrop-filter:blur(20px) saturate(160%);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:8px}
+.bnt{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;background:none;border:none;color:var(--text3);font-size:10px;font-weight:500;padding:2px 0;transition:color .2s;text-decoration:none}
+.bnt.a{color:var(--terra)}
+.bnt-ico{font-size:22px;line-height:1;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.bnt.a .bnt-ico{transform:scale(1.1)}
 
-/* ── ANIMATIONS ── */
-@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.turno-card{animation:slideUp .2s ease both}
-.turno-card:nth-child(1){animation-delay:.02s}
-.turno-card:nth-child(2){animation-delay:.05s}
-.turno-card:nth-child(3){animation-delay:.08s}
-.turno-card:nth-child(n+4){animation-delay:.11s}
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(28,16,7,.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .22s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--bg);z-index:201;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding-top:env(safe-area-inset-top,0px);box-shadow:4px 0 30px rgba(100,60,20,.12)}
+.drawer.open{transform:translateX(0)}
+.dw-head{background:linear-gradient(135deg,#7C2D12,#B5541A);padding:20px 18px 16px;color:#fff}
+.dw-logo{font-size:20px;font-weight:800;letter-spacing:-.4px}
+.dw-sub{font-size:11px;opacity:.75;margin-top:2px}
+.dw-item{display:flex;align-items:center;gap:13px;padding:12px 18px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;text-decoration:none;transition:.12s;border-bottom:1px solid var(--border)}
+.dw-item.act{color:var(--terra);font-weight:700;background:var(--terra-light)}
+.dw-item:active{background:var(--surface2)}
+.dw-ico{font-size:18px;width:24px;text-align:center}
+.dw-sep{height:6px;background:var(--surface3);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.dw-sec{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:10px 18px 4px}
 </style>
 </head>
-<body>
+<body style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
 
-<!-- PIN SCREEN -->
+<!-- PIN -->
 <div id="pinScreen">
-  <div class="pin-logo">
-    <div class="p-icon">🌿</div>
-    <h2>Citrino</h2>
-    <p>Ingresá tu PIN de terapeuta</p>
-  </div>
+  <div class="pin-logo"><div class="p-ico">🌿</div><h2>Citrino</h2><p>Ingresá tu código</p></div>
   <div class="pin-card">
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-    </div>
+    <div class="pin-dots" id="pinDots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
     <div class="pin-grid">
-      <button class="pin-key" onclick="pinKey(1)">1</button>
-      <button class="pin-key" onclick="pinKey(2)">2</button>
-      <button class="pin-key" onclick="pinKey(3)">3</button>
-      <button class="pin-key" onclick="pinKey(4)">4</button>
-      <button class="pin-key" onclick="pinKey(5)">5</button>
-      <button class="pin-key" onclick="pinKey(6)">6</button>
-      <button class="pin-key" onclick="pinKey(7)">7</button>
-      <button class="pin-key" onclick="pinKey(8)">8</button>
-      <button class="pin-key" onclick="pinKey(9)">9</button>
-      <button class="pin-key clr" onclick="pinKey('C')">✕</button>
-      <button class="pin-key" onclick="pinKey(0)">0</button>
-      <button class="pin-key del" onclick="pinKey('B')">⌫</button>
+      <button class="pk" onclick="pk(1)">1</button><button class="pk" onclick="pk(2)">2</button><button class="pk" onclick="pk(3)">3</button>
+      <button class="pk" onclick="pk(4)">4</button><button class="pk" onclick="pk(5)">5</button><button class="pk" onclick="pk(6)">6</button>
+      <button class="pk" onclick="pk(7)">7</button><button class="pk" onclick="pk(8)">8</button><button class="pk" onclick="pk(9)">9</button>
+      <button class="pk clr" onclick="pk('C')">✕</button><button class="pk" onclick="pk(0)">0</button><button class="pk del" onclick="pk('B')">⌫</button>
     </div>
-    <div class="pin-error" id="pinError"></div>
+    <div class="pin-err" id="pinErr"></div>
   </div>
-  <button class="pin-admin" onclick="entrarAdmin()">Entrar como administrador →</button>
+  <button class="pin-admin" onclick="skipPin()">Entrar como admin →</button>
 </div>
 
-<!-- TOP BAR -->
+<!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-inner">
-    <div class="topbar-left">
-      <button class="menu-btn" onclick="openDrawer()">☰</button>
-      <span class="topbar-title" id="topbarTitle">Agenda</span>
+  <div class="tb-inner">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="tb-btn" onclick="openDrawer()">☰</button>
+      <span class="tb-title" id="tbTitle">Agenda</span>
     </div>
-    <div class="topbar-right">
-      <button class="icon-btn" onclick="irAHoy()" title="Hoy">📍</button>
-      <button class="icon-btn" onclick="toggleVista()" id="btnVista" title="Cambiar vista">📅</button>
+    <div class="tb-right">
+      <button class="tb-btn" onclick="irHoy()">📍</button>
     </div>
   </div>
-
-  <!-- WEEK STRIP -->
   <div class="week-strip">
     <div class="week-nav">
-      <button class="week-arrow" onclick="semanaAnterior()">‹</button>
-      <span class="week-label" id="weekLabel">—</span>
-      <button class="week-arrow" onclick="semanaSiguiente()">›</button>
+      <button class="wk-arrow" onclick="semAnt()">‹</button>
+      <span class="week-label" id="wkLabel">—</span>
+      <button class="wk-arrow" onclick="semSig()">›</button>
     </div>
     <div class="days-row" id="daysRow"></div>
   </div>
 </div>
 
-<!-- CONTENT -->
-<div class="content" id="content"></div>
+<!-- CONTENT con scroll -->
+<div class="scroll-content" id="scrollContent">
+  <div id="dayLabel" class="day-label" style="display:none">
+    <span class="day-label-text" id="dayLabelText">—</span>
+    <span class="day-label-count" id="dayLabelCount"></span>
+  </div>
+  <div class="time-grid" id="timeGrid"></div>
+</div>
 
 <!-- FAB -->
-<button class="fab" onclick="abrirNuevoTurno()" title="Nuevo turno">＋</button>
+<button class="fab" onclick="openNuevo()" style="position:fixed;bottom:calc(var(--nav) + var(--safe-b) + 16px);right:16px;z-index:50">＋</button>
 
 <!-- BOTTOM NAV -->
 <nav class="bnav">
-  <button class="bnt" onclick="location.href='/dashboard'">
-    <div class="ico-wrap"><span class="ico">📊</span></div>
-    <span>Inicio</span>
-  </button>
-  <button class="bnt act" onclick="location.href='/agenda'">
-    <div class="ico-wrap"><span class="ico">📅</span></div>
-    <span>Agenda</span>
-  </button>
-  <button class="bnt" onclick="location.href='/admin'">
-    <div class="ico-wrap"><span class="ico">👥</span></div>
-    <span>Clientes</span>
-  </button>
-  <button class="bnt" onclick="location.href='/finanzas'">
-    <div class="ico-wrap"><span class="ico">💰</span></div>
-    <span>Finanzas</span>
-  </button>
+  <a class="bnt" href="/dashboard"><span class="bnt-ico">📊</span><span>Inicio</span></a>
+  <a class="bnt a" href="/agenda"><span class="bnt-ico">📅</span><span>Agenda</span></a>
+  <a class="bnt" href="/admin"><span class="bnt-ico">👥</span><span>Clientes</span></a>
+  <a class="bnt" href="/finanzas"><span class="bnt-ico">💰</span><span>Finanzas</span></a>
 </nav>
 
 <!-- DRAWER -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="drawer">
-  <div class="drawer-head">
-    <div class="drawer-logo">🌿 Citrino</div>
-    <div class="drawer-sub">Centro de bienestar</div>
-  </div>
-  <div class="drawer-nav">
-    <a class="drawer-item" href="/dashboard"><span class="d-ico">📊</span> Inicio</a>
-    <a class="drawer-item act" href="/agenda"><span class="d-ico">📅</span> Agenda</a>
-    <a class="drawer-item" href="/admin"><span class="d-ico">👥</span> Clientes</a>
-    <a class="drawer-item" href="/finanzas"><span class="d-ico">💰</span> Finanzas</a>
-    <div class="drawer-sep"></div>
-    <div class="drawer-section-title">Terapeutas</div>
-    <div id="drawerTerapeutas" style="padding:0 12px"></div>
-    <div class="drawer-sep"></div>
-    <div class="drawer-item" onclick="abrirGestionTerapeutas()"><span class="d-ico">⚙️</span> Gestionar terapeutas</div>
-  </div>
+  <div class="dw-head"><div class="dw-logo">🌿 Citrino</div><div class="dw-sub">Centro de bienestar</div></div>
+  <a class="dw-item" href="/dashboard"><span class="dw-ico">📊</span>Inicio</a>
+  <a class="dw-item act" href="/agenda"><span class="dw-ico">📅</span>Agenda</a>
+  <a class="dw-item" href="/admin"><span class="dw-ico">👥</span>Clientes</a>
+  <a class="dw-item" href="/finanzas"><span class="dw-ico">💰</span>Finanzas</a>
+  <div class="dw-sep"></div>
+  <div class="dw-sec">Terapeutas visibles</div>
+  <div id="dwTer" style="padding:0 10px 10px"></div>
 </div>
 
 <!-- MODAL NUEVO TURNO -->
 <div class="modal-over" id="modalNuevo">
   <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <span class="modal-title">Nuevo turno</span>
-      <button class="modal-close" onclick="cerrarModal('modalNuevo')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field"><label>Cliente</label><input id="nNombre" placeholder="Nombre del cliente" autocomplete="off"/></div>
-      <div class="field"><label>Teléfono</label><input id="nTelefono" type="tel" placeholder="+598 9x xxx xxxx"/></div>
-      <div class="field"><label>Servicio</label>
-        <select id="nServicio">
-          <option value="">Seleccioná un servicio</option>
-          <option>Método Citrino</option>
-          <option>Drenaje Linfático</option>
-          <option>Masaje Descontracturante</option>
-          <option>Masaje Relax</option>
-          <option>Masaje Modelador</option>
-          <option>Masaje Piedras Calientes</option>
-          <option>Reflexología</option>
-          <option>Reiki</option>
-          <option>Limpieza de Cutis</option>
-          <option>Manicuría</option>
-          <option>Depilación</option>
-          <option>Cuponera</option>
+    <div class="m-handle"></div>
+    <div class="m-head"><span class="m-title">Nuevo turno</span><button class="m-close" onclick="closeModal('modalNuevo')">✕</button></div>
+    <div class="m-body">
+      <div class="field"><label class="field-label">Cliente</label><input class="input" id="nNom" placeholder="Nombre" autocomplete="off"/></div>
+      <div class="field"><label class="field-label">Teléfono</label><input class="input" id="nTel" type="tel" placeholder="+598 9x xxx xxxx"/></div>
+      <div class="field"><label class="field-label">Servicio</label>
+        <select class="select" id="nSer">
+          <option>Método Citrino</option><option>Drenaje Linfático</option>
+          <option>Masaje Descontracturante</option><option>Masaje Relax</option>
+          <option>Masaje Modelador</option><option>Masaje Piedras Calientes</option>
+          <option>Reflexología</option><option>Reiki</option>
+          <option>Limpieza de Cutis</option><option>Manicuría</option><option>Cuponera</option>
         </select>
       </div>
-      <div class="field"><label>Terapeuta</label><select id="nTerapeuta"><option value="">Cualquiera</option></select></div>
+      <div class="field"><label class="field-label">Terapeuta</label><select class="select" id="nTer"><option value="">Cualquiera</option></select></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field"><label>Fecha</label><input id="nFecha" type="date"/></div>
-        <div class="field"><label>Hora</label><input id="nHora" type="time" value="09:00"/></div>
+        <div class="field"><label class="field-label">Fecha</label><input class="input" id="nFec" type="date"/></div>
+        <div class="field"><label class="field-label">Hora</label><input class="input" id="nHor" type="time" value="09:00"/></div>
       </div>
-      <div class="field"><label>Notas</label><textarea id="nNotas" placeholder="Notas opcionales..."></textarea></div>
-      <button class="btn-full" onclick="crearTurnoDesdeModal()">✅ Confirmar turno</button>
-      <button class="btn-full sec" onclick="cerrarModal('modalNuevo')">Cancelar</button>
+      <button class="btn btn-primary btn-full" style="margin-top:6px" onclick="crearTurno()">✅ Confirmar turno</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="closeModal('modalNuevo')">Cancelar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL DETALLE TURNO -->
-<div class="modal-over" id="modalDetalle">
-  <div class="modal-sheet" id="modalDetalleContent"></div>
-</div>
-
-<!-- MODAL TERAPEUTAS -->
-<div class="modal-over" id="modalTerapeutas">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <span class="modal-title">Terapeutas</span>
-      <button class="modal-close" onclick="cerrarModal('modalTerapeutas')">✕</button>
-    </div>
-    <div class="modal-body" id="modalTerapeutasBody"></div>
-  </div>
-</div>
-
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// ESTADO
-// ============================================================
-let hoyBase = new Date();
-let diaSeleccionado = new Date();
-let semanaOffset = 0;
-let terapeutas = [];
-let filtroTer = []; // vacío = todos
-let vistaActual = 'dia'; // 'dia' | 'semana'
-let eventosCargados = [];
-let terapeutaActivo = null;
+// ── Estado ──
+let semOffset=0, diaSelec=new Date(), terapeutas=[], filtroTer=[], eventos=[], terpPin=null;
+const HORA_INICIO=8, HORA_FIN=19;
 
-// ============================================================
-// INIT
-// ============================================================
-async function init() {
+function toast(msg,dur=2500){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),dur)}
+
+// ── INIT ──
+async function init(){
   await cargarTerapeutas();
-  renderWeekStrip();
-  await cargarYRenderizar();
-  inicializarPIN();
+  renderSemana();
+  await cargarEventos();
+  renderDia();
+  initPIN();
 }
 
-// ============================================================
-// TERAPEUTAS
-// ============================================================
-async function cargarTerapeutas() {
-  try {
-    const r = await fetch('/api/terapeutas');
-    terapeutas = await r.json();
-    renderDrawerTerapeutas();
-    rellenarSelectTerapeuta();
-  } catch { terapeutas = [{ id:'default', nombre:'Citrino', color:'#1a7a4a' }]; }
+// ── TERAPEUTAS ──
+async function cargarTerapeutas(){
+  try{const r=await fetch('/api/terapeutas');terapeutas=await r.json();}
+  catch{terapeutas=[{id:'default',nombre:'Citrino',color:'#B5541A'}];}
+  renderDrawerTer();
+  const sel=document.getElementById('nTer');
+  sel.innerHTML='<option value="">Cualquiera</option>'+terapeutas.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
 }
 
-function renderDrawerTerapeutas() {
-  const el = document.getElementById('drawerTerapeutas');
-  el.innerHTML = terapeutas.map(t => `
-    <div class="ter-chip ${filtroTer.length === 0 || filtroTer.includes(t.id) ? 'sel' : ''}"
-      style="color:${t.color||'#1a7a4a'}"
-      onclick="toggleFiltroTer('${t.id}')">
-      <div class="ter-dot" style="background:${t.color||'#1a7a4a'}"></div>
-      <span class="ter-name">${t.nombre}</span>
-    </div>`).join('');
+function renderDrawerTer(){
+  document.getElementById('dwTer').innerHTML=terapeutas.map(t=>`
+<div style="display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:10px;cursor:pointer;transition:.12s;${filtroTer.length&&!filtroTer.includes(t.id)?'opacity:.4':''}" onclick="toggleTer('${t.id}')">
+  <div style="width:10px;height:10px;border-radius:50%;background:${t.color||'#B5541A'}"></div>
+  <span style="font-size:13px;font-weight:600;color:var(--text)">${t.nombre}</span>
+</div>`).join('');
 }
 
-function toggleFiltroTer(id) {
-  if (filtroTer.includes(id)) filtroTer = filtroTer.filter(x => x !== id);
-  else filtroTer.push(id);
-  if (filtroTer.length === terapeutas.length) filtroTer = [];
-  renderDrawerTerapeutas();
-  cargarYRenderizar();
-}
+function toggleTer(id){if(filtroTer.includes(id))filtroTer=filtroTer.filter(x=>x!==id);else filtroTer.push(id);if(filtroTer.length===terapeutas.length)filtroTer=[];renderDrawerTer();renderDia();}
 
-function rellenarSelectTerapeuta() {
-  const sel = document.getElementById('nTerapeuta');
-  sel.innerHTML = '<option value="">Cualquiera</option>' +
-    terapeutas.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
-}
-
-// ============================================================
-// WEEK STRIP
-// ============================================================
-function renderWeekStrip() {
-  const hoy = new Date();
-  const lunes = getLunes(hoy, semanaOffset);
-  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
-  const dias = ['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
-
-  document.getElementById('weekLabel').textContent =
-    `${lunes.toLocaleDateString('es-UY',{day:'numeric',month:'short'})} — ${domingo.toLocaleDateString('es-UY',{day:'numeric',month:'short',year:'numeric'})}`;
-
-  const row = document.getElementById('daysRow');
-  row.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(lunes); d.setDate(lunes.getDate() + i);
-    const esHoy = mismoDia(d, hoy);
-    const esSel = mismoDia(d, diaSeleccionado);
-    const cell = document.createElement('div');
-    cell.className = `day-cell${esHoy ? ' hoy' : ''}${esSel ? ' selected' : ''}`;
-    cell.dataset.fecha = d.toISOString();
-    cell.innerHTML = `
-      <span class="day-name">${dias[i]}</span>
-      <span class="day-num">${d.getDate()}</span>
-      <span class="day-dot" id="dot-${d.toDateString()}"></span>`;
-    cell.onclick = () => seleccionarDia(d);
+// ── SEMANA STRIP ──
+function renderSemana(){
+  const hoy=new Date();
+  const lun=getLunes(hoy,semOffset);
+  const dom=new Date(lun);dom.setDate(lun.getDate()+6);
+  const dias=['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
+  document.getElementById('wkLabel').textContent=
+    lun.toLocaleDateString('es-UY',{day:'numeric',month:'short'})+' – '+dom.toLocaleDateString('es-UY',{day:'numeric',month:'short',year:'numeric'});
+  const row=document.getElementById('daysRow');row.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(lun);d.setDate(lun.getDate()+i);
+    const esHoy=mismoDia(d,hoy),esSel=mismoDia(d,diaSelec);
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(esHoy?' hoy':'')+(esSel?' sel':'');
+    cell.innerHTML=`<span class="d-name">${dias[i]}</span><span class="d-num">${d.getDate()}</span><span class="d-dot" id="dt${d.toDateString()}"></span>`;
+    cell.onclick=()=>selDia(d);
     row.appendChild(cell);
   }
-  actualizarTopbarTitle();
+  actualizarTbTitle();
 }
 
-function actualizarTopbarTitle() {
-  const opts = { weekday:'long', day:'numeric', month:'long' };
-  const s = diaSeleccionado.toLocaleDateString('es-UY', opts);
-  document.getElementById('topbarTitle').textContent = s.charAt(0).toUpperCase() + s.slice(1);
+function actualizarTbTitle(){
+  const s=diaSelec.toLocaleDateString('es-UY',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('tbTitle').textContent=s.charAt(0).toUpperCase()+s.slice(1);
 }
 
-function seleccionarDia(d) {
-  diaSeleccionado = new Date(d);
-  // Si el día seleccionado está fuera de la semana actual, ajustar offset
-  const lunes = getLunes(new Date(), semanaOffset);
-  const dom = new Date(lunes); dom.setDate(lunes.getDate() + 6);
-  if (d < lunes || d > dom) {
-    semanaOffset = Math.floor((d - getLunes(new Date(), 0)) / (7 * 86400000));
-  }
-  renderWeekStrip();
-  cargarYRenderizar();
+function selDia(d){
+  diaSelec=new Date(d);
+  const lun=getLunes(new Date(),semOffset);const dom=new Date(lun);dom.setDate(lun.getDate()+6);
+  if(d<lun||d>dom)semOffset=Math.round((getLunes(d,0)-getLunes(new Date(),0))/(7*86400000));
+  renderSemana();renderDia();
 }
 
-function semanaAnterior() { semanaOffset--; diaSeleccionado = getLunes(new Date(), semanaOffset); renderWeekStrip(); cargarYRenderizar(); }
-function semanaSiguiente() { semanaOffset++; diaSeleccionado = getLunes(new Date(), semanaOffset); renderWeekStrip(); cargarYRenderizar(); }
-function irAHoy() { semanaOffset = 0; diaSeleccionado = new Date(); renderWeekStrip(); cargarYRenderizar(); }
+function semAnt(){semOffset--;diaSelec=getLunes(new Date(),semOffset);renderSemana();cargarEventos().then(renderDia);}
+function semSig(){semOffset++;diaSelec=getLunes(new Date(),semOffset);renderSemana();cargarEventos().then(renderDia);}
+function irHoy(){semOffset=0;diaSelec=new Date();renderSemana();cargarEventos().then(renderDia);}
 
-function getLunes(ref, offset = 0) {
-  const d = new Date(ref);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff + offset * 7);
-  d.setHours(0, 0, 0, 0);
-  return d;
+// ── EVENTOS ──
+async function cargarEventos(){
+  const lun=getLunes(new Date(),semOffset);
+  const dom=new Date(lun);dom.setDate(lun.getDate()+6);dom.setHours(23,59,59);
+  try{const r=await fetch(`/api/agenda/eventos?desde=${lun.toISOString()}&hasta=${dom.toISOString()}`);eventos=await r.json();}
+  catch{eventos=[];}
+  // Marcar dots
+  document.querySelectorAll('.d-dot').forEach(d=>d.classList.remove('show'));
+  eventos.forEach(ev=>{const d=new Date(ev.inicio);const el=document.getElementById('dt'+d.toDateString());if(el)el.classList.add('show');});
 }
 
-function mismoDia(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
+// ── RENDER DIA CON GRID DE HORAS ──
+function renderDia(){
+  const evDia=eventos.filter(ev=>{
+    const d=new Date(ev.inicio);if(!mismoDia(d,diaSelec))return false;
+    if(!filtroTer.length)return true;
+    return filtroTer.some(tid=>{const t=terapeutas.find(x=>x.id===tid);return t&&ev.titulo?.toLowerCase().includes(t.nombre.toLowerCase());});
+  }).sort((a,b)=>new Date(a.inicio)-new Date(b.inicio));
 
-// ============================================================
-// CARGAR EVENTOS
-// ============================================================
-async function cargarYRenderizar() {
-  const lunes = getLunes(new Date(), semanaOffset);
-  const dom = new Date(lunes); dom.setDate(lunes.getDate() + 6);
-  try {
-    const r = await fetch(`/api/agenda/eventos?desde=${lunes.toISOString()}&hasta=${dom.toISOString()}`);
-    eventosCargados = await r.json();
-    // Marcar dots
-    eventosCargados.forEach(ev => {
-      const d = new Date(ev.inicio);
-      const dot = document.getElementById(`dot-${d.toDateString()}`);
-      if (dot) dot.classList.add('show');
+  // Label
+  const dlbl=document.getElementById('dayLabel');dlbl.style.display='flex';
+  document.getElementById('dayLabelText').textContent=diaSelec.toLocaleDateString('es-UY',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
+  document.getElementById('dayLabelCount').textContent=evDia.length?evDia.length+' turno'+(evDia.length!==1?'s':''):'Sin turnos';
+
+  // Grid de horas
+  const grid=document.getElementById('timeGrid');
+  grid.innerHTML='';
+
+  for(let h=HORA_INICIO;h<=HORA_FIN;h++){
+    const row=document.createElement('div');row.className='time-row';
+
+    // Columna de hora
+    const timeCol=document.createElement('div');timeCol.className='time-col';
+    timeCol.innerHTML=`<span class="time-txt">${String(h).padStart(2,'0')}:00</span>`;
+    row.appendChild(timeCol);
+
+    // Slot clickeable
+    const slotCol=document.createElement('div');slotCol.className='slot-col';
+
+    // Buscar evento en esta hora
+    const evEstaHora=evDia.filter(ev=>{
+      const ini=new Date(ev.inicio);const fin=new Date(ev.fin);
+      const slotIni=new Date(diaSelec);slotIni.setHours(h,0,0,0);
+      const slotFin=new Date(diaSelec);slotFin.setHours(h+1,0,0,0);
+      return ini<slotFin&&fin>slotIni;
     });
-  } catch { eventosCargados = []; }
-  renderDia();
-}
 
-function renderDia() {
-  const content = document.getElementById('content');
-  const eventosDelDia = eventosCargados.filter(ev => {
-    const d = new Date(ev.inicio);
-    return mismoDia(d, diaSeleccionado);
-  }).filter(ev => {
-    if (!filtroTer.length) return true;
-    return filtroTer.some(tid => {
-      const ter = terapeutas.find(t => t.id === tid);
-      return ter && ev.titulo?.toLowerCase().includes(ter.nombre.toLowerCase());
-    });
-  }).sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+    if(evEstaHora.length){
+      slotCol.classList.add('has-event');
+      evEstaHora.forEach(ev=>{
+        const ini=new Date(ev.inicio);const fin=new Date(ev.fin);
+        const hIni=ini.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
+        const hFin=fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
+        const nom=ev.clienteNombre||ev.titulo?.split('—')[0]?.trim()||'–';
+        const ser=ev.clienteServicio||ev.titulo?.split('—')[1]?.trim()||'';
+        const ter=terapeutas.find(t=>ev.titulo?.includes(t.nombre));
+        const color=ter?.color||'#B5541A';
+        const card=document.createElement('div');
+        card.className='turno-event';
+        card.style.borderLeftColor=color;
+        card.innerHTML=`
+<div class="te-hora">${hIni} – ${hFin}</div>
+<div class="te-nombre">${nom}</div>
+${ser?`<div class="te-servicio">💆 ${ser}</div>`:''}
+<div class="te-chips">
+  ${ter?`<span class="te-chip te-chip-ter" style="background:${color}18;color:${color}">${ter.nombre}</span>`:''}
+  ${ev.clienteTelefono?'':''}
+</div>
+<div class="te-actions">
+  <button class="te-act te-act-vino" onclick="event.stopPropagation();marcarVino('${ev.id}','${ev.clienteTelefono||''}','${nom.replace(/'/g,"\\'")}')">✅</button>
+  <button class="te-act te-act-no" onclick="event.stopPropagation();marcarNoVino('${ev.id}','${nom.replace(/'/g,"\\'")}')">❌</button>
+  ${ev.clienteTelefono?`<button class="te-act te-act-wa" onclick="event.stopPropagation();abrirWA('${ev.clienteTelefono}')">📱</button>`:''}
+</div>`;
+        slotCol.appendChild(card);
+      });
+    } else if(h<HORA_FIN){
+      // Slot vacío — clickeable para crear turno
+      slotCol.innerHTML=`<span class="slot-empty-hint">+ Agregar ${String(h).padStart(2,'0')}:00</span>`;
+      slotCol.onclick=()=>{
+        document.getElementById('nFec').value=diaSelec.toISOString().split('T')[0];
+        document.getElementById('nHor').value=String(h).padStart(2,'0')+':00';
+        document.getElementById('modalNuevo').classList.add('open');
+      };
+    }
 
-  if (!eventosDelDia.length) {
-    content.innerHTML = `<div class="empty-day"><div class="empty-icon">📅</div><p>No hay turnos para este día.<br>Tocá + para agregar uno.</p></div>`;
-    return;
+    row.appendChild(slotCol);
+    grid.appendChild(row);
   }
-
-  const { cliData } = window; // por si tenemos datos de CRM
-  content.innerHTML = `
-    <div class="day-header">
-      <span class="day-header-date">${diaSeleccionado.toLocaleDateString('es-UY',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase())}</span>
-      <span class="day-header-count">${eventosDelDia.length} turno${eventosDelDia.length!==1?'s':''}</span>
-    </div>
-    <div class="timeline">${eventosDelDia.map(ev => turnoCardHTML(ev)).join('')}</div>`;
 }
 
-function turnoCardHTML(ev) {
-  const ini = new Date(ev.inicio);
-  const fin = new Date(ev.fin);
-  const hIni = ini.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
-  const hFin = fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
-  const ini2 = ev.clienteNombre || ev.titulo?.split('—')[0]?.trim() || '—';
-  const ser = ev.clienteServicio || ev.titulo?.split('—')[1]?.trim() || '';
-  const ter = terapeutas.find(t => ev.titulo?.includes(t.nombre));
-  const color = ter?.color || '#1a7a4a';
-  const esHoy = mismoDia(new Date(ev.inicio), new Date());
-  const esProximo = new Date(ev.inicio) > new Date() && esHoy;
-
-  return `<div class="turno-card" style="border-left-color:${color}" onclick="verDetalle('${ev.id}')">
-    <div class="turno-hora">
-      <span class="turno-hora-badge">${hIni}</span>
-      <span style="color:#9ca3af;font-size:11px">→ ${hFin}</span>
-      ${esProximo ? '<span style="font-size:10px;color:#f59e0b;margin-left:auto">⏰ Próximo</span>' : ''}
-    </div>
-    <div class="turno-nombre">${ini2}</div>
-    ${ser ? `<div class="turno-servicio">💆 ${ser}</div>` : ''}
-    <div class="turno-chips">
-      ${ter ? `<span class="chip" style="background:${color}22;color:${color}">${ter.nombre}</span>` : ''}
-      ${ev.cuponera ? '<span class="chip chip-azul">🎟 Cuponera</span>' : ''}
-    </div>
-    <div class="turno-actions">
-      <button class="tact tact-vino" onclick="event.stopPropagation();registrarVino('${ev.id}','${ev.clienteTelefono||''}','${ini2}')">✅ Vino</button>
-      <button class="tact tact-novino" onclick="event.stopPropagation();registrarNoVino('${ev.id}','${ev.clienteTelefono||''}','${ini2}')">❌ No vino</button>
-      <button class="tact tact-msg" onclick="event.stopPropagation();abrirWA('${ev.clienteTelefono||''}')">📱</button>
-    </div>
-  </div>`;
+// ── ACCIONES ──
+async function marcarVino(id,tel,nom){
+  if(tel)await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vino:true})}).catch(()=>{});
+  toast(`✅ ${nom} marcada como asistida`);await cargarEventos();renderDia();
 }
+async function marcarNoVino(id,nom){toast(`❌ ${nom} — sin asistencia`);}
+function abrirWA(tel){const n=tel.replace(/\D/g,'');window.open(`https://wa.me/${n}`,'_blank');}
 
-// ============================================================
-// DETALLE TURNO
-// ============================================================
-function verDetalle(id) {
-  const ev = eventosCargados.find(e => e.id === id);
-  if (!ev) return;
-  const ini = new Date(ev.inicio);
-  const fin = new Date(ev.fin);
-  const hIni = ini.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
-  const hFin = fin.toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',timeZone:'America/Montevideo'});
-  const nombre = ev.clienteNombre || ev.titulo?.split('—')[0]?.trim() || '–';
-  const ser = ev.clienteServicio || ev.titulo?.split('—')[1]?.trim() || '–';
-  const ini2 = nombre.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-  const ter = terapeutas.find(t => ev.titulo?.includes(t.nombre));
-  const color = ter?.color || '#1a7a4a';
-
-  document.getElementById('modalDetalleContent').innerHTML = `
-    <div class="modal-handle"></div>
-    <div class="modal-head" style="justify-content:flex-end">
-      <button class="modal-close" onclick="cerrarModal('modalDetalle')">✕</button>
-    </div>
-    <div class="det-header">
-      <div class="det-avatar" style="background:${color}22;color:${color}">${ini2}</div>
-      <div class="det-nombre">${nombre}</div>
-      <div class="det-hora">${ini.toLocaleDateString('es-UY',{weekday:'long',day:'numeric',month:'long'})} · ${hIni}–${hFin}</div>
-    </div>
-    <div class="det-info">
-      <div class="det-row"><span class="det-icon">💆</span><div class="det-val"><strong>Servicio</strong>${ser}</div></div>
-      ${ter ? `<div class="det-row"><span class="det-icon">👩‍⚕️</span><div class="det-val"><strong>Terapeuta</strong>${ter.nombre}</div></div>` : ''}
-      ${ev.clienteTelefono ? `<div class="det-row"><span class="det-icon">📱</span><div class="det-val"><strong>Teléfono</strong>${ev.clienteTelefono}</div></div>` : ''}
-      ${ev.descripcion ? `<div class="det-row"><span class="det-icon">📝</span><div class="det-val"><strong>Notas</strong>${ev.descripcion.replace(/\n/g,'<br>')}</div></div>` : ''}
-    </div>
-    <div class="det-actions">
-      <button class="det-btn det-btn-vino" onclick="registrarVino('${ev.id}','${ev.clienteTelefono||''}','${nombre}');cerrarModal('modalDetalle')">✅ Marcar que vino</button>
-      ${ev.clienteTelefono ? `<button class="det-btn det-btn-msg" onclick="abrirWA('${ev.clienteTelefono}')">📱 WhatsApp</button>` : ''}
-      <button class="det-btn det-btn-cancel" onclick="cancelarTurno('${ev.id}','${nombre}')">🗑 Cancelar turno</button>
-      <button class="det-btn det-btn-edit" onclick="cerrarModal('modalDetalle')">← Volver</button>
-    </div>`;
-  document.getElementById('modalDetalle').classList.add('open');
-}
-
-// ============================================================
-// ACCIONES
-// ============================================================
-async function registrarVino(id, tel, nombre) {
-  if (tel) {
-    await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({vino:true}) }).catch(()=>{});
-  }
-  toast(`✅ ${nombre} marcada como asistida`);
-  await cargarYRenderizar();
-}
-
-async function registrarNoVino(id, tel, nombre) {
-  if (tel) {
-    await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({vino:false}) }).catch(()=>{});
-  }
-  toast(`❌ ${nombre} — no asistió`);
-}
-
-async function cancelarTurno(id, nombre) {
-  if (!confirm(`¿Cancelar el turno de ${nombre}?`)) return;
-  await fetch(`/api/agenda/cancelar/${id}`, { method:'DELETE' }).catch(()=>{});
-  toast(`🗑 Turno de ${nombre} cancelado`);
-  cerrarModal('modalDetalle');
-  await cargarYRenderizar();
-}
-
-function abrirWA(tel) {
-  if (!tel) return;
-  const num = tel.replace(/\D/g,'');
-  window.open(`https://wa.me/${num}`, '_blank');
-}
-
-// ============================================================
-// NUEVO TURNO
-// ============================================================
-function abrirNuevoTurno() {
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('nFecha').value = diaSeleccionado.toISOString().split('T')[0] || hoy;
-  document.getElementById('nNombre').value = '';
-  document.getElementById('nTelefono').value = '';
-  document.getElementById('nServicio').value = '';
-  document.getElementById('nNotas').value = '';
+// ── NUEVO TURNO ──
+function openNuevo(){
+  document.getElementById('nFec').value=diaSelec.toISOString().split('T')[0];
+  document.getElementById('nNom').value='';document.getElementById('nTel').value='';
   document.getElementById('modalNuevo').classList.add('open');
 }
 
-async function crearTurnoDesdeModal() {
-  const nombre = document.getElementById('nNombre').value.trim();
-  const tel = document.getElementById('nTelefono').value.trim();
-  const servicio = document.getElementById('nServicio').value;
-  const fecha = document.getElementById('nFecha').value;
-  const hora = document.getElementById('nHora').value;
-  const notas = document.getElementById('nNotas').value.trim();
-  const terId = document.getElementById('nTerapeuta').value;
-
-  if (!nombre || !fecha || !hora) { toast('Completá nombre, fecha y hora'); return; }
-
-  try {
-    const r = await fetch('/api/agenda/turno', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ nombre, telefono:tel, servicio, fecha, hora, notas, terapeutaId:terId })
-    });
-    if (!r.ok) throw new Error();
-    toast('📅 Turno creado');
-    cerrarModal('modalNuevo');
-    diaSeleccionado = new Date(fecha + 'T12:00:00');
-    await cargarYRenderizar();
-  } catch { toast('Error al crear el turno'); }
+async function crearTurno(){
+  const nom=document.getElementById('nNom').value.trim();
+  const tel=document.getElementById('nTel').value.trim();
+  const ser=document.getElementById('nSer').value;
+  const fec=document.getElementById('nFec').value;
+  const hor=document.getElementById('nHor').value;
+  const terId=document.getElementById('nTer').value;
+  if(!nom||!fec||!hor){toast('Completá nombre, fecha y hora');return;}
+  try{
+    const r=await fetch('/api/agenda/turno',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:nom,telefono:tel,servicio:ser,fecha:fec,hora:hor,terapeutaId:terId})});
+    if(!r.ok)throw new Error();
+    toast('📅 Turno confirmado');closeModal('modalNuevo');
+    diaSelec=new Date(fec+'T12:00:00');renderSemana();await cargarEventos();renderDia();
+  }catch{toast('Error al crear el turno')}
 }
 
-// ============================================================
-// GESTIÓN TERAPEUTAS
-// ============================================================
-function abrirGestionTerapeutas() {
-  closeDrawer();
-  const body = document.getElementById('modalTerapeutasBody');
-  body.innerHTML = terapeutas.map(t => `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gris-border)">
-      <div style="width:12px;height:12px;border-radius:50%;background:${t.color||'#1a7a4a'}"></div>
-      <span style="flex:1;font-weight:600">${t.nombre}</span>
-      ${t.whatsapp ? `<span style="font-size:12px;color:var(--texto2)">${t.whatsapp}</span>` : ''}
-      ${t.pin ? `<span style="font-size:11px;background:var(--verde-light);color:var(--verde);padding:2px 8px;border-radius:20px">PIN ✓</span>` : ''}
-    </div>`).join('') +
-    `<div style="margin-top:16px;background:var(--gris-light);border-radius:12px;padding:14px;font-size:13px;color:var(--texto2)">
-      Para agregar terapeutas o asignar PINs, escribile a Marta: <br>
-      <em>"Registrá a Yetsy como terapeuta, su número es 099xxxxxx"</em>
-    </div>`;
-  document.getElementById('modalTerapeutas').classList.add('open');
+// ── DRAWER ──
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('drawerOverlay').classList.add('open');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerOverlay').classList.remove('open');}
+
+// ── MODALES ──
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-over').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+
+// ── SWIPE ──
+let tx0=0;
+document.getElementById('scrollContent').addEventListener('touchstart',e=>{tx0=e.touches[0].clientX},{passive:true});
+document.getElementById('scrollContent').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx0;
+  if(Math.abs(dx)>55){const next=new Date(diaSelec);next.setDate(next.getDate()+(dx<0?1:-1));selDia(next);}
+},{passive:true});
+
+// ── PIN ──
+let pinCur='',terConPin=[];
+async function initPIN(){
+  terConPin=terapeutas.filter(t=>t.pin);
+  if(!terConPin.length)return;
+  document.getElementById('pinScreen').style.display='flex';
 }
-
-// ============================================================
-// MODALES Y DRAWER
-// ============================================================
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
-function openDrawer() {
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawerOverlay').classList.add('open');
+function pk(v){
+  if(v==='C'){pinCur='';}else if(v==='B'){pinCur=pinCur.slice(0,-1);}
+  else{if(pinCur.length>=4)return;pinCur+=v;}
+  document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<pinCur.length));
+  document.getElementById('pinErr').textContent='';
+  if(pinCur.length===4)setTimeout(checkPIN,180);
 }
-function closeDrawer() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawerOverlay').classList.remove('open');
+function checkPIN(){
+  const t=terConPin.find(x=>x.pin===pinCur);
+  if(t){terpPin=t;filtroTer=[t.id];document.getElementById('pinScreen').style.display='none';renderDrawerTer();renderDia();}
+  else{document.getElementById('pinErr').textContent='PIN incorrecto';pinCur='';document.querySelectorAll('.pin-dot').forEach(d=>d.classList.remove('filled'));}
 }
-function toggleVista() {
-  vistaActual = vistaActual === 'dia' ? 'semana' : 'dia';
-  document.getElementById('btnVista').textContent = vistaActual === 'dia' ? '📅' : '📋';
-  renderDia();
-}
+function skipPin(){document.getElementById('pinScreen').style.display='none';}
 
-// ============================================================
-// TOAST
-// ============================================================
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
+// ── UTILS ──
+function getLunes(ref,offset=0){const d=new Date(ref);const day=d.getDay();const diff=day===0?-6:1-day;d.setDate(d.getDate()+diff+offset*7);d.setHours(0,0,0,0);return d;}
+function mismoDia(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
 
-// ============================================================
-// SISTEMA PIN
-// ============================================================
-let pinActual = '';
-let terapeutasConPin = [];
-
-async function inicializarPIN() {
-  try {
-    const conPin = terapeutas.filter(t => t.pin);
-    if (!conPin.length) return; // sin PIN → directo
-    terapeutasConPin = conPin;
-    document.getElementById('pinScreen').style.display = 'flex';
-  } catch {}
-}
-
-function pinKey(v) {
-  if (v === 'C') { pinActual = ''; }
-  else if (v === 'B') { pinActual = pinActual.slice(0,-1); }
-  else { if (pinActual.length >= 4) return; pinActual += v; }
-
-  // Actualizar dots
-  const dots = document.querySelectorAll('.pin-dot');
-  dots.forEach((d, i) => d.classList.toggle('filled', i < pinActual.length));
-
-  document.getElementById('pinError').textContent = '';
-  if (pinActual.length === 4) setTimeout(checkPIN, 200);
-}
-
-function checkPIN() {
-  const ter = terapeutasConPin.find(t => t.pin === pinActual);
-  if (ter) {
-    terapeutaActivo = ter;
-    filtroTer = [ter.id];
-    document.getElementById('pinScreen').style.display = 'none';
-    document.getElementById('topbarTitle').textContent = ter.nombre;
-    renderDrawerTerapeutas();
-    cargarYRenderizar();
-  } else {
-    document.getElementById('pinError').textContent = 'PIN incorrecto, intentá de nuevo';
-    pinActual = '';
-    document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled'));
-  }
-}
-
-function entrarAdmin() {
-  document.getElementById('pinScreen').style.display = 'none';
-  terapeutaActivo = null;
-}
-
-// ============================================================
-// CLICK OUTSIDE MODALS
-// ============================================================
-document.querySelectorAll('.modal-over').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
-});
-
-// ============================================================
-// SWIPE para navegar días
-// ============================================================
-let touchStartX = 0;
-document.getElementById('content').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive:true });
-document.getElementById('content').addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
-  if (Math.abs(dx) > 60) {
-    const next = new Date(diaSeleccionado);
-    next.setDate(next.getDate() + (dx < 0 ? 1 : -1));
-    seleccionarDia(next);
-  }
-}, { passive:true });
-
-// Init
 init();
 </script>
 </body>
