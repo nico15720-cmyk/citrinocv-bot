@@ -325,6 +325,26 @@
 </head>
 <body>
 
+<!-- ── PANTALLA PIN TERAPEUTA ── -->
+<div id="pinScreen" style="display:none;position:fixed;inset:0;background:#f5f0e8;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem">
+  <div style="text-align:center">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem">🌿</div>
+    <h2 style="font-size:1.4rem;font-weight:700;color:#2c3e2d">Citrino — Agenda</h2>
+    <p style="font-size:0.9rem;color:#7a8a7a;margin-top:0.3rem">Ingresá tu código de terapeuta</p>
+  </div>
+  <div style="background:white;border-radius:16px;padding:2rem;box-shadow:0 4px 20px rgba(0,0,0,.1);width:280px">
+    <input id="pinInput" type="password" maxlength="6" placeholder="● ● ● ●"
+      style="width:100%;padding:0.9rem;border:2px solid #d0d8d0;border-radius:10px;font-size:1.4rem;text-align:center;letter-spacing:0.5rem;outline:none;font-family:inherit"
+      oninput="checkPin()"
+    />
+    <div id="pinError" style="color:#c0392b;font-size:0.8rem;text-align:center;margin-top:0.5rem;display:none">PIN incorrecto</div>
+    <div style="margin-top:1rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+      ${[1,2,3,4,5,6,7,8,9,'✕',0,'⌫'].map(n=>`<button onclick="pinBtn('${n}')" style="padding:0.8rem;border:none;border-radius:8px;font-size:1.1rem;font-weight:600;cursor:pointer;background:${n==='✕'?'#fee2e2':n==='⌫'?'#e8f0e8':'#f5f0e8'};color:${n==='✕'?'#c0392b':n==='⌫'?'#5a7a5a':'#2c3e2d'}">${n}</button>`).join('')}
+    </div>
+  </div>
+  <button onclick="entrarComoAdmin()" style="background:none;border:none;color:#7a8a7a;font-size:0.82rem;cursor:pointer;text-decoration:underline">Entrar como administrador →</button>
+</div>
+
 <header>
   <h1>🌿 Citrino</h1>
   <nav>
@@ -949,6 +969,67 @@ document.getElementById("modalTerapeutas").addEventListener("click", e => {
     cancelarEditTerapeuta();
   }
 });
+
+// ============================================================
+// SISTEMA DE PIN PARA TERAPEUTAS
+// ============================================================
+let pinActual = "";
+let terapeutaActivo = null; // terapeuta logueado con PIN
+
+async function inicializarPantallaPIN() {
+  try {
+    const resp = await fetch("/api/terapeutas");
+    const terapeutas = await resp.json();
+    const conPin = terapeutas.filter(t => t.pin);
+
+    if (!conPin.length) {
+      // Sin terapeutas con PIN → entrar directo como admin
+      return;
+    }
+
+    // Mostrar pantalla de PIN
+    document.getElementById("pinScreen").style.display = "flex";
+    document.getElementById("pinInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") checkPin();
+    });
+    window._terapeutasConPin = conPin;
+  } catch {}
+}
+
+function pinBtn(val) {
+  if (val === "✕") { pinActual = ""; document.getElementById("pinInput").value = ""; }
+  else if (val === "⌫") { pinActual = pinActual.slice(0,-1); document.getElementById("pinInput").value = pinActual; }
+  else { pinActual += String(val); document.getElementById("pinInput").value = pinActual; }
+  document.getElementById("pinError").style.display = "none";
+  if (pinActual.length >= 4) checkPin();
+}
+
+async function checkPin() {
+  const pin = document.getElementById("pinInput").value || pinActual;
+  if (pin.length < 4) return;
+  const ter = (window._terapeutasConPin || []).find(t => t.pin === pin);
+  if (ter) {
+    terapeutaActivo = ter;
+    document.getElementById("pinScreen").style.display = "none";
+    // Filtrar vista solo a este terapeuta
+    filtroTerapeutas = [ter.id];
+    document.querySelector("header h1").textContent = `🌿 ${ter.nombre}`;
+    // Ocultar elementos sensibles
+    document.querySelector(".toolbar button.btn-verde").style.display = "none";
+    cargarDatos();
+  } else {
+    document.getElementById("pinError").style.display = "block";
+    pinActual = "";
+    document.getElementById("pinInput").value = "";
+  }
+}
+
+function entrarComoAdmin() {
+  document.getElementById("pinScreen").style.display = "none";
+  terapeutaActivo = null;
+}
+
+inicializarPantallaPIN();
 </script>
 </body>
 </html>

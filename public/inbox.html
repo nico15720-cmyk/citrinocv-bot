@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Citrino — Inbox</title>
+  <style>
+    :root {
+      --verde: #3d6b3d; --verde-bg: #edf4ed; --verde-claro: #8fbc8f;
+      --crema: #f5f0e8; --card: #fff; --border: #e8e0d4;
+      --txt: #1a2e1a; --txt2: #5a6e5a;
+      --rojo: #b33a2f; --naranja: #c96a18; --azul: #2563b0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--crema);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* NAV */
+    nav{background:var(--verde);padding:0 1.2rem;display:flex;align-items:center;height:52px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.18);gap:.3rem}
+    .nav-brand{color:white;font-size:.95rem;font-weight:700;margin-right:1rem;text-decoration:none}
+    .nav-link{color:rgba(255,255,255,.75);text-decoration:none;font-size:.8rem;font-weight:500;padding:.3rem .7rem;border-radius:6px;transition:all .15s}
+    .nav-link:hover{background:rgba(255,255,255,.12);color:white}
+    .nav-link.active{background:rgba(255,255,255,.2);color:white;font-weight:600}
+    .nav-right{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+    .nav-badge{background:var(--rojo);color:white;font-size:.65rem;font-weight:700;padding:.15rem .4rem;border-radius:10px}
+
+    /* LAYOUT: dos columnas en desktop */
+    .layout{display:flex;flex:1;overflow:hidden}
+
+    /* PANEL IZQUIERDO: lista de chats */
+    .sidebar-chat{width:320px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+    @media(max-width:680px){.sidebar-chat{width:100%}.main-chat{display:none}.sidebar-chat.hidden{display:none}.main-chat.active{display:flex}}
+
+    .sidebar-top{padding:.7rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.5rem}
+    .sidebar-top h2{font-size:.88rem;font-weight:700;flex:1}
+    .search-inp{width:100%;padding:.4rem .7rem;border:1.5px solid var(--border);border-radius:20px;font-size:.8rem;outline:none;background:var(--crema)}
+    .search-inp:focus{border-color:var(--verde)}
+
+    .chat-list-wrap{flex:1;overflow-y:auto}
+    .chat-item{padding:.75rem .9rem;display:flex;gap:.7rem;cursor:pointer;transition:background .12s;border-bottom:1px solid #f5f0eb;position:relative}
+    .chat-item:hover{background:#f9fdf9}
+    .chat-item.active{background:var(--verde-bg)}
+    .chat-item.unread .ci-name{font-weight:800}
+    .ci-avatar{width:40px;height:40px;border-radius:50%;color:white;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .ci-body{flex:1;min-width:0}
+    .ci-row{display:flex;justify-content:space-between;align-items:baseline;gap:.3rem}
+    .ci-name{font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ci-time{font-size:.65rem;color:var(--txt2);white-space:nowrap}
+    .ci-preview{font-size:.75rem;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+    .ci-preview.user-msg{color:var(--txt)}
+    .unread-dot{position:absolute;right:.9rem;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--verde)}
+    .badge-canal{font-size:.6rem;padding:.1rem .35rem;border-radius:8px;margin-top:2px;display:inline-block}
+    .b-wa{background:#d1fae5;color:#065f46}
+    .b-ig{background:#fce7f3;color:#9d174d}
+    .b-fb{background:#dbeafe;color:#1e40af}
+    .empty-inbox{text-align:center;padding:3rem 1rem;color:var(--txt2);font-size:.83rem;line-height:1.7}
+
+    /* PANEL DERECHO: conversación */
+    .main-chat{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--crema)}
+    .main-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;color:var(--txt2)}
+    .main-empty .icon{font-size:2.5rem;opacity:.4}
+    .main-empty p{font-size:.85rem}
+
+    /* Header del chat */
+    .chat-header{background:var(--card);border-bottom:1px solid var(--border);padding:.65rem 1rem;display:flex;align-items:center;gap:.7rem;flex-shrink:0}
+    .ch-avatar{width:36px;height:36px;border-radius:50%;color:white;font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .ch-info{flex:1;min-width:0}
+    .ch-nombre{font-size:.88rem;font-weight:700}
+    .ch-sub{font-size:.72rem;color:var(--txt2)}
+    .ch-btns{display:flex;gap:.4rem}
+    .ch-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .65rem;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--txt);transition:all .15s;text-decoration:none;display:flex;align-items:center;gap:.25rem}
+    .ch-btn:hover{border-color:var(--verde);color:var(--verde)}
+    .ch-btn.verde{background:var(--verde);border-color:var(--verde);color:white}
+
+    /* Mensajes */
+    .messages-wrap{flex:1;overflow-y:auto;padding:.75rem 1rem;display:flex;flex-direction:column;gap:.5rem}
+    .msg-group{display:flex;flex-direction:column;gap:.15rem}
+    .msg-bubble{max-width:72%;padding:.45rem .7rem;border-radius:12px;font-size:.83rem;line-height:1.45;word-break:break-word}
+    .msg-bubble.user{background:var(--verde-bg);align-self:flex-start;border-bottom-left-radius:2px}
+    .msg-bubble.bot{background:white;align-self:flex-end;border-bottom-right-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+    .msg-time{font-size:.6rem;color:var(--txt2);margin-top:1px;display:block}
+    .msg-time.right{text-align:right}
+    .dia-divider{text-align:center;font-size:.7rem;color:var(--txt2);margin:.4rem 0;display:flex;align-items:center;gap:.5rem}
+    .dia-divider::before,.dia-divider::after{content:"";flex:1;height:1px;background:var(--border)}
+
+    /* Reply bar */
+    .reply-bar{background:var(--card);border-top:1px solid var(--border);padding:.6rem .9rem;display:flex;gap:.5rem;align-items:flex-end;flex-shrink:0}
+    .reply-input{flex:1;padding:.5rem .8rem;border:1.5px solid var(--border);border-radius:20px;font-size:.85rem;resize:none;font-family:inherit;max-height:100px;outline:none;transition:border-color .15s}
+    .reply-input:focus{border-color:var(--verde)}
+    .send-btn{background:var(--verde);color:white;border:none;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0;transition:opacity .15s}
+    .send-btn:hover{opacity:.85}
+    .nicolas-bar{background:#fff8e1;border-top:1px solid #fde68a;padding:.5rem .9rem;font-size:.75rem;color:#7c5e00;display:flex;align-items:center;gap:.5rem}
+    .nicolas-bar button{font-size:.72rem;padding:.2rem .5rem;border:1px solid #fde68a;border-radius:6px;background:white;cursor:pointer;color:#7c5e00}
+
+    /* Días sin filtro */
+    .dias-bar{background:var(--card);border-bottom:1px solid var(--border);padding:.35rem .9rem;display:flex;gap:.35rem}
+    .dia-chip{padding:.2rem .65rem;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:white;color:var(--txt2);transition:all .15s}
+    .dia-chip.active{background:var(--verde);border-color:var(--verde);color:white}
+
+    /* Spin */
+    .spin-wrap{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--txt2);gap:.4rem;font-size:.83rem}
+    .spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--verde);border-radius:50%;animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/admin">🌿 Citrino</a>
+  <a class="nav-link" href="/admin">👥 CRM</a>
+  <a class="nav-link active" href="/inbox">💬 Inbox</a>
+  <a class="nav-link" href="/agenda">📅 Agenda</a>
+  <a class="nav-link" href="/finanzas">💰 Finanzas</a>
+  <div class="nav-right">
+    <span id="totalBadge" class="nav-badge" style="display:none"></span>
+    <button onclick="cargarInbox()" style="background:rgba(255,255,255,.15);border:none;color:white;padding:.3rem .6rem;border-radius:6px;cursor:pointer;font-size:.8rem">↻</button>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- LISTA -->
+  <div class="sidebar-chat" id="sidebarChat">
+    <div class="sidebar-top">
+      <h2>Conversaciones</h2>
+    </div>
+    <div class="dias-bar">
+      <button class="dia-chip active" onclick="setDias(1,this)">Hoy</button>
+      <button class="dia-chip" onclick="setDias(3,this)">3 días</button>
+      <button class="dia-chip" onclick="setDias(7,this)">7 días</button>
+      <button class="dia-chip" onclick="setDias(30,this)">30 días</button>
+    </div>
+    <div class="sidebar-top" style="padding:.5rem .9rem;border-bottom:none">
+      <input class="search-inp" type="text" id="searchInp" placeholder="Buscar..." oninput="filtrarLista()"/>
+    </div>
+    <div class="chat-list-wrap" id="chatListWrap">
+      <div class="spin-wrap"><div class="spin"></div> Cargando...</div>
+    </div>
+  </div>
+
+  <!-- CONVERSACION -->
+  <div class="main-chat" id="mainChat">
+    <div class="main-empty" id="mainEmpty">
+      <span class="icon">💬</span>
+      <p>Seleccioná una conversación</p>
+    </div>
+    <div id="chatActivo" style="display:none;flex:1;flex-direction:column;overflow:hidden;display:none">
+      <div class="chat-header">
+        <div class="ch-avatar" id="chAvatar">?</div>
+        <div class="ch-info">
+          <div class="ch-nombre" id="chNombre"></div>
+          <div class="ch-sub" id="chSub"></div>
+        </div>
+        <div class="ch-btns">
+          <a class="ch-btn" id="chWABtn" href="#" target="_blank">💬 WA</a>
+          <a class="ch-btn" id="chPerfilBtn" href="#">👤 Perfil</a>
+          <button class="ch-btn verde" id="chNicolasBtn" onclick="toggleNicolas()">🙋 Tomar control</button>
+        </div>
+      </div>
+      <div id="nicolasBar" class="nicolas-bar" style="display:none">
+        🙋 Nico está en control — Marta no responde.
+        <button onclick="toggleNicolas()">Devolver a Marta</button>
+      </div>
+      <div class="messages-wrap" id="messagesWrap"></div>
+      <div class="reply-bar">
+        <textarea class="reply-input" id="replyInput" placeholder="Escribí un mensaje..." rows="1" onkeydown="onKeyReply(event)"></textarea>
+        <button class="send-btn" onclick="enviarRespuesta()">➤</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let inboxData = [];
+let inboxFiltrado = [];
+let clienteActivo = null;
+let diasActivos = 1;
+let nicolasActivo = false;
+
+// ============================================================
+async function cargarInbox() {
+  document.getElementById("chatListWrap").innerHTML = '<div class="spin-wrap"><div class="spin"></div> Cargando...</div>';
+  try {
+    const res = await fetch(`/api/inbox?dias=${diasActivos}`);
+    inboxData = await res.json();
+    filtrarLista();
+    // Badge total no leídos
+    const noLeidos = inboxData.filter(c => c.noLeidos > 0).length;
+    const badge = document.getElementById("totalBadge");
+    if (noLeidos > 0) { badge.textContent = noLeidos; badge.style.display = ""; }
+    else badge.style.display = "none";
+  } catch (e) {
+    document.getElementById("chatListWrap").innerHTML = `<div class="empty-inbox">❌ Error: ${e.message}</div>`;
+  }
+}
+
+function setDias(dias, el) {
+  diasActivos = dias;
+  document.querySelectorAll(".dia-chip").forEach(c => c.classList.remove("active"));
+  el.classList.add("active");
+  cargarInbox();
+}
+
+function filtrarLista() {
+  const q = document.getElementById("searchInp").value.toLowerCase();
+  inboxFiltrado = q
+    ? inboxData.filter(c => (c.nombre||"").toLowerCase().includes(q) || (c.ultimoMsg||"").toLowerCase().includes(q))
+    : inboxData;
+  renderLista();
+}
+
+function renderLista() {
+  const wrap = document.getElementById("chatListWrap");
+  if (!inboxFiltrado.length) {
+    wrap.innerHTML = `<div class="empty-inbox">😴 Sin conversaciones<br>en los últimos ${diasActivos} día${diasActivos>1?"s":""}</div>`;
+    return;
+  }
+  const COLORES = ["#3d6b3d","#2563b0","#c96a18","#8e44ad","#16a085","#c0392b"];
+  const canalBadge = {whatsapp:`<span class="badge-canal b-wa">💬 WA</span>`, instagram:`<span class="badge-canal b-ig">📸 IG</span>`, facebook:`<span class="badge-canal b-fb">📘 FB</span>`};
+  wrap.innerHTML = inboxFiltrado.map((c, i) => {
+    const color = COLORES[i % COLORES.length];
+    const inicial = (c.nombre[0]||"?").toUpperCase();
+    const esHoy = new Date(c.ultimaFecha).toDateString() === new Date().toDateString();
+    const fecha = esHoy
+      ? new Date(c.ultimaFecha).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"})
+      : new Date(c.ultimaFecha).toLocaleDateString("es-UY",{day:"numeric",month:"short",timeZone:"America/Montevideo"});
+    const activo = clienteActivo?.id === c.id ? " active" : "";
+    const unread = c.noLeidos > 0 ? " unread" : "";
+    return `<div class="chat-item${activo}${unread}" onclick="abrirChat('${c.id}')">
+      <div class="ci-avatar" style="background:${color}">${inicial}</div>
+      <div class="ci-body">
+        <div class="ci-row">
+          <span class="ci-name">${c.nombre}</span>
+          <span class="ci-time">${fecha}</span>
+        </div>
+        <div class="ci-preview${c.ultimoRol==="user"?" user-msg":""}">
+          ${c.ultimoRol==="user"?"":"🌿 "}${c.ultimoMsg||"—"}
+        </div>
+        ${canalBadge[c.canal]||""}
+      </div>
+      ${c.noLeidos>0?`<div class="unread-dot"></div>`:""}
+    </div>`;
+  }).join("");
+}
+
+// ============================================================
+async function abrirChat(clienteId) {
+  clienteActivo = inboxData.find(c => c.id === clienteId);
+  if (!clienteActivo) return;
+
+  // Actualizar sidebar activo
+  document.querySelectorAll(".chat-item").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".chat-item").forEach(el => {
+    if (el.onclick?.toString().includes(clienteId)) el.classList.add("active");
+  });
+
+  // Mostrar panel
+  document.getElementById("mainEmpty").style.display = "none";
+  const panel = document.getElementById("chatActivo");
+  panel.style.display = "flex";
+  panel.style.flexDirection = "column";
+  panel.style.overflow = "hidden";
+  panel.style.flex = "1";
+
+  // Header
+  document.getElementById("chAvatar").textContent = (clienteActivo.nombre[0]||"?").toUpperCase();
+  document.getElementById("chAvatar").style.background = "#3d6b3d";
+  document.getElementById("chNombre").textContent = clienteActivo.nombre;
+  const tel = (clienteActivo.telefono||"").replace(/\D/g,"");
+  document.getElementById("chSub").textContent = `${clienteActivo.telefono||""} · ${clienteActivo.canal||""} · ${clienteActivo.estado||""}`;
+  document.getElementById("chWABtn").href = tel ? `https://wa.me/${tel}` : "#";
+  document.getElementById("chPerfilBtn").href = `/cliente?id=${encodeURIComponent(clienteActivo.id)}`;
+
+  // Cargar mensajes
+  document.getElementById("messagesWrap").innerHTML = '<div class="spin-wrap"><div class="spin"></div></div>';
+  try {
+    const res = await fetch(`/api/clientes/${encodeURIComponent(clienteActivo.id)}/chats`);
+    const chats = await res.json();
+    renderMensajes(chats);
+  } catch { document.getElementById("messagesWrap").innerHTML = "<p style='text-align:center;padding:2rem;color:#5a6e5a'>Error cargando mensajes</p>"; }
+}
+
+function renderMensajes(chats) {
+  const wrap = document.getElementById("messagesWrap");
+  if (!chats.length) { wrap.innerHTML = '<p style="text-align:center;padding:2rem;color:#5a6e5a;font-size:.82rem">Sin mensajes</p>'; return; }
+
+  let html = "";
+  let ultimaFecha = "";
+  chats.forEach(c => {
+    const fechaMsg = c.fecha ? new Date(c.fecha).toLocaleDateString("es-UY",{weekday:"long",day:"numeric",month:"long",timeZone:"America/Montevideo"}) : "";
+    if (fechaMsg && fechaMsg !== ultimaFecha) {
+      html += `<div class="dia-divider">${fechaMsg.charAt(0).toUpperCase()+fechaMsg.slice(1)}</div>`;
+      ultimaFecha = fechaMsg;
+    }
+    const hora = c.fecha ? new Date(c.fecha).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) : "";
+    const isBot = c.rol === "bot";
+    html += `<div class="msg-group" style="align-items:${isBot?"flex-end":"flex-start"}">
+      <div class="msg-bubble ${isBot?"bot":"user"}">${(c.msg||"").replace(/\n/g,"<br>")}</div>
+      <span class="msg-time${isBot?" right":""}">${isBot?"🌿 Marta":"👤"} · ${hora}</span>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+  setTimeout(()=>{ wrap.scrollTop = wrap.scrollHeight; }, 50);
+}
+
+// ============================================================
+function onKeyReply(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviarRespuesta(); }
+}
+
+async function enviarRespuesta() {
+  if (!clienteActivo) return;
+  const input = document.getElementById("replyInput");
+  const texto = input.value.trim();
+  if (!texto) return;
+  input.value = "";
+  try {
+    await fetch(`/api/clientes/${encodeURIComponent(clienteActivo.id)}/mensaje`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({texto})
+    });
+    // Refrescar chat
+    const res = await fetch(`/api/clientes/${encodeURIComponent(clienteActivo.id)}/chats`);
+    const chats = await res.json();
+    renderMensajes(chats);
+  } catch (e) { alert("Error: "+e.message); }
+}
+
+function toggleNicolas() {
+  nicolasActivo = !nicolasActivo;
+  document.getElementById("nicolasBar").style.display = nicolasActivo ? "flex" : "none";
+  document.getElementById("chNicolasBtn").textContent = nicolasActivo ? "↩ Devolver a Marta" : "🙋 Tomar control";
+  document.getElementById("chNicolasBtn").className = "ch-btn " + (nicolasActivo ? "" : "verde");
+  if (clienteActivo) {
+    // Activar o desactivar modo Nico para este chat vía endpoint
+    fetch(`/api/clientes/${encodeURIComponent(clienteActivo.id)}/nicolas`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({activo:nicolasActivo})
+    }).catch(()=>{});
+  }
+}
+
+// ============================================================
+// Refresh automático cada 15 segundos
+setInterval(() => {
+  cargarInbox();
+  if (clienteActivo) {
+    fetch(`/api/clientes/${encodeURIComponent(clienteActivo.id)}/chats`)
+      .then(r=>r.json()).then(renderMensajes).catch(()=>{});
+  }
+}, 15000);
+
+cargarInbox();
+</script>
+</body>
+</html>

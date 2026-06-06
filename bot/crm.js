@@ -46,15 +46,40 @@ async function getSheets() {
 }
 
 // ============================================================
-// LEER TODAS LAS FILAS
+// CACHÉ EN MEMORIA — evita llamar a Sheets en cada mensaje
+// TTL: 2 minutos para datos de cliente, 10 minutos para listado completo
 // ============================================================
-async function leerTodasLasFilas() {
+const _cache = {
+  filas: null,          // todas las filas
+  filasTs: 0,           // timestamp del último fetch
+  clientes: new Map(),  // userId → { data, ts }
+  TTL_FILAS: 10 * 60 * 1000,   // 10 min
+  TTL_CLIENTE: 2 * 60 * 1000,  // 2 min
+};
+
+function _invalidarCache(userId = null) {
+  _cache.filas = null;
+  _cache.filasTs = 0;
+  if (userId) _cache.clientes.delete(userId);
+  else _cache.clientes.clear();
+}
+
+// ============================================================
+// LEER TODAS LAS FILAS (con caché)
+// ============================================================
+async function leerTodasLasFilas(forzar = false) {
+  const ahora = Date.now();
+  if (!forzar && _cache.filas && (ahora - _cache.filasTs) < _cache.TTL_FILAS) {
+    return _cache.filas;
+  }
   const sheets = await getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_NAME}!A:O`,
+    range: `${SHEET_NAME}!A:P`,
   });
-  return res.data.values || [];
+  _cache.filas = res.data.values || [];
+  _cache.filasTs = ahora;
+  return _cache.filas;
 }
 
 // ============================================================
@@ -62,13 +87,20 @@ async function leerTodasLasFilas() {
 // Retorna { rowIndex, datos } o null
 // ============================================================
 async function buscarCliente(userId) {
+  const ahora = Date.now();
+  const cached = _cache.clientes.get(String(userId));
+  if (cached && (ahora - cached.ts) < _cache.TTL_CLIENTE) {
+    return cached.data;
+  }
   const filas = await leerTodasLasFilas();
-  // filas[0] es el header
   for (let i = 1; i < filas.length; i++) {
     if (filas[i][COL.ID] === String(userId)) {
-      return { rowIndex: i + 1, datos: filas[i] }; // rowIndex es 1-based para Sheets
+      const result = { rowIndex: i + 1, datos: filas[i] };
+      _cache.clientes.set(String(userId), { data: result, ts: ahora });
+      return result;
     }
   }
+  _cache.clientes.set(String(userId), { data: null, ts: ahora });
   return null;
 }
 
@@ -134,6 +166,7 @@ async function registrarCliente({ userId, nombre, canal, servicio }) {
       resource: { values: [[ahora]] },
     });
 
+    _invalidarCache(userId);
     return { nuevo: false, rowIndex: row };
   }
 
@@ -161,6 +194,7 @@ async function registrarCliente({ userId, nombre, canal, servicio }) {
     resource: { values: [fila] },
   });
 
+  _invalidarCache(userId);
   return { nuevo: true, rowIndex: nuevaFila };
 }
 

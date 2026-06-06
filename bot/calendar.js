@@ -217,10 +217,31 @@ async function getDisponibilidadTodos(diasDesdeHoy = 0) {
   return todos;
 }
 
+// ============================================================
+// CACHÉ DE SLOTS — se refresca cada 20 minutos
+// Evita llamar a Google Calendar en cada mensaje
+// ============================================================
+let _slotsCache = null;
+let _slotsCacheTs = 0;
+const SLOTS_TTL = 20 * 60 * 1000; // 20 min
+
+function invalidarCacheSlots() {
+  _slotsCache = null;
+  _slotsCacheTs = 0;
+}
+
 // Backward-compatible: getDisponibilidad retorna slots de todos los terapeutas
-// pero si hay un solo terapeuta, se comporta igual que antes
 async function getDisponibilidad(diasDesdeHoy = 0) {
-  return getDisponibilidadTodos(diasDesdeHoy);
+  const ahora = Date.now();
+  if (diasDesdeHoy === 0 && _slotsCache && (ahora - _slotsCacheTs) < SLOTS_TTL) {
+    return _slotsCache;
+  }
+  const slots = await getDisponibilidadTodos(diasDesdeHoy);
+  if (diasDesdeHoy === 0) {
+    _slotsCache = slots;
+    _slotsCacheTs = ahora;
+  }
+  return slots;
 }
 
 // ============================================================
@@ -302,6 +323,7 @@ async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terape
   };
 
   const res = await calendar.events.insert({ calendarId, resource: event });
+  invalidarCacheSlots(); // forzar refresh en el próximo pedido de disponibilidad
   return { ...res.data, terapeutaId: terIdFinal, calendarId };
 }
 
@@ -416,6 +438,7 @@ module.exports = {
   buscarTurnoCliente,
   resolverSlot,
   getEventosAgenda,
+  invalidarCacheSlots,
   TERAPEUTAS,
   HORARIOS,
 };

@@ -144,6 +144,36 @@ app.post("/webhook", async (req, res) => {
       }
     }
 
+    // Verificar si es terapeuta
+    let esTerapeuta = false;
+    let terapeutaData = null;
+    try {
+      const { leerTerapeutas } = require("./bot/terapeutas");
+      const terapeutas = await leerTerapeutas();
+      terapeutaData = terapeutas.find(t => t.whatsapp && t.whatsapp.replace(/\D/g, "").endsWith(msg.from.replace(/\D/g, "").slice(-8)));
+      esTerapeuta = !!terapeutaData;
+    } catch {}
+
+    // Si es terapeuta → procesar como mensaje de terapeuta
+    if (esTerapeuta && !modoMarta.has(msg.from)) {
+      if (msg.type === "audio" && process.env.GEMINI_API_KEY) {
+        try {
+          const { procesarMensajeMedia } = require("./bot/media");
+          const mediaT = await procesarMensajeMedia(msg);
+          if (mediaT?.type === "audio_transcripto") {
+            const { procesarMensajeTerapeuta } = require("./bot/scheduler");
+            await procesarMensajeTerapeuta(terapeutaData, mediaT.texto);
+            return;
+          }
+        } catch {}
+      }
+      if (msg.type === "text" && texto) {
+        const { procesarMensajeTerapeuta } = require("./bot/scheduler");
+        await procesarMensajeTerapeuta(terapeutaData, texto);
+        return;
+      }
+    }
+
     // Si es el dueño O está en modo admin → modo admin (salvo que activó /marta)
     const esAdmin = !modoMarta.has(msg.from) &&
       ((OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from));
@@ -182,20 +212,90 @@ app.post("/webhook", async (req, res) => {
     encolarMensaje(msg.from, texto, "whatsapp", msg.id, media);
   }
 
-  // Facebook Messenger
+  // Facebook Messenger — DMs y comentarios en publicaciones
   if (body.object === "page") {
+    // DM directo
     const msg = entry.messaging?.[0];
-    if (!msg?.message?.text) return;
-    encolarMensaje(msg.sender.id, msg.message.text, "facebook", null, null);
+    if (msg?.message?.text) {
+      if (botModo !== "off") {
+        encolarMensaje(msg.sender.id, msg.message.text, "facebook", null, null);
+      }
+    }
+
+    // Comentarios en publicaciones → responder en el comentario + enviar DM
+    const changes = entry.changes || [];
+    for (const change of changes) {
+      if (change.field === "feed" && change.value?.item === "comment" && change.value?.verb === "add") {
+        const comentario = change.value;
+        const commentId = comentario.comment_id;
+        const senderId = comentario.from?.id;
+        const texto = comentario.message || "";
+        if (!senderId || !commentId) continue;
+
+        // Responder al comentario con saludo + invitar al privado
+        responderComentarioFB(commentId, senderId, texto).catch(() => {});
+      }
+    }
   }
 
-  // Instagram
+  // Instagram — DMs y comentarios
   if (body.object === "instagram") {
+    // DM directo
     const msg = entry.messaging?.[0];
-    if (!msg?.message?.text) return;
-    encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
+    if (msg?.message?.text) {
+      if (botModo !== "off") {
+        encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
+      }
+    }
+
+    // Comentarios en publicaciones
+    const changes = entry.changes || [];
+    for (const change of changes) {
+      if (change.field === "comments" && change.value?.text) {
+        const comentario = change.value;
+        const senderId = comentario.from?.id;
+        const texto = comentario.text || "";
+        if (!senderId) continue;
+        responderComentarioIG(senderId, texto).catch(() => {});
+      }
+    }
   }
 });
+
+// ============================================================
+// RESPONDER COMENTARIOS FB/IG → saludo + invitar al DM
+// ============================================================
+async function responderComentarioFB(commentId, senderId, textoOriginal) {
+  if (botModo === "off") return;
+  const axios = require("axios");
+  const token = process.env.META_PAGE_ACCESS_TOKEN;
+  if (!token) return;
+
+  const horaUY = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Montevideo" })).getHours();
+  const saludo = horaUY < 13 ? "¡Buenos días!" : horaUY < 20 ? "¡Buenas tardes!" : "¡Buenas noches!";
+
+  // Responder en el comentario
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${commentId}/replies`,
+    { message: `${saludo} 💛 Ya te contactamos por privado con toda la información 🌿` },
+    { headers: { Authorization: `Bearer ${token}` } }
+  ).catch(() => {});
+
+  // Enviar DM con info
+  if (botModo !== "off") {
+    setTimeout(() => {
+      encolarMensaje(senderId, textoOriginal || "Consulta desde comentario de publicación", "facebook", null, null);
+    }, 2000);
+  }
+}
+
+async function responderComentarioIG(senderId, textoOriginal) {
+  if (botModo === "off") return;
+  // Para Instagram solo enviamos DM (no se puede responder comentarios directamente por API básica)
+  setTimeout(() => {
+    encolarMensaje(senderId, textoOriginal || "Consulta desde comentario de Instagram", "instagram", null, null);
+  }, 2000);
+}
 
 // ============================================================
 // ESTADO GLOBAL DEL BOT
@@ -238,6 +338,16 @@ app.post("/api/clientes/:userId/score", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// Toggle modo Nico (tomar/devolver control desde inbox)
+app.post("/api/clientes/:userId/nicolas", (req, res) => {
+  const { chatsBloqueados } = require("./bot/conversation");
+  const userId = req.params.userId;
+  const activo = req.body.activo !== false;
+  if (activo) chatsBloqueados.add(userId);
+  else chatsBloqueados.delete(userId);
+  res.json({ ok: true, bloqueado: activo });
 });
 
 // Enviar mensaje desde el panel
@@ -310,6 +420,52 @@ app.get("/dashboard", (req, res) => {
 
 app.get("/cliente", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "cliente.html"));
+});
+
+app.get("/inbox", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "inbox.html"));
+});
+
+// Inbox: clientes con actividad en los últimos N días
+app.get("/api/inbox", async (req, res) => {
+  try {
+    const { leerTodosLosClientes } = require("./bot/crm");
+    const dias = parseInt(req.query.dias) || 7;
+    const clientes = await leerTodosLosClientes();
+    const corte = Date.now() - dias * 86400000;
+
+    const inbox = clientes
+      .map(c => {
+        let chats = [];
+        try { chats = JSON.parse(c.Chats || "[]"); } catch {}
+        if (!chats.length) return null;
+        const ultimo = chats[chats.length - 1];
+        if (!ultimo?.fecha || new Date(ultimo.fecha) < corte) return null;
+        // Contar no leídos (mensajes del cliente desde el último del bot)
+        let noLeidos = 0;
+        for (let i = chats.length - 1; i >= 0; i--) {
+          if (chats[i].rol === "bot") break;
+          noLeidos++;
+        }
+        return {
+          id: c.ID,
+          nombre: c.Nombre || c.ID,
+          telefono: c.Teléfono || c.ID,
+          estado: c.Estado,
+          canal: c.Canal,
+          servicio: c.Servicio,
+          ultimoMsg: (ultimo.msg || "").substring(0, 70) + ((ultimo.msg || "").length > 70 ? "…" : ""),
+          ultimaFecha: ultimo.fecha,
+          ultimoRol: ultimo.rol,
+          noLeidos,
+          totalMsgs: chats.length,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.ultimaFecha) - new Date(a.ultimaFecha));
+
+    res.json(inbox);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================================

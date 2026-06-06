@@ -368,6 +368,126 @@ Sé muy breve, máximo 3 puntos. Si todo está bien, decí solo "✅ Sistema OK,
 }
 
 // ============================================================
+// AGENDA PARA TERAPEUTAS — enviar agenda del día siguiente
+// Se envía todos los días a las 19:00
+// ============================================================
+async function enviarAgendaTerapeutas() {
+  try {
+    const { leerTerapeutas } = require("./terapeutas");
+    const { getEventosAgenda } = require("./calendar");
+    const { leerTodosLosClientes: leerClientes } = require("./crm");
+
+    const terapeutas = await leerTerapeutas();
+    const terapeutasConWA = terapeutas.filter(t => t.whatsapp);
+    if (!terapeutasConWA.length) return;
+
+    // Calcular rango: mañana
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    manana.setHours(0, 0, 0, 0);
+    const finManana = new Date(manana);
+    finManana.setHours(23, 59, 59, 999);
+
+    const eventos = await getEventosAgenda(manana, finManana);
+    const clientes = await leerClientes();
+
+    for (const ter of terapeutasConWA) {
+      // Filtrar eventos de este terapeuta (buscar su nombre en el título/descripción)
+      const misEventos = eventos.filter(ev =>
+        ev.titulo.includes(ter.nombre) || ev.descripcion.includes(ter.nombre) || terapeutasConWA.length === 1
+      );
+
+      if (!misEventos.length) {
+        await enviarMensaje(ter.whatsapp,
+          `🌿 *Agenda de mañana — ${manana.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long" })}*\n\n` +
+          `No tenés turnos agendados para mañana. ¡Día libre! 😊`,
+          "whatsapp"
+        ).catch(() => {});
+        continue;
+      }
+
+      let msg = `📅 *Tu agenda de mañana — ${manana.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long" })}*\n\n`;
+      for (const ev of misEventos) {
+        const hora = new Date(ev.inicio).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+        const horaFin = new Date(ev.fin).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+
+        // Buscar info del cliente en CRM
+        const clienteInfo = clientes.find(c =>
+          ev.clienteTelefono && c.Teléfono?.includes(ev.clienteTelefono?.slice(-8))
+        );
+        const sesRest = clienteInfo ? (parseInt(clienteInfo["Ses.Rest."]) || 0) : null;
+        const sesInfo = sesRest !== null ? ` · Sesiones restantes: ${sesRest}` : "";
+
+        msg += `🕐 *${hora} – ${horaFin}*\n`;
+        msg += `👤 ${ev.clienteNombre || "Cliente"}\n`;
+        msg += `💆 ${ev.clienteServicio || ev.titulo}${sesInfo}\n\n`;
+      }
+      msg += `Si necesitás bloquear algún horario, escribime por acá y lo registro 🙏`;
+
+      await enviarMensaje(ter.whatsapp, msg, "whatsapp").catch(() => {});
+    }
+  } catch (err) {
+    console.error("❌ Error enviando agenda a terapeutas:", err.message);
+  }
+}
+
+// ============================================================
+// PROCESAR MENSAJE DE TERAPEUTA — bloqueo de horarios
+// Llamado desde admin.js cuando el que escribe es terapeuta
+// ============================================================
+async function procesarMensajeTerapeuta(ter, texto) {
+  try {
+    const { invalidarCacheSlots, getDisponibilidad } = require("./calendar");
+    const { GoogleAuth } = require("google-auth-library");
+    const { calendar: googleCalendar } = require("@googleapis/calendar");
+
+    const auth = new GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+      scopes: ["https://www.googleapis.com/auth/calendar"],
+    });
+    const cal = googleCalendar({ version: "v3", auth });
+
+    // Intentar extraer fecha/hora del texto con Claude haiku
+    const Anthropic = require("@anthropic-ai/sdk");
+    const anthropicC = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const hoy = new Date().toLocaleDateString("es-UY", { timeZone: "America/Montevideo" });
+
+    const resp = await anthropicC.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 150,
+      system: `Hoy es ${hoy}. Extraé del texto una fecha y hora de bloqueo. Respondé SOLO con JSON: {"fecha":"YYYY-MM-DD","horaInicio":"HH:MM","horaFin":"HH:MM","motivo":"texto"} o {} si no encontrás.`,
+      messages: [{ role: "user", content: texto }],
+    });
+
+    const parsed = JSON.parse(resp.content[0].text.trim());
+    if (!parsed.fecha) {
+      await enviarMensaje(ter.whatsapp, "No pude entender el horario a bloquear. Escribí algo como: _El martes 10 no puedo de 9 a 12_", "whatsapp");
+      return;
+    }
+
+    const calId = ter.calendarId || process.env.GOOGLE_CALENDAR_ID || "primary";
+    await cal.events.insert({
+      calendarId: calId,
+      resource: {
+        summary: `🔒 BLOQUEADO — ${parsed.motivo || "No disponible"}`,
+        start: { dateTime: `${parsed.fecha}T${parsed.horaInicio}:00`, timeZone: "America/Montevideo" },
+        end: { dateTime: `${parsed.fecha}T${parsed.horaFin}:00`, timeZone: "America/Montevideo" },
+        colorId: "4", // rojo
+      },
+    });
+
+    invalidarCacheSlots();
+    await enviarMensaje(ter.whatsapp,
+      `✅ Bloqueé el ${parsed.fecha} de ${parsed.horaInicio} a ${parsed.horaFin}. No se van a ofrecer esos horarios 🙏`,
+      "whatsapp"
+    );
+  } catch (err) {
+    console.error("❌ Error bloqueando horario:", err.message);
+    await enviarMensaje(ter.whatsapp, "Ups, hubo un error bloqueando el horario. Avisale a Nico 🙏", "whatsapp").catch(() => {});
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
@@ -393,6 +513,11 @@ function startScheduler() {
 
   // Agenda del día siguiente a las 20:05
   cron.schedule("5 20 * * *", enviarAgendaManana, {
+    timezone: "America/Montevideo",
+  });
+
+  // Agenda para terapeutas a las 19:00
+  cron.schedule("0 19 * * *", enviarAgendaTerapeutas, {
     timezone: "America/Montevideo",
   });
 
@@ -480,4 +605,4 @@ function getTemplatesMeta() {
   return TEMPLATES_META;
 }
 
-module.exports = { startScheduler, getTemplatesMeta, enviarAlertaUrgente };
+module.exports = { startScheduler, getTemplatesMeta, enviarAlertaUrgente, procesarMensajeTerapeuta };

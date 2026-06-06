@@ -60,19 +60,34 @@ No sos un bot — sos una persona real, empática y apasionada por ayudar a las 
 Hablás en español rioplatense, de forma cálida, cercana y genuina. Usás "vos" siempre.
 Usás emojis con moderación, como lo haría una persona real (no en exceso).
 
+=== SALUDO POR HORA ===
+Siempre usá el saludo correcto según la hora del día (Uruguay):
+- Antes de las 13:00 → "¡Buenos días!"
+- Entre 13:00 y 20:00 → "¡Buenas tardes!"
+- Después de las 20:00 → "¡Buenas noches!"
+El contexto del mensaje te indicará la hora actual.
+
 === TONO SEGÚN CONTEXTO DEL CLIENTE ===
 El contexto de la clienta te dirá si es nueva o recurrente.
 
 Si es la PRIMERA VEZ que escribe (estado: lead, sin historial):
 - Recibila con calidez y presentá Citrino brevemente
 - Explicá los servicios con entusiasmo
-- Ej: "¡Hola! 💛 Qué gusto que nos escribas. Te cuento sobre lo que hacemos en Citrino..."
+- Ej: "¡Buenos días! 💛 Qué gusto que nos escribas. Te cuento sobre lo que hacemos en Citrino..."
 
 Si es una clienta CONOCIDA (estado: vino, agendado, o tiene notas/perfil):
 - Saludala de forma más íntima, como si ya se conocieran
 - Podés hacer referencia a su historial si es relevante
-- Ej: "¡Hola! 🌿 ¡Qué bueno saber de vos! ¿Cómo estás?" o "¡Hola! ¿Cómo te quedaste después de la última sesión? 💆"
+- Ej: "¡Buenas tardes! 🌿 ¡Qué bueno saber de vos! ¿Cómo estás?"
 - Si sabes su nombre, usalo naturalmente
+
+=== RECOLECTAR DATOS — SIEMPRE ===
+En cada conversación intentá obtener al menos:
+1. **Nombre** — pedilo naturalmente antes de confirmar el turno
+2. **Número de contacto** — si viene de FB/Instagram, pedile su WhatsApp
+Guardá con: <accion>{"tipo":"guardar_nombre","nombre":"nombre"}</accion>
+No seas insistente, pero encontrá el momento natural para preguntar.
+Ej: "¿Y tu nombre para anotarlo?" o "¿Me pasás tu WhatsApp para mandarte el recordatorio?"
 
 Tu estilo es:
 - Empático: primero conectás con cómo se siente la persona, después ofrecés la solución
@@ -478,8 +493,9 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   // Obtener datos del cliente para contexto
   let nombreCliente = "";
   let perfilCliente = {};
+  let clienteCRM = null;   // declarado acá para que sea accesible fuera del try
   try {
-    const clienteCRM = await buscarCliente(userId);
+    clienteCRM = await buscarCliente(userId);
     nombreCliente = clienteCRM?.datos?.[1] || "";
     perfilCliente = await obtenerPerfil(userId);
   } catch {}
@@ -512,6 +528,11 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     : (media?.type === "audio" ? "[nota de voz]" : text);
   agregarMensaje(userId, "user", textoParaHistorial);
 
+  // Hora actual Uruguay para saludo correcto
+  const ahoraUY = new Date().toLocaleString("en-US", { timeZone: "America/Montevideo" });
+  const horaUY = new Date(ahoraUY).getHours();
+  const saludoHora = horaUY < 13 ? "Buenos días" : horaUY < 20 ? "Buenas tardes" : "Buenas noches";
+
   // Construir contexto adicional para Claude (nombre + perfil aprendido + cuponera)
   const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente, clienteCRM);
 
@@ -536,7 +557,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     const response = await anthropic.messages.create({
       model: modeloAUsar,
       max_tokens: 600,
-      system: SYSTEM_PROMPT + buildContextoDinamico() + (contextoCliente ? `\n\n${contextoCliente}` : ""),
+      system: SYSTEM_PROMPT + buildContextoDinamico() + `\n\n[Hora actual en Uruguay: ${horaUY}:00 — usar saludo: "${saludoHora}"]` + (contextoCliente ? `\n\n${contextoCliente}` : ""),
       messages: mensajes,
     });
     respuestaBot = response.content[0].text;

@@ -48,11 +48,11 @@ async function inicializarHojaTerapeutas() {
   // Headers + fila default (Citrino)
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${SHEET_TER}!A1:F3`,
+    range: `${SHEET_TER}!A1:G3`,
     valueInputOption: "RAW",
     resource: {
       values: [
-        ["ID", "Nombre", "Color", "Horarios", "CalendarID", "Activa"],
+        ["ID", "Nombre", "Color", "Horarios", "CalendarID", "Activa", "WhatsApp"],
         [
           "default",
           "Citrino",
@@ -99,6 +99,8 @@ async function leerTerapeutas() {
           horarios,
           calendarId: f[4] || process.env.GOOGLE_CALENDAR_ID || "primary",
           activa:     f[5] !== "no",
+          whatsapp:   f[6] || "",
+          pin:        f[7] || "",   // PIN de 4 dígitos para vista tablet
         };
       });
   } catch {
