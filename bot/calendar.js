@@ -223,9 +223,6 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
   return getDisponibilidadTodos(diasDesdeHoy);
 }
 
-  return slots;
-}
-
 // ============================================================
 // FORMATEAR DISPONIBILIDAD PARA MOSTRAR AL CLIENTE
 // Agrupa por fecha y terapeuta
