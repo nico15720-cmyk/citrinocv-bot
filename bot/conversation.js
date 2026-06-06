@@ -499,8 +499,8 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     : (media?.type === "audio" ? "[nota de voz]" : text);
   agregarMensaje(userId, "user", textoParaHistorial);
 
-  // Construir contexto adicional para Claude (nombre + perfil aprendido)
-  const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente);
+  // Construir contexto adicional para Claude (nombre + perfil aprendido + cuponera)
+  const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente, clienteCRM);
 
   // Para Claude: usar el historial pero reemplazar el último mensaje con el contenido real (multimodal si aplica)
   const mensajesHistorial = getHistorial(userId);
@@ -602,11 +602,29 @@ Campos posibles:
 }
 
 // Formatea el perfil del cliente como contexto legible para Claude
-function formatearPerfilParaContexto(nombre, perfil) {
-  if (!perfil || Object.keys(perfil).length === 0) return "";
-
+function formatearPerfilParaContexto(nombre, perfil, datosCliente = null) {
   const partes = [];
-  if (nombre) partes.push(`El cliente se llama ${nombre}.`);
+  if (nombre) partes.push(`La clienta se llama ${nombre}.`);
+
+  // Cuponera — importante para responder preguntas sobre sesiones
+  if (datosCliente) {
+    const cuponera = datosCliente.datos?.[6];
+    const sesRest = parseInt(datosCliente.datos?.[7]) || 0;
+    if (cuponera === "si" && sesRest > 0) {
+      partes.push(`Tiene cuponera activa con ${sesRest} sesión${sesRest !== 1 ? "es" : ""} disponible${sesRest !== 1 ? "s" : ""}. Si pregunta cuántas sesiones le quedan, decile exactamente: "${sesRest} sesión${sesRest !== 1 ? "es" : ""} disponible${sesRest !== 1 ? "s" : ""} en tu cuponera 🎟"`);
+    } else if (cuponera === "si") {
+      partes.push(`Tenía cuponera pero ya no le quedan sesiones. Podés ofrecerle renovar.`);
+    }
+    const estado = datosCliente.datos?.[5];
+    const servicio = datosCliente.datos?.[4];
+    if (estado) partes.push(`Estado en CRM: ${estado}.`);
+    if (servicio) partes.push(`Servicio habitual: ${servicio}.`);
+  }
+
+  if (!perfil || Object.keys(perfil).length === 0) {
+    return partes.length > 0 ? `[Contexto de la clienta: ${partes.join(" ")}]` : "";
+  }
+
   if (perfil.horarios_preferidos?.length) partes.push(`Prefiere: ${perfil.horarios_preferidos.join(", ")}.`);
   if (perfil.ocupacion) partes.push(`Ocupación: ${perfil.ocupacion}.`);
   if (perfil.servicios_preferidos?.length) partes.push(`Servicios de interés: ${perfil.servicios_preferidos.join(", ")}.`);
@@ -616,7 +634,7 @@ function formatearPerfilParaContexto(nombre, perfil) {
   if (perfil.sensibilidad_precio) partes.push(`Precio: ${perfil.sensibilidad_precio}.`);
   if (perfil.notas_extra) partes.push(perfil.notas_extra);
 
-  return partes.length > 0 ? `[Perfil del cliente: ${partes.join(" ")}]` : "";
+  return partes.length > 0 ? `[Contexto de la clienta: ${partes.join(" ")}]` : "";
 }
 
 // ============================================================

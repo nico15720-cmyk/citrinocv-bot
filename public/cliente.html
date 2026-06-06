@@ -1,271 +1,365 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citrino — Perfil de cliente</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>Citrino — Cliente</title>
   <style>
     :root {
-      --verde: #4a6f4a; --verde-bg: #eef4ee; --verde-claro: #8fbc8f;
-      --crema: #f7f2eb; --crema-card: #fff; --crema-border: #e5ddd0;
-      --texto: #1e2e1e; --texto-suave: #5a6e5a;
-      --rojo: #b33a2f; --naranja: #c96a18; --azul: #2563b0;
-      --sombra: 0 1px 4px rgba(0,0,0,0.07); --sombra-md: 0 4px 16px rgba(0,0,0,.1);
-      --radio: 12px;
+      --verde: #3d6b3d;
+      --verde-bg: #edf4ed;
+      --crema: #f5f0e8;
+      --card: #ffffff;
+      --border: #e8e0d4;
+      --txt: #1a2e1a;
+      --txt2: #5a6e5a;
+      --rojo: #b33a2f;
+      --naranja: #c96a18;
+      --azul: #2563b0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --r: 14px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--crema); color: var(--texto); min-height: 100vh; }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--crema);color:var(--txt);min-height:100vh;padding-bottom:2rem}
 
-    /* NAV */
-    nav.topnav { background: var(--verde); padding: 0 1.5rem; display: flex; align-items: center; height: 52px; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.15); gap: 0; }
-    .nav-brand { color: white; font-size: 1rem; font-weight: 700; margin-right: 1.5rem; text-decoration: none; }
-    .nav-back { color: rgba(255,255,255,.85); text-decoration: none; font-size: .82rem; display: flex; align-items: center; gap: .35rem; padding: .3rem .6rem; border-radius: 6px; transition: background .15s; }
-    .nav-back:hover { background: rgba(255,255,255,.15); }
-    .nav-title { color: white; font-size: .88rem; font-weight: 600; margin-left: .5rem; opacity: .9; }
+    /* ── HEADER ── */
+    .topbar{background:var(--verde);padding:0 1rem;display:flex;align-items:center;height:52px;gap:.5rem;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+    .back-btn{color:rgba(255,255,255,.9);font-size:.85rem;text-decoration:none;display:flex;align-items:center;gap:.3rem;padding:.3rem .5rem;border-radius:6px;transition:background .15s}
+    .back-btn:hover{background:rgba(255,255,255,.15)}
+    .topbar-title{color:white;font-size:.9rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .wa-btn{background:white;color:var(--verde);border:none;padding:.35rem .8rem;border-radius:20px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:.3rem}
 
-    /* LAYOUT */
-    .wrap { max-width: 1060px; margin: 0 auto; padding: 1.4rem 1.5rem; }
-    .grid-main { display: grid; grid-template-columns: 300px 1fr; gap: 1.2rem; align-items: start; }
+    /* ── HERO LTV ── */
+    .hero{background:var(--verde);padding:1rem 1rem 1.4rem;color:white}
+    .hero-avatar{width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.2);color:white;font-size:1.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:.6rem;backdrop-filter:blur(4px)}
+    .hero-name{font-size:1.25rem;font-weight:800;line-height:1.1;margin-bottom:.15rem}
+    .hero-phone{font-size:.82rem;opacity:.8;margin-bottom:.5rem}
+    .hero-badges{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.9rem}
+    .hero-badge{padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:700;background:rgba(255,255,255,.2);color:white}
+    .hero-badge.vino{background:rgba(74,222,128,.25)}
+    .hero-badge.lead{background:rgba(251,191,36,.25)}
+    .hero-badge.agendado{background:rgba(96,165,250,.25)}
+    .hero-badge.wa{background:rgba(74,222,128,.2)}
+    .hero-badge.ig{background:rgba(244,114,182,.2)}
 
-    /* CARD */
-    .card { background: var(--crema-card); border-radius: var(--radio); border: 1px solid var(--crema-border); box-shadow: var(--sombra); overflow: hidden; }
-    .card-header { padding: .75rem 1rem; border-bottom: 1px solid var(--crema-border); display: flex; align-items: center; justify-content: space-between; }
-    .card-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
-    .card-body { padding: 1rem; }
+    .ltv-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:.5rem}
+    .ltv-card{background:rgba(0,0,0,.25);border-radius:10px;padding:.6rem .7rem;text-align:center;backdrop-filter:blur(4px)}
+    .ltv-card.main{background:rgba(0,0,0,.35)}
+    .ltv-num{font-size:1.35rem;font-weight:800;line-height:1}
+    .ltv-num.main-num{font-size:1.5rem}
+    .ltv-label{font-size:.62rem;opacity:.7;text-transform:uppercase;letter-spacing:.04em;margin-top:.15rem}
 
-    /* PERFIL SIDEBAR */
-    .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--verde); color: white; font-size: 1.6rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; }
-    .profile-name { font-size: 1.2rem; font-weight: 800; text-align: center; margin-bottom: .2rem; }
-    .profile-phone { font-size: .82rem; color: var(--texto-suave); text-align: center; margin-bottom: .75rem; }
-    .profile-badges { display: flex; gap: .3rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
-    .badge { display: inline-flex; align-items: center; gap: 3px; padding: .2rem .6rem; border-radius: 20px; font-size: .7rem; font-weight: 600; }
-    .b-lead     { background: #fef3cd; color: #8a5a00; }
-    .b-agendado { background: #dbeafe; color: #1547a0; }
-    .b-vino     { background: #dcfce7; color: #166534; }
-    .b-no_vino  { background: #fee2e2; color: #991b1b; }
-    .b-cancelado{ background: #f3f4f6; color: #6b7280; }
-    .b-wa  { background: #d1fae5; color: #065f46; }
-    .b-fb  { background: #dbeafe; color: #1e40af; }
-    .b-ig  { background: #fce7f3; color: #9d174d; }
-    .b-manual { background: #f3e8ff; color: #6b21a8; }
-    .b-cup { background: var(--verde-bg); color: var(--verde); }
+    /* ── SALDO ALERT ── */
+    .saldo-alert{background:#fff8e1;border-left:3px solid #f59e0b;padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;font-size:.82rem;color:#7c5e00}
+    .saldo-alert strong{font-weight:700}
 
-    .profile-campo { display: flex; justify-content: space-between; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--crema-border); font-size: .82rem; }
-    .profile-campo:last-child { border-bottom: none; }
-    .profile-campo .label { color: var(--texto-suave); font-size: .75rem; }
-    .profile-campo .valor { font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
+    /* ── PROXIMA SESION ── */
+    .prox-card{margin:-.5rem 1rem 0;background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);padding:.75rem 1rem;display:flex;align-items:center;gap:.7rem;font-size:.82rem;border-left:3px solid var(--verde)}
+    .prox-card strong{font-weight:700}
 
-    .acciones-rapidas { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .75rem; }
-    .btn { padding: .45rem .9rem; border: none; border-radius: 7px; cursor: pointer; font-size: .78rem; font-weight: 600; transition: opacity .15s, transform .1s; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: .3rem; }
-    .btn:hover { opacity: .88; }
-    .btn:active { transform: scale(.96); }
-    .btn-verde  { background: var(--verde); color: white; }
-    .btn-azul   { background: var(--azul); color: white; }
-    .btn-naranja{ background: var(--naranja); color: white; }
-    .btn-rojo   { background: var(--rojo); color: white; }
-    .btn-gris   { background: #e5e0d8; color: var(--texto); }
-    .btn-full   { grid-column: 1/-1; }
+    /* ── BODY ── */
+    .body{padding:1rem}
 
-    /* STATS */
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
-    .stat-mini { background: var(--crema-card); border: 1px solid var(--crema-border); border-radius: 8px; padding: .7rem .8rem; text-align: center; box-shadow: var(--sombra); }
-    .stat-mini-num { font-size: 1.4rem; font-weight: 800; line-height: 1; }
-    .stat-mini-label { font-size: .65rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .04em; margin-top: .2rem; }
+    /* ── ACCIONES ── */
+    .acciones-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem}
+    .acc-btn{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:.6rem .4rem;text-align:center;cursor:pointer;text-decoration:none;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.25rem}
+    .acc-btn:hover{border-color:var(--verde);background:var(--verde-bg)}
+    .acc-btn .acc-icon{font-size:1.15rem}
+    .acc-btn .acc-label{font-size:.65rem;font-weight:600;color:var(--txt2)}
 
-    /* TABS */
-    .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--crema-border); margin-bottom: .75rem; }
-    .tab { padding: .5rem 1rem; font-size: .82rem; font-weight: 600; color: var(--texto-suave); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
-    .tab.active { color: var(--verde); border-bottom-color: var(--verde); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    /* ── TABS ── */
+    .tabs-bar{background:var(--card);border-radius:12px;padding:.3rem;display:flex;gap:.2rem;margin-bottom:.75rem;box-shadow:var(--shadow)}
+    .tab-item{flex:1;padding:.45rem .3rem;text-align:center;font-size:.75rem;font-weight:600;color:var(--txt2);border-radius:9px;cursor:pointer;border:none;background:transparent;transition:all .15s}
+    .tab-item.active{background:var(--verde);color:white}
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
 
-    /* TIMELINE */
-    .timeline { display: flex; flex-direction: column; gap: .5rem; }
-    .timeline-item { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem .75rem; border-radius: 8px; background: var(--crema); border: 1px solid var(--crema-border); }
-    .tl-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
-    .tl-icon.sesion   { background: var(--verde-bg); }
-    .tl-icon.pago     { background: #dcfce7; }
-    .tl-icon.cuponera { background: #fef3cd; }
-    .tl-body { flex: 1; min-width: 0; }
-    .tl-titulo { font-size: .83rem; font-weight: 600; }
-    .tl-sub { font-size: .73rem; color: var(--texto-suave); margin-top: 1px; }
-    .tl-monto { font-size: .85rem; font-weight: 700; color: var(--verde); margin-left: auto; white-space: nowrap; }
-    .tl-monto.gasto { color: var(--rojo); }
-    .empty-state { text-align: center; padding: 2rem; color: var(--texto-suave); font-size: .85rem; }
+    /* ── CARDS ── */
+    .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:.75rem}
+    .card-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txt2);padding:.7rem 1rem .4rem;display:flex;align-items:center;justify-content:space-between}
+    .card-title span{font-size:.75rem;background:var(--verde);color:white;padding:.1rem .45rem;border-radius:12px}
 
-    /* CHAT */
-    .chat-list { display: flex; flex-direction: column; gap: .5rem; max-height: 400px; overflow-y: auto; }
-    .chat-burbuja { max-width: 80%; padding: .45rem .7rem; border-radius: 10px; font-size: .81rem; line-height: 1.45; }
-    .chat-burbuja.user { background: var(--verde-bg); align-self: flex-start; border-bottom-left-radius: 2px; }
-    .chat-burbuja.bot  { background: #f0f0ec; align-self: flex-end; border-bottom-right-radius: 2px; }
-    .chat-meta { font-size: .62rem; color: var(--texto-suave); margin-top: 2px; }
+    /* ── SESSION ITEM ── */
+    .sesion-item{display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid #f5f0eb}
+    .sesion-item:last-child{border-bottom:none}
+    .sesion-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .sesion-info{flex:1;min-width:0}
+    .sesion-nombre{font-size:.85rem;font-weight:600}
+    .sesion-sub{font-size:.72rem;color:var(--txt2);margin-top:1px}
+    .sesion-fecha{font-size:.72rem;color:var(--txt2);white-space:nowrap;text-align:right}
+    .sesion-prox{background:var(--verde-bg);border-left:2px solid var(--verde)}
 
-    /* PERFIL IA */
-    .perfil-item { display: flex; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid var(--crema-border); font-size: .82rem; }
-    .perfil-item:last-child { border-bottom: none; }
-    .perfil-key { color: var(--texto-suave); min-width: 130px; font-size: .75rem; }
-    .perfil-val { font-weight: 500; }
+    /* ── VENTA ITEM ── */
+    .venta-item{display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid #f5f0eb}
+    .venta-item:last-child{border-bottom:none}
+    .venta-icon{width:36px;height:36px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    .venta-icon.cup{background:#fef3c7}
+    .venta-info{flex:1;min-width:0}
+    .venta-nombre{font-size:.85rem;font-weight:700}
+    .venta-sub{font-size:.72rem;color:var(--txt2);margin-top:1px;display:flex;align-items:center;gap:.35rem}
+    .medio-badge{padding:.1rem .4rem;border-radius:8px;background:#f3e8ff;color:#6b21a8;font-size:.65rem;font-weight:600}
+    .venta-monto{text-align:right}
+    .venta-monto-val{font-size:.95rem;font-weight:800;color:var(--verde)}
+    .venta-neto{font-size:.68rem;color:var(--txt2)}
 
-    /* NOTAS */
-    .notas-area { width: 100%; min-height: 90px; padding: .6rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .83rem; resize: vertical; font-family: inherit; outline: none; transition: border-color .15s; }
-    .notas-area:focus { border-color: var(--verde); }
+    /* ── CHAT ── */
+    .chat-container{max-height:360px;overflow-y:auto;padding:.75rem 1rem;display:flex;flex-direction:column;gap:.5rem}
+    .bubble{max-width:78%;padding:.45rem .7rem;border-radius:12px;font-size:.82rem;line-height:1.45}
+    .bubble.user{background:var(--verde-bg);align-self:flex-start;border-bottom-left-radius:2px}
+    .bubble.bot{background:#f0f0ec;align-self:flex-end;border-bottom-right-radius:2px}
+    .bubble-meta{font-size:.62rem;color:var(--txt2);margin-top:1px}
 
-    /* PRÓXIMO TURNO */
-    .prox-turno { background: var(--verde-bg); border: 1.5px solid var(--verde-claro); border-radius: 8px; padding: .65rem .9rem; display: flex; align-items: center; gap: .6rem; margin-bottom: .75rem; font-size: .83rem; }
+    /* ── PERFIL IA ── */
+    .perfil-list{padding:.5rem .75rem}
+    .perfil-row{display:flex;gap:.5rem;padding:.4rem .25rem;border-bottom:1px solid #f5f0eb;font-size:.82rem;align-items:flex-start}
+    .perfil-row:last-child{border-bottom:none}
+    .perfil-key{min-width:130px;color:var(--txt2);font-size:.73rem;padding-top:.1rem}
+    .perfil-val{font-weight:500;flex:1}
 
-    /* TOAST */
-    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--verde); color: white; padding: .6rem 1.2rem; border-radius: 8px; font-size: .83rem; z-index: 300; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.error { background: var(--rojo); }
+    /* ── NOTAS ── */
+    .notas-wrap{padding:.75rem 1rem}
+    .notas-area{width:100%;min-height:80px;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:10px;font-size:.83rem;resize:vertical;font-family:inherit;outline:none;transition:border-color .15s}
+    .notas-area:focus{border-color:var(--verde)}
+    .notas-guardadas{font-size:.78rem;color:var(--txt2);background:var(--crema);border-radius:8px;padding:.55rem .7rem;margin-top:.5rem;line-height:1.55}
 
-    /* MODAL */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 440px; box-shadow: var(--sombra-md); }
-    .modal h3 { font-size: 1rem; margin-bottom: .25rem; color: var(--verde); }
-    .modal .sub { font-size: .78rem; color: var(--texto-suave); margin-bottom: 1rem; }
-    .modal label { display: block; font-size: .78rem; color: var(--texto-suave); margin-top: .6rem; margin-bottom: .2rem; }
-    .modal input, .modal select, .modal textarea { width: 100%; padding: .5rem .7rem; border: 1.5px solid var(--crema-border); border-radius: 7px; font-size: .85rem; outline: none; transition: border-color .15s; resize: vertical; font-family: inherit; }
-    .modal input:focus, .modal select:focus { border-color: var(--verde); }
-    .modal-btns { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+    /* ── INFO ── */
+    .info-list{padding:0 1rem}
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid #f5f0eb;font-size:.83rem}
+    .info-row:last-child{border-bottom:none}
+    .info-key{color:var(--txt2)}
+    .info-val{font-weight:600;text-align:right}
 
-    /* LOADING */
-    .loading { display: flex; align-items: center; justify-content: center; padding: 4rem; gap: .5rem; color: var(--texto-suave); }
-    .spinner { width: 20px; height: 20px; border: 2.5px solid var(--crema-border); border-top-color: var(--verde); border-radius: 50%; animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ── EMPTY ── */
+    .empty{text-align:center;padding:2rem 1rem;color:var(--txt2);font-size:.83rem}
 
-    @media (max-width: 760px) {
-      .grid-main { grid-template-columns: 1fr; }
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    /* ── BTN ── */
+    .btn{padding:.5rem 1rem;border:none;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;transition:opacity .15s}
+    .btn:hover{opacity:.88}
+    .btn-verde{background:var(--verde);color:white}
+    .btn-gris{background:#e5e0d8;color:var(--txt)}
+    .btn-naranja{background:var(--naranja);color:white}
+    .btn-rojo{background:var(--rojo);color:white}
+    .btn-azul{background:var(--azul);color:white}
+
+    /* ── MODAL ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+    .overlay.open{display:flex}
+    .sheet{background:white;border-radius:20px 20px 0 0;padding:1.5rem;width:100%;max-width:480px;box-shadow:0 -4px 20px rgba(0,0,0,.15);max-height:85vh;overflow-y:auto}
+    .sheet h3{font-size:1rem;margin-bottom:.25rem;color:var(--verde)}
+    .sheet .sub{font-size:.78rem;color:var(--txt2);margin-bottom:1rem}
+    .sheet label{display:block;font-size:.75rem;color:var(--txt2);margin-top:.6rem;margin-bottom:.2rem}
+    .sheet input,.sheet select{width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;font-family:inherit}
+    .sheet input:focus,.sheet select:focus{border-color:var(--verde)}
+    .sheet-btns{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem}
+    .sheet-handle{width:40px;height:4px;background:#e0dbd4;border-radius:2px;margin:0 auto .75rem}
+
+    /* ── TOAST ── */
+    .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(60px);background:var(--txt);color:white;padding:.55rem 1.1rem;border-radius:20px;font-size:.82rem;z-index:300;transition:transform .25s;pointer-events:none}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.ok{background:var(--verde)}
+    .toast.err{background:var(--rojo)}
+
+    /* ── LOADING ── */
+    .loading{display:flex;align-items:center;justify-content:center;padding:4rem 1rem;gap:.5rem;color:var(--txt2)}
+    .spin{width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--verde);border-radius:50%;animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+
+    @media(min-width:600px){
+      .body{max-width:640px;margin:0 auto}
+      .hero{padding-left:calc((100% - 640px)/2 + 1rem);padding-right:calc((100% - 640px)/2 + 1rem)}
+      .prox-card{max-width:640px;margin-left:auto;margin-right:auto;margin-top:-.5rem}
+      .overlay{align-items:center}
+      .sheet{border-radius:16px;margin-bottom:2rem}
     }
   </style>
 </head>
 <body>
 
-<nav class="topnav">
-  <a class="nav-brand" href="/admin">🌿 Citrino</a>
-  <a class="nav-back" href="/admin">← CRM</a>
-  <span class="nav-title" id="navNombre"></span>
-</nav>
+<!-- TOPBAR -->
+<div class="topbar">
+  <a class="back-btn" href="/admin">← CRM</a>
+  <div class="topbar-title" id="topTitle">Cargando...</div>
+  <a class="wa-btn" id="waTopBtn" href="#" target="_blank">💬 WA</a>
+</div>
 
-<div id="loadingWrap" class="loading"><div class="spinner"></div> Cargando perfil...</div>
+<div id="loadWrap" class="loading"><div class="spin"></div> Cargando perfil...</div>
 
-<div id="mainWrap" class="wrap" style="display:none">
-
-  <!-- Stats top -->
-  <div class="stats-row" id="statsRow"></div>
-
-  <!-- Próximo turno -->
-  <div id="proxTurnoWrap"></div>
-
-  <div class="grid-main">
-    <!-- SIDEBAR -->
-    <div>
-      <div class="card">
-        <div class="card-body" style="text-align:center;padding-top:1.25rem">
-          <div class="profile-avatar" id="avatar"></div>
-          <div class="profile-name" id="profileName">—</div>
-          <div class="profile-phone" id="profilePhone"></div>
-          <div class="profile-badges" id="profileBadges"></div>
-        </div>
-        <div class="card-body" style="padding-top:.5rem" id="profileCampos"></div>
-        <div class="card-body" style="padding-top:.25rem">
-          <div class="acciones-rapidas" id="accionesRapidas"></div>
-        </div>
+<div id="mainWrap" style="display:none">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-avatar" id="heroAvatar">?</div>
+    <div class="hero-name" id="heroName">—</div>
+    <div class="hero-phone" id="heroPhone"></div>
+    <div class="hero-badges" id="heroBadges"></div>
+    <div class="ltv-row">
+      <div class="ltv-card main">
+        <div class="ltv-num main-num" id="ltvTotal">—</div>
+        <div class="ltv-label">LTV total</div>
       </div>
-
-      <!-- Cuponera -->
-      <div class="card" style="margin-top:1rem" id="cuponeraCard">
-        <div class="card-header"><span class="card-title">🎟 Cuponera</span></div>
-        <div class="card-body" id="cuponeraBody"></div>
+      <div class="ltv-card">
+        <div class="ltv-num" id="ltvCompradas">—</div>
+        <div class="ltv-label">Compradas</div>
       </div>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div>
-      <div class="card">
-        <div class="card-body" style="padding-bottom:.25rem">
-          <div class="tabs">
-            <div class="tab active" onclick="switchTab('timeline')">📋 Historial</div>
-            <div class="tab" onclick="switchTab('chat')">💬 Chat</div>
-            <div class="tab" onclick="switchTab('perfil')">🧠 Perfil IA</div>
-            <div class="tab" onclick="switchTab('notas')">📝 Notas</div>
-          </div>
-        </div>
-
-        <!-- HISTORIAL -->
-        <div class="tab-panel active card-body" id="panel-timeline">
-          <div class="timeline" id="timeline"></div>
-        </div>
-
-        <!-- CHAT -->
-        <div class="tab-panel card-body" id="panel-chat">
-          <div class="chat-list" id="chatList"></div>
-        </div>
-
-        <!-- PERFIL IA -->
-        <div class="tab-panel card-body" id="panel-perfil">
-          <div id="perfilIA"></div>
-        </div>
-
-        <!-- NOTAS -->
-        <div class="tab-panel card-body" id="panel-notas">
-          <textarea class="notas-area" id="notasArea" placeholder="Agregá notas sobre esta persona..."></textarea>
-          <div style="display:flex;justify-content:flex-end;margin-top:.5rem">
-            <button class="btn btn-verde" onclick="guardarNota()">Guardar nota</button>
-          </div>
-          <div id="notasGuardadas" style="margin-top:.75rem;font-size:.8rem;color:var(--texto-suave)"></div>
-        </div>
+      <div class="ltv-card">
+        <div class="ltv-num" id="ltvUsadas">—</div>
+        <div class="ltv-label">Usadas</div>
+      </div>
+      <div class="ltv-card" id="ltvSaldoCard">
+        <div class="ltv-num" id="ltvSaldo">—</div>
+        <div class="ltv-label">Saldo</div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- MODAL: Agendar turno -->
-<div class="modal-overlay" id="modalTurno">
-  <div class="modal">
+  <!-- ALERTA SALDO -->
+  <div class="saldo-alert" id="saldoAlert" style="display:none">
+    🎟 Esta clienta tiene <strong id="saldoNum">0</strong> sesiones disponibles en su cuponera
+  </div>
+
+  <!-- PRÓXIMA SESION -->
+  <div class="prox-card" id="proxCard" style="display:none">
+    📅 <div>
+      <strong>Próxima sesión:</strong>
+      <span id="proxLabel"></span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- ACCIONES RÁPIDAS -->
+    <div class="acciones-grid">
+      <a class="acc-btn" id="waAccBtn" href="#" target="_blank">
+        <span class="acc-icon">💬</span><span class="acc-label">WhatsApp</span>
+      </a>
+      <div class="acc-btn" onclick="abrirSheet('sheetTurno')">
+        <span class="acc-icon">📅</span><span class="acc-label">Agendar</span>
+      </div>
+      <div class="acc-btn" onclick="registrarSesion()">
+        <span class="acc-icon">✓</span><span class="acc-label">+ Sesión</span>
+      </div>
+      <div class="acc-btn" onclick="abrirSheet('sheetVenta')">
+        <span class="acc-icon">💰</span><span class="acc-label">+ Venta</span>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <button class="tab-item active" onclick="tab('sesiones',0)">Sesiones</button>
+      <button class="tab-item" onclick="tab('ventas',1)">Ventas</button>
+      <button class="tab-item" onclick="tab('chat',2)">Chat</button>
+      <button class="tab-item" onclick="tab('info',3)">Info</button>
+    </div>
+
+    <!-- PANEL SESIONES -->
+    <div class="tab-panel active" id="panel-sesiones">
+      <div class="card">
+        <div class="card-title">Historial de sesiones <span id="countSesiones">0</span></div>
+        <div id="listSesiones"><div class="empty">Sin sesiones registradas</div></div>
+      </div>
+    </div>
+
+    <!-- PANEL VENTAS -->
+    <div class="tab-panel" id="panel-ventas">
+      <div class="card">
+        <div class="card-title">Ventas / Pagos <span id="countVentas">0</span></div>
+        <div id="listVentas"><div class="empty">Sin ventas registradas</div></div>
+      </div>
+    </div>
+
+    <!-- PANEL CHAT -->
+    <div class="tab-panel" id="panel-chat">
+      <div class="card">
+        <div class="card-title">Conversaciones</div>
+        <div class="chat-container" id="chatContainer">
+          <div class="empty">Sin historial de chat</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL INFO -->
+    <div class="tab-panel" id="panel-info">
+      <!-- Info básica -->
+      <div class="card">
+        <div class="card-title">Información</div>
+        <div class="info-list" id="infoList"></div>
+      </div>
+
+      <!-- Perfil IA -->
+      <div class="card">
+        <div class="card-title">Perfil aprendido por IA</div>
+        <div class="perfil-list" id="perfilList"><div class="empty" style="padding:.75rem">Sin datos aún</div></div>
+      </div>
+
+      <!-- Notas -->
+      <div class="card">
+        <div class="card-title">Notas</div>
+        <div class="notas-wrap">
+          <textarea class="notas-area" id="notaInput" placeholder="Agregá una nota sobre esta persona..."></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
+            <button class="btn btn-verde" style="font-size:.78rem" onclick="guardarNota()">Guardar nota</button>
+          </div>
+          <div id="notasGuardadas" class="notas-guardadas" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /body -->
+</div><!-- /mainWrap -->
+
+<!-- SHEET: Agendar turno -->
+<div class="overlay" id="sheetTurno" onclick="e=>e.target===this&&cerrar('sheetTurno')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
     <h3>📅 Agendar turno</h3>
-    <p class="sub" id="modalTurnoNombre"></p>
+    <p class="sub" id="sheetTurnoSub"></p>
     <label>Servicio *</label>
-    <select id="turnoServicio">
-      <option value="Método Citrino">Método Citrino ($1.500)</option>
-      <option value="Drenaje Linfático">Drenaje Linfático ($1.500)</option>
-      <option value="Masaje Descontracturante">Masaje Descontracturante ($1.200)</option>
-      <option value="Masaje Relax">Masaje Relax ($1.300)</option>
-      <option value="Masaje Modelador">Masaje Modelador ($1.500)</option>
-      <option value="Masaje Piedras Calientes">Masaje Piedras Calientes ($1.500)</option>
-      <option value="Reflexología">Reflexología ($1.300)</option>
-      <option value="Reiki">Reiki ($1.200)</option>
+    <select id="tServ">
+      <option value="Método Citrino">Método Citrino</option>
+      <option value="Drenaje Linfático">Drenaje Linfático</option>
+      <option value="Masaje Descontracturante">Masaje Descontracturante</option>
+      <option value="Masaje Relax">Masaje Relax</option>
+      <option value="Masaje Modelador">Masaje Modelador</option>
+      <option value="Masaje Piedras Calientes">Masaje Piedras Calientes</option>
+      <option value="Reflexología">Reflexología</option>
+      <option value="Reiki">Reiki</option>
     </select>
     <label>Fecha y hora *</label>
-    <input type="datetime-local" id="turnoFecha" />
-    <label>Duración (minutos)</label>
-    <select id="turnoDuracion">
-      <option value="90">90 minutos (estándar)</option>
-      <option value="50">50 minutos</option>
-      <option value="60">60 minutos</option>
-    </select>
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modalTurno')">Cancelar</button>
+    <input type="datetime-local" id="tFecha"/>
+    <div class="sheet-btns">
+      <button class="btn btn-gris" onclick="cerrar('sheetTurno')">Cancelar</button>
       <button class="btn btn-verde" onclick="confirmarTurno()">Confirmar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Registrar pago -->
-<div class="modal-overlay" id="modalPago">
-  <div class="modal">
-    <h3>💰 Registrar pago</h3>
-    <p class="sub" id="modalPagoNombre"></p>
-    <label>Monto (UYU) *</label>
-    <input type="number" id="pagoMonto" placeholder="Ej: 1500" />
-    <label>Descripción *</label>
-    <input type="text" id="pagoDesc" placeholder="Ej: Drenaje Linfático" />
-    <label>Notas</label>
-    <input type="text" id="pagoNotas" placeholder="Ej: pagó en efectivo" />
-    <div class="modal-btns">
-      <button class="btn btn-gris" onclick="cerrarModal('modalPago')">Cancelar</button>
-      <button class="btn btn-verde" onclick="confirmarPago()">Registrar</button>
+<!-- SHEET: Nueva venta -->
+<div class="overlay" id="sheetVenta" onclick="e=>e.target===this&&cerrar('sheetVenta')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>💰 Registrar venta / pago</h3>
+    <p class="sub">Sesión individual o pack de cuponera</p>
+    <label>Tipo</label>
+    <select id="vTipo" onchange="updateVentaForm()">
+      <option value="sesion">Sesión individual</option>
+      <option value="pack4">Pack 4 sesiones ($5.100)</option>
+      <option value="pack6">Pack 6 sesiones ($7.400)</option>
+      <option value="pack8">Pack 8 sesiones ($9.600)</option>
+    </select>
+    <label>Monto (UYU)</label>
+    <input type="number" id="vMonto" placeholder="Ej: 1500"/>
+    <label>Medio de pago</label>
+    <select id="vMedio">
+      <option value="efectivo">💵 Efectivo</option>
+      <option value="transferencia">📲 Transferencia</option>
+      <option value="debito">💳 Débito (2.75%)</option>
+      <option value="credito3">💳 Crédito 3 cuotas (~10%)</option>
+      <option value="mercadopago">📱 MercadoPago (8%)</option>
+    </select>
+    <div id="vNetoPreview" style="font-size:.75rem;color:var(--txt2);margin-top:.35rem"></div>
+    <div class="sheet-btns">
+      <button class="btn btn-gris" onclick="cerrar('sheetVenta')">Cancelar</button>
+      <button class="btn btn-verde" onclick="confirmarVenta()">Registrar</button>
     </div>
   </div>
 </div>
@@ -273,320 +367,334 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// INIT
-// ============================================================
+const PRECIOS = {pack4:5100,pack6:7400,pack8:9600,sesion:0};
+const TASAS = {efectivo:0,transferencia:0,debito:2.75,credito:3,credito3:10,mercadopago:8};
+const COLORES_SERVICIO = {
+  "Método Citrino":"#4a6f4a","Drenaje Linfático":"#2980b9","Masaje Descontracturante":"#8e44ad",
+  "Masaje Relax":"#27ae60","Masaje Modelador":"#c0392b","Masaje Piedras Calientes":"#e67e22",
+  "Reflexología":"#16a085","Reiki":"#d35400","default":"#7a8a7a"
+};
+
 const params = new URLSearchParams(location.search);
 const userId = params.get("id");
 let datos = null;
 
 if (!userId) {
-  document.getElementById("loadingWrap").innerHTML = '<p style="color:red;padding:2rem">No se especificó un cliente (falta ?id=...)</p>';
+  document.getElementById("loadWrap").innerHTML = '<p style="color:var(--rojo);padding:2rem;text-align:center">Falta ?id= en la URL</p>';
 } else {
-  cargarPerfil();
+  cargar();
 }
 
-async function cargarPerfil() {
+async function cargar() {
   try {
     const res = await fetch(`/api/clientes/${encodeURIComponent(userId)}/perfil-completo`);
     datos = await res.json();
     if (datos.error) throw new Error(datos.error);
-    renderPerfil();
-    document.getElementById("loadingWrap").style.display = "none";
+    render();
+    document.getElementById("loadWrap").style.display = "none";
     document.getElementById("mainWrap").style.display = "block";
   } catch (e) {
-    document.getElementById("loadingWrap").innerHTML = `<p style="color:var(--rojo);padding:2rem">Error: ${e.message}</p>`;
+    document.getElementById("loadWrap").innerHTML = `<p style="color:var(--rojo);padding:2rem;text-align:center">Error: ${e.message}</p>`;
   }
 }
 
-// ============================================================
-// RENDER
-// ============================================================
-function renderPerfil() {
-  const { info, perfil, stats, turnos, pagos, chats } = datos;
+function render() {
+  const {info, perfil, stats, sesiones, ventas, chats} = datos;
   const nombre = info.nombre || info.telefono || userId;
+  const tel = (info.telefono||"").replace(/\D/g,"");
 
-  // Nav title
-  document.getElementById("navNombre").textContent = nombre;
-  document.title = `Citrino — ${nombre}`;
+  // Topbar
+  document.getElementById("topTitle").textContent = nombre;
+  document.title = `${nombre} — Citrino`;
+  if (tel) {
+    document.getElementById("waTopBtn").href = `https://wa.me/${tel}`;
+    document.getElementById("waAccBtn").href = `https://wa.me/${tel}`;
+  }
 
-  // Avatar
-  document.getElementById("avatar").textContent = (nombre[0] || "?").toUpperCase();
-
-  document.getElementById("profileName").textContent = nombre;
-  document.getElementById("profilePhone").textContent = info.telefono || userId;
+  // Hero
+  document.getElementById("heroAvatar").textContent = (nombre[0]||"?").toUpperCase();
+  document.getElementById("heroName").textContent = nombre;
+  document.getElementById("heroPhone").textContent = info.telefono || userId;
 
   // Badges
-  const badges = [];
-  const estBadge = { lead:"b-lead", agendado:"b-agendado", vino:"b-vino", no_vino:"b-no_vino", cancelado:"b-cancelado" };
-  if (info.estado) badges.push(`<span class="badge ${estBadge[info.estado]||"b-lead"}">${info.estado}</span>`);
-  const canalBadge = { whatsapp:"b-wa", facebook:"b-fb", instagram:"b-ig", dashboard:"b-manual" };
-  if (info.canal) badges.push(`<span class="badge ${canalBadge[info.canal]||""}">${info.canal}</span>`);
-  if (info.cuponera === "si") badges.push(`<span class="badge b-cup">🎟 Cuponera</span>`);
-  document.getElementById("profileBadges").innerHTML = badges.join("");
+  const badgeMap = {
+    vino:"vino",lead:"lead",agendado:"agendado",no_vino:"rojo",cancelado:"rojo"
+  };
+  const canalMap = {whatsapp:"wa",instagram:"ig",facebook:"wa"};
+  let badges = "";
+  if (info.estado) badges += `<span class="hero-badge ${badgeMap[info.estado]||""}">${info.estado}</span>`;
+  if (info.canal) badges += `<span class="hero-badge ${canalMap[info.canal]||""}">${info.canal}</span>`;
+  if (info.cuponera==="si") badges += `<span class="hero-badge">🎟 cuponera</span>`;
+  document.getElementById("heroBadges").innerHTML = badges;
 
-  // Campos sidebar
-  const campos = [
-    ["Servicio", info.servicio || "—"],
-    ["Cliente desde", info.fechaAlta ? new Date(info.fechaAlta).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}) : "—"],
-    ["Último contacto", info.ultimoContacto ? new Date(info.ultimoContacto).toLocaleDateString("es-UY",{day:"numeric",month:"short"}) : "—"],
-    ["Canal", info.canal || "—"],
-  ];
-  document.getElementById("profileCampos").innerHTML = campos.map(([k,v]) =>
-    `<div class="profile-campo"><span class="label">${k}</span><span class="valor">${v}</span></div>`
-  ).join("");
+  // LTV hero
+  const ltv = stats.totalPagado || 0;
+  document.getElementById("ltvTotal").textContent = ltv > 0 ? "$"+ltv.toLocaleString("es-UY") : "—";
+  document.getElementById("ltvCompradas").textContent = stats.sesionesCompradas || 0;
+  document.getElementById("ltvUsadas").textContent = stats.sesionesUsadas || 0;
+  document.getElementById("ltvSaldo").textContent = stats.sesRest || 0;
 
-  // Acciones rápidas
-  const tel = (info.telefono || "").replace(/\D/g, "");
-  document.getElementById("accionesRapidas").innerHTML = `
-    ${tel ? `<a class="btn btn-verde" href="https://wa.me/${tel}" target="_blank">💬 WhatsApp</a>` : ""}
-    <button class="btn btn-azul" onclick="abrirModalTurno()">📅 Agendar</button>
-    <button class="btn btn-naranja" onclick="abrirModalPago()">💰 Pago</button>
-    <button class="btn btn-gris btn-full" onclick="switchTab('notas');document.querySelector('.tab[onclick*=notas]').click()">📝 Nota</button>
-  `;
+  // Highlight saldo
+  if (stats.sesRest > 0) {
+    document.getElementById("ltvSaldoCard").style.background = "rgba(74,222,128,.25)";
+    document.getElementById("saldoAlert").style.display = "flex";
+    document.getElementById("saldoNum").textContent = stats.sesRest;
+  }
 
-  // Stats
-  const statsDef = [
-    { num: stats.sesionesRegistradas || turnos.filter(t => new Date(t.inicio) < new Date()).length, label: "Sesiones", color: "verde" },
-    { num: stats.totalPagado > 0 ? `$${stats.totalPagado.toLocaleString("es-UY")}` : "—", label: "Total pagado", color: "verde" },
-    { num: stats.diasDesdeUltima !== null ? `${stats.diasDesdeUltima}d` : "—", label: "Última visita", color: stats.diasDesdeUltima > 30 ? "naranja" : "verde" },
-    { num: chats.length, label: "Mensajes", color: "azul" },
-  ];
-  document.getElementById("statsRow").innerHTML = statsDef.map(s =>
-    `<div class="stat-mini">
-      <div class="stat-mini-num" style="color:var(--${s.color})">${s.num}</div>
-      <div class="stat-mini-label">${s.label}</div>
-    </div>`
-  ).join("");
-
-  // Próximo turno
+  // Próxima sesión
   if (stats.proximoTurno) {
     const pt = stats.proximoTurno;
-    const fechaLabel = new Date(pt.inicio).toLocaleString("es-UY",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"});
-    document.getElementById("proxTurnoWrap").innerHTML = `
-      <div class="prox-turno">
-        📅 <strong>Próximo turno:</strong> ${fechaLabel}
-        ${pt.clienteServicio ? `· ${pt.clienteServicio}` : ""}
-      </div>`;
+    const label = new Date(pt.inicio).toLocaleString("es-UY",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"});
+    document.getElementById("proxCard").style.display = "flex";
+    document.getElementById("proxLabel").textContent = ` ${label} — ${pt.clienteServicio||""}`;
   }
 
-  // Cuponera
-  if (info.cuponera === "si") {
-    const pct = Math.max(0, Math.min(100, (info.sesRest / 8) * 100));
-    document.getElementById("cuponeraBody").innerHTML = `
-      <div style="font-size:.85rem;margin-bottom:.4rem">Sesiones restantes: <strong>${info.sesRest}</strong></div>
-      <div style="background:var(--crema-border);border-radius:6px;height:10px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:var(--verde);border-radius:6px;transition:width .4s"></div>
-      </div>
-      <div style="font-size:.7rem;color:var(--texto-suave);margin-top:.25rem">${pct.toFixed(0)}% disponible</div>
-    `;
-  } else {
-    document.getElementById("cuponeraBody").innerHTML = `
-      <p style="font-size:.82rem;color:var(--texto-suave)">Sin cuponera activa</p>
-      <button class="btn btn-naranja" style="margin-top:.5rem;width:100%;font-size:.78rem" onclick="registrarCuponera()">+ Registrar pack</button>
-    `;
-  }
+  // SESIONES
+  renderSesiones(sesiones, stats);
 
-  // Timeline (turnos + pagos mezclados y ordenados por fecha)
-  renderTimeline(turnos, pagos);
+  // VENTAS
+  renderVentas(ventas);
 
-  // Chat
+  // CHAT
   renderChat(chats);
 
-  // Perfil IA
+  // INFO
+  renderInfo(info, stats);
+
+  // PERFIL IA
   renderPerfilIA(perfil);
 
-  // Notas existentes
-  const notasGuardadas = info.notas;
-  if (notasGuardadas) {
-    document.getElementById("notasGuardadas").innerHTML = `<strong>Notas guardadas:</strong><br>${notasGuardadas.replace(/\n/g,"<br>")}`;
+  // NOTAS guardadas
+  if (info.notas) {
+    const el = document.getElementById("notasGuardadas");
+    el.innerHTML = info.notas.replace(/\n/g,"<br>");
+    el.style.display = "block";
   }
+
+  // Default datetime turno
+  const d = new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0);
+  document.getElementById("tFecha").value = d.toISOString().slice(0,16);
+  document.getElementById("sheetTurnoSub").textContent = `Para: ${nombre}`;
 }
 
-function renderTimeline(turnos, pagos) {
-  const eventos = [];
-  turnos.forEach(t => eventos.push({ tipo: "sesion", fecha: t.inicio, titulo: t.clienteServicio || t.titulo, sub: new Date(t.inicio).toLocaleString("es-UY",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) }));
-  pagos.forEach(p => eventos.push({ tipo: p.categoria === "Cuponera" ? "cuponera" : "pago", fecha: p.fecha + "T12:00:00", titulo: p.descripcion, sub: new Date(p.fecha).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}), monto: p.monto }));
-  eventos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-  if (!eventos.length) {
-    document.getElementById("timeline").innerHTML = '<p class="empty-state">Sin historial todavía</p>';
+function renderSesiones(sesiones, stats) {
+  document.getElementById("countSesiones").textContent = sesiones.length;
+  if (!sesiones.length) {
+    document.getElementById("listSesiones").innerHTML = '<div class="empty">Sin sesiones registradas</div>';
     return;
   }
-
-  document.getElementById("timeline").innerHTML = eventos.map(ev => {
-    const iconos = { sesion: "💆", pago: "💰", cuponera: "🎟" };
-    const futuro = new Date(ev.fecha) > new Date();
-    return `<div class="timeline-item" style="${futuro ? "border-color:var(--verde-claro);background:var(--verde-bg)" : ""}">
-      <div class="tl-icon ${ev.tipo}">${iconos[ev.tipo] || "•"}</div>
-      <div class="tl-body">
-        <div class="tl-titulo">${ev.titulo || "—"}${futuro ? " <em style='font-size:.7rem;color:var(--verde)'>(próximo)</em>" : ""}</div>
-        <div class="tl-sub">${ev.sub}</div>
+  const ahora = new Date();
+  document.getElementById("listSesiones").innerHTML = sesiones.map(s => {
+    const futuro = new Date(s.inicio) > ahora;
+    const fecha = new Date(s.inicio).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric",timeZone:"America/Montevideo"});
+    const hora = new Date(s.inicio).toLocaleTimeString("es-UY",{hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"});
+    const servicio = s.clienteServicio || s.titulo?.replace(/Turno\s*/i,"").split("—")[0].trim() || "Sesión";
+    const color = COLORES_SERVICIO[servicio] || COLORES_SERVICIO.default;
+    return `<div class="sesion-item${futuro?" sesion-prox":""}">
+      <div class="sesion-dot" style="background:${color}"></div>
+      <div class="sesion-info">
+        <div class="sesion-nombre">${servicio}</div>
       </div>
-      ${ev.monto ? `<div class="tl-monto ${ev.monto < 0 ? "gasto":""}">${ev.monto > 0 ? "+" : ""}$${Math.abs(ev.monto).toLocaleString("es-UY")}</div>` : ""}
+      <div class="sesion-fecha">${fecha}<br><span style="font-size:.65rem">${hora} hs</span>${futuro?'<br><span style="font-size:.62rem;color:var(--verde);font-weight:700">próxima</span>':""}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderVentas(ventas) {
+  document.getElementById("countVentas").textContent = ventas.length;
+  if (!ventas.length) {
+    document.getElementById("listVentas").innerHTML = '<div class="empty">Sin ventas registradas</div>';
+    return;
+  }
+  const medioLabels = {efectivo:"💵 Efectivo",transferencia:"📲 Transfer.",debito:"💳 Débito",credito:"💳 1 cuota",credito3:"💳 3 cuotas",mercadopago:"📱 MP"};
+  document.getElementById("listVentas").innerHTML = ventas.map(v => {
+    const esCup = v.categoria === "Cuponera";
+    const monto = Math.abs(v.monto);
+    const neto = Math.abs(v.neto || v.monto);
+    const hayNeto = neto < monto;
+    return `<div class="venta-item">
+      <div class="venta-icon${esCup?" cup":""}">
+        ${esCup?"🎟":"💰"}
+      </div>
+      <div class="venta-info">
+        <div class="venta-nombre">${v.descripcion||v.servicio||"—"}</div>
+        <div class="venta-sub">
+          ${v.fecha||""}
+          ${v.medioPago?`<span class="medio-badge">${medioLabels[v.medioPago]||v.medioPago}</span>`:""}
+        </div>
+      </div>
+      <div class="venta-monto">
+        <div class="venta-monto-val">$${monto.toLocaleString("es-UY")}</div>
+        ${hayNeto?`<div class="venta-neto">neto $${neto.toLocaleString("es-UY")}</div>`:""}
+      </div>
     </div>`;
   }).join("");
 }
 
 function renderChat(chats) {
   if (!chats.length) {
-    document.getElementById("chatList").innerHTML = '<p class="empty-state">Sin historial de chat todavía</p>';
+    document.getElementById("chatContainer").innerHTML = '<div class="empty">Sin historial de chat</div>';
     return;
   }
-  document.getElementById("chatList").innerHTML = chats.map(c => {
+  document.getElementById("chatContainer").innerHTML = chats.map(c => {
     const fecha = c.fecha ? new Date(c.fecha).toLocaleString("es-UY",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Montevideo"}) : "";
     return `<div style="display:flex;flex-direction:column;align-items:${c.rol==="bot"?"flex-end":"flex-start"}">
-      <div class="chat-burbuja ${c.rol==="bot"?"bot":"user"}">${(c.msg||"").replace(/\n/g,"<br>")}</div>
-      <div class="chat-meta">${c.rol==="bot"?"🌿 Marta":"👤 Cliente"} · ${fecha}</div>
+      <div class="bubble ${c.rol==="bot"?"bot":"user"}">${(c.msg||"").replace(/\n/g,"<br>")}</div>
+      <div class="bubble-meta">${c.rol==="bot"?"🌿 Marta":"👤"} · ${fecha}</div>
     </div>`;
   }).join("");
-  setTimeout(() => { const l = document.getElementById("chatList"); l.scrollTop = l.scrollHeight; }, 50);
+  setTimeout(()=>{const el=document.getElementById("chatContainer");el.scrollTop=el.scrollHeight},50);
+}
+
+function renderInfo(info, stats) {
+  const campos = [
+    ["Servicio", info.servicio||"—"],
+    ["Canal", info.canal||"—"],
+    ["Estado", info.estado||"—"],
+    ["Cliente desde", info.fechaAlta ? new Date(info.fechaAlta).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}) : "—"],
+    ["Última visita", stats.diasDesdeUltima !== null ? `hace ${stats.diasDesdeUltima} días` : "—"],
+    ["Cuponera", info.cuponera==="si" ? `✅ activa (${info.sesRest} sesiones restantes)` : "No tiene"],
+  ];
+  document.getElementById("infoList").innerHTML = campos.map(([k,v])=>
+    `<div class="info-row"><span class="info-key">${k}</span><span class="info-val">${v}</span></div>`
+  ).join("");
 }
 
 function renderPerfilIA(perfil) {
-  if (!perfil || !Object.keys(perfil).length) {
-    document.getElementById("perfilIA").innerHTML = '<p class="empty-state">Aún no hay perfil aprendido para este cliente</p>';
+  if (!perfil || !Object.keys(perfil).filter(k=>k!=="ultima_actualizacion").length) {
+    document.getElementById("perfilList").innerHTML = '<div class="empty" style="padding:.75rem">Sin datos aprendidos aún</div>';
     return;
   }
-  const labels = {
-    horarios_preferidos: "Horarios preferidos",
-    ocupacion: "Ocupación",
-    servicios_preferidos: "Servicios",
-    condiciones_fisicas: "Condiciones físicas",
-    personalidad: "Personalidad",
-    motivacion: "Motivación",
-    sensibilidad_precio: "Sensibilidad al precio",
-    notas_extra: "Notas extra",
-    ultima_actualizacion: "Última actualización",
-  };
-  const items = Object.entries(perfil)
-    .filter(([k]) => k !== "ultima_actualizacion")
-    .map(([k, v]) => `<div class="perfil-item">
-      <span class="perfil-key">${labels[k] || k}</span>
-      <span class="perfil-val">${Array.isArray(v) ? v.join(", ") : v}</span>
-    </div>`);
-  if (perfil.ultima_actualizacion) {
-    items.push(`<div style="font-size:.68rem;color:var(--texto-suave);margin-top:.5rem">Actualizado: ${new Date(perfil.ultima_actualizacion).toLocaleDateString("es-UY")}</div>`);
-  }
-  document.getElementById("perfilIA").innerHTML = items.join("") || '<p class="empty-state">Sin datos</p>';
+  const labels = {horarios_preferidos:"Horarios",ocupacion:"Ocupación",servicios_preferidos:"Servicios",condiciones_fisicas:"Condiciones",personalidad:"Personalidad",motivacion:"Motivación",sensibilidad_precio:"Precio",notas_extra:"Notas"};
+  document.getElementById("perfilList").innerHTML = Object.entries(perfil)
+    .filter(([k])=>k!=="ultima_actualizacion")
+    .map(([k,v])=>`<div class="perfil-row">
+      <span class="perfil-key">${labels[k]||k}</span>
+      <span class="perfil-val">${Array.isArray(v)?v.join(", "):v}</span>
+    </div>`).join("");
 }
 
-// ============================================================
 // TABS
-// ============================================================
-function switchTab(nombre) {
-  document.querySelectorAll(".tab").forEach((t, i) => {
-    const panelName = ["timeline","chat","perfil","notas"][i];
-    t.classList.toggle("active", panelName === nombre);
-  });
-  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-  document.getElementById("panel-" + nombre).classList.add("active");
-  if (nombre === "chat") setTimeout(() => { const l = document.getElementById("chatList"); l.scrollTop = l.scrollHeight; }, 50);
+function tab(nombre, idx) {
+  document.querySelectorAll(".tab-item").forEach((t,i)=>t.classList.toggle("active",i===idx));
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("panel-"+nombre).classList.add("active");
+  if (nombre==="chat") setTimeout(()=>{const el=document.getElementById("chatContainer");el.scrollTop=el.scrollHeight},50);
 }
-// Fix: tabs click handler
-document.querySelectorAll(".tab").forEach((tab, i) => {
-  const nombres = ["timeline","chat","perfil","notas"];
-  tab.onclick = () => switchTab(nombres[i]);
-});
 
-// ============================================================
+// SHEETS
+function abrirSheet(id) { document.getElementById(id).classList.add("open"); }
+function cerrar(id) { document.getElementById(id).classList.remove("open"); }
+document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open")}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open"))});
+
+// VENTA FORM
+document.getElementById("vTipo").onchange = updateVentaForm;
+["vMonto","vMedio"].forEach(id=>{document.getElementById(id).addEventListener("change",updateVentaForm)});
+function updateVentaForm() {
+  const tipo = document.getElementById("vTipo").value;
+  if (PRECIOS[tipo]) document.getElementById("vMonto").value = PRECIOS[tipo];
+  const monto = parseFloat(document.getElementById("vMonto").value)||0;
+  const medio = document.getElementById("vMedio").value;
+  if (monto&&medio) {
+    const tasa = TASAS[medio]||0;
+    const neto = Math.round(monto*(1-tasa/100));
+    document.getElementById("vNetoPreview").textContent = tasa>0 ? `Neto: $${neto.toLocaleString("es-UY")} (comisión ${tasa}%)` : "";
+  }
+}
+
 // ACCIONES
-// ============================================================
-function abrirModalTurno() {
-  const nombre = datos?.info?.nombre || userId;
-  document.getElementById("modalTurnoNombre").textContent = nombre;
-  // Default: próximo día hábil a las 10am
-  const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(10, 0, 0, 0);
-  document.getElementById("turnoFecha").value = d.toISOString().slice(0,16);
-  document.getElementById("modalTurno").classList.add("open");
+async function registrarSesion() {
+  if (!datos) return;
+  const info = datos.info;
+  const sesRest = datos.stats.sesRest;
+  if (sesRest > 0) {
+    if (!confirm(`${info.nombre} tiene ${sesRest} sesiones en cuponera. ¿Descontar 1 sesión?`)) return;
+    try {
+      await fetch(`/api/clientes/${encodeURIComponent(userId)}/asistencia`, {
+        method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({vino:true})
+      });
+      toast("Sesión registrada — quedan "+(sesRest-1)+" en cuponera", "ok");
+      cargar();
+    } catch { toast("Error", "err"); }
+  } else {
+    // Sin cuponera — abrir venta para registrar pago de sesión individual
+    document.getElementById("vTipo").value = "sesion";
+    updateVentaForm();
+    abrirSheet("sheetVenta");
+  }
 }
 
 async function confirmarTurno() {
-  const servicio = document.getElementById("turnoServicio").value;
-  const fechaStr = document.getElementById("turnoFecha").value;
-  const durMin = parseInt(document.getElementById("turnoDuracion").value) || 90;
-  if (!fechaStr) { toast("Seleccioná fecha y hora", true); return; }
-
+  const serv = document.getElementById("tServ").value;
+  const fechaStr = document.getElementById("tFecha").value;
+  if (!fechaStr) { toast("Seleccioná fecha y hora", "err"); return; }
   const inicio = new Date(fechaStr);
-  const fin = new Date(inicio.getTime() + durMin * 60000);
-  const pad = n => String(n).padStart(2, "0");
-  const tz = "-03:00";
-  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00${tz}`;
-
+  const fin = new Date(inicio.getTime() + 90*60000);
+  const pad = n=>String(n).padStart(2,"0");
+  const fmt = d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00-03:00`;
   try {
-    const res = await fetch("/api/agenda/turno", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nombre: datos?.info?.nombre || userId,
-        telefono: datos?.info?.telefono || userId,
-        servicio,
-        inicioISO: fmt(inicio),
-        finISO: fmt(fin),
-        slotLabel: `${fechaStr.replace("T"," ")}`,
-      }),
+    const res = await fetch("/api/agenda/turno",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre:datos?.info?.nombre||userId, telefono:datos?.info?.telefono||userId, servicio:serv, inicioISO:fmt(inicio), finISO:fmt(fin)})
     });
     const d = await res.json();
-    if (d.ok) { toast("Turno agendado ✓"); cerrarModal("modalTurno"); cargarPerfil(); }
-    else toast("Error: " + d.error, true);
-  } catch { toast("Error de red", true); }
+    if (d.ok) { toast("Turno agendado ✓","ok"); cerrar("sheetTurno"); cargar(); }
+    else toast("Error: "+d.error,"err");
+  } catch { toast("Error de red","err"); }
 }
 
-function abrirModalPago() {
-  document.getElementById("modalPagoNombre").textContent = datos?.info?.nombre || userId;
-  document.getElementById("pagoMonto").value = "";
-  document.getElementById("pagoDesc").value = datos?.info?.servicio || "";
-  document.getElementById("modalPago").classList.add("open");
-}
-
-async function confirmarPago() {
-  const monto = parseFloat(document.getElementById("pagoMonto").value);
-  const desc  = document.getElementById("pagoDesc").value.trim();
-  if (!monto || !desc) { toast("Monto y descripción requeridos", true); return; }
+async function confirmarVenta() {
+  const tipo = document.getElementById("vTipo").value;
+  const monto = parseFloat(document.getElementById("vMonto").value);
+  const medio = document.getElementById("vMedio").value;
+  if (!monto) { toast("Ingresá el monto","err"); return; }
   try {
-    const res = await fetch("/api/finanzas/ingreso", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ monto, descripcion: desc, clienteId: userId, notas: document.getElementById("pagoNotas").value }),
-    });
-    const d = await res.json();
-    if (d.ok) { toast("Pago registrado ✓"); cerrarModal("modalPago"); cargarPerfil(); }
-    else toast("Error: " + d.error, true);
-  } catch { toast("Error de red", true); }
+    const esCup = tipo !== "sesion";
+    if (esCup) {
+      const sesiones = parseInt(tipo.replace("pack",""));
+      await fetch("/api/finanzas/cuponera",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({clienteId:userId, sesiones, monto, medioPago:medio})
+      });
+      await fetch(`/api/clientes/${encodeURIComponent(userId)}/cuponera`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({sesiones})
+      });
+      toast(`Pack ${sesiones} ses. registrado ✓`,"ok");
+    } else {
+      const serv = datos?.info?.servicio||"Sesión";
+      await fetch("/api/finanzas/ingreso",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({monto, descripcion:serv, servicio:serv, clienteId:userId, medioPago:medio})
+      });
+      await fetch(`/api/clientes/${encodeURIComponent(userId)}/asistencia`,{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({vino:true})
+      });
+      toast("Sesión + pago registrado ✓","ok");
+    }
+    cerrar("sheetVenta"); cargar();
+  } catch { toast("Error","err"); }
 }
 
 async function guardarNota() {
-  const nota = document.getElementById("notasArea").value.trim();
+  const nota = document.getElementById("notaInput").value.trim();
   if (!nota) return;
   try {
-    await fetch(`/api/clientes/${encodeURIComponent(userId)}/nota`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nota }),
+    await fetch(`/api/clientes/${encodeURIComponent(userId)}/nota`,{
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({nota})
     });
-    toast("Nota guardada ✓");
-    document.getElementById("notasArea").value = "";
-    cargarPerfil();
-  } catch { toast("Error", true); }
+    toast("Nota guardada ✓","ok");
+    document.getElementById("notaInput").value = "";
+    cargar();
+  } catch { toast("Error","err"); }
 }
 
-async function registrarCuponera() {
-  const ses = prompt("¿Cuántas sesiones? (4, 6 u 8)");
-  if (!ses) return;
-  try {
-    await fetch(`/api/clientes/${encodeURIComponent(userId)}/cuponera`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sesiones: parseInt(ses) }),
-    });
-    toast("Cuponera registrada ✓"); cargarPerfil();
-  } catch { toast("Error", true); }
-}
-
-function cerrarModal(id) { document.getElementById(id).classList.remove("open"); }
-document.querySelectorAll(".modal-overlay").forEach(o => o.addEventListener("click", e => { if (e.target === o) o.classList.remove("open"); }));
-document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(o => o.classList.remove("open")); });
-
-function toast(msg, error = false) {
+function toast(msg, tipo="") {
   const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.toggle("error", error); t.classList.add("show");
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 3200);
+  t.textContent = msg; t.className = "toast show"+(tipo?" "+tipo:"");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"),3000);
 }
 </script>
 </body>

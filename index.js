@@ -381,11 +381,26 @@ app.get("/api/clientes/:userId/perfil-completo", async (req, res) => {
 
     // Stats calculados
     const datos = clienteCRM?.datos || [];
-    const sesionesRegistradas = pagos.filter(p => p.tipo === "ingreso" && p.categoria === "Servicio").length;
+    const sesRest = parseInt(datos[7]) || 0;
+    const ahora = new Date();
+
+    // Sesiones usadas = eventos del calendario en el pasado para este cliente
+    const sesionesUsadas = turnos.filter(t => new Date(t.inicio) < ahora).length;
+    // Total compradas = usadas + saldo restante
+    const sesionesCompradas = sesionesUsadas + sesRest;
+
+    // Total pagado (ingresos de Finanzas para este cliente)
     const totalPagado = pagos.filter(p => p.tipo === "ingreso").reduce((s, p) => s + Math.abs(p.monto), 0);
-    const ultimoTurno = turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio))[0];
-    const diasDesdeUltima = ultimoTurno
-      ? Math.floor((Date.now() - new Date(ultimoTurno.inicio)) / 86400000)
+
+    // Ventas = registros de Finanzas (packs + sesiones individuales)
+    const ventas = pagos.filter(p => p.tipo === "ingreso").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    // Sesiones separadas = eventos del calendario ordenados por fecha desc
+    const sesiones = turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
+
+    const ultimaSesion = sesiones.find(t => new Date(t.inicio) < ahora);
+    const diasDesdeUltima = ultimaSesion
+      ? Math.floor((ahora - new Date(ultimaSesion.inicio)) / 86400000)
       : null;
 
     res.json({
@@ -397,7 +412,7 @@ app.get("/api/clientes/:userId/perfil-completo", async (req, res) => {
         servicio: datos[4] || "",
         estado: datos[5] || "lead",
         cuponera: datos[6] || "no",
-        sesRest: parseInt(datos[7]) || 0,
+        sesRest,
         fechaAlta: datos[8] || "",
         fechaTurno: datos[9] || "",
         notas: datos[11] || "",
@@ -405,14 +420,16 @@ app.get("/api/clientes/:userId/perfil-completo", async (req, res) => {
       },
       perfil,
       stats: {
-        sesionesRegistradas,
+        sesionesCompradas,
+        sesionesUsadas,
+        sesRest,
         totalPagado,
         diasDesdeUltima,
-        proximoTurno: turnos.find(ev => new Date(ev.inicio) > new Date()) || null,
+        proximoTurno: sesiones.find(ev => new Date(ev.inicio) > ahora) || null,
       },
-      turnos: turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio)),
-      pagos: pagos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
-      chats: chats.slice(-50), // últimos 50 mensajes
+      sesiones,          // eventos del calendario
+      ventas,            // pagos de Finanzas
+      chats: chats.slice(-50),
     });
   } catch (e) {
     console.error("❌ perfil-completo:", e.message);
