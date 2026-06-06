@@ -153,7 +153,7 @@ async function getConfigDinamica() {
 // ============================================================
 async function detectarYAplicarCambio(texto) {
   try {
-    const configActual = leerConfig();
+    const configActual = await leerConfig();
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -182,7 +182,8 @@ Config actual: ${JSON.stringify(configActual)}`,
       messages: [{ role: "user", content: texto }],
     });
 
-    const resultado = JSON.parse(response.content[0].text);
+    const rawText = response.content[0].text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    const resultado = JSON.parse(rawText);
 
     if (!resultado.es_cambio) return null;
 
