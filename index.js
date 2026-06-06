@@ -858,6 +858,17 @@ app.delete("/api/agenda/turno/:eventId", async (req, res) => {
   }
 });
 
+// Alias para cancelar desde la nueva agenda UI
+app.delete("/api/agenda/cancelar/:eventId", async (req, res) => {
+  try {
+    const { cancelarTurno } = require("./bot/calendar");
+    await cancelarTurno(req.params.eventId);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============================================================
 // CLIENTE TIPO — análisis agregado de perfiles aprendidos
 // ============================================================
