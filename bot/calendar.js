@@ -104,13 +104,13 @@ function formatFecha(dateStr) {
 }
 
 // ============================================================
-// OBTENER EVENTOS OCUPADOS EN UN RANGO
+// OBTENER EVENTOS OCUPADOS — por calendar ID específico
 // ============================================================
-async function getEventosOcupados(desde, hasta) {
+async function getEventosOcupados(desde, hasta, calendarId = CALENDAR_ID) {
   const calendar = getCalendar();
   const res = await conRetry(
     () => calendar.events.list({
-      calendarId: CALENDAR_ID,
+      calendarId,
       timeMin: desde.toISOString(),
       timeMax: hasta.toISOString(),
       singleEvents: true,
@@ -122,59 +122,41 @@ async function getEventosOcupados(desde, hasta) {
 }
 
 // ============================================================
-// GENERAR SLOTS DISPONIBLES
-// Devuelve array de { fecha, horaInicio, horaFin, label }
+// GENERAR SLOTS PARA UN TERAPEUTA ESPECÍFICO
+// Verifica solo el calendario de ESE terapeuta
 // ============================================================
-async function getDisponibilidad(diasDesdeHoy = 0) {
-  const ahora = toMontevideoDate(new Date());
-  const desde = new Date(ahora);
-  desde.setDate(desde.getDate() + diasDesdeHoy);
-  desde.setHours(0, 0, 0, 0);
+async function getSlotsParaTerapeuta(terapeutaConfig, ahora, desde, hasta) {
+  const calendarId = terapeutaConfig.calendarId || CALENDAR_ID;
+  const horariosTer = terapeutaConfig.horarios || HORARIOS;
 
-  const hasta = new Date(desde);
-  hasta.setDate(hasta.getDate() + DIAS_A_MOSTRAR);
-
-  const eventosOcupados = await getEventosOcupados(desde, hasta);
-
+  const eventosOcupados = await getEventosOcupados(desde, hasta, calendarId);
   const slots = [];
 
-  // Iterar día por día
   for (let d = 0; d < DIAS_A_MOSTRAR; d++) {
     const fecha = new Date(desde);
     fecha.setDate(fecha.getDate() + d);
-
-    const diaSemana = fecha.getDay(); // 0=dom, 1=lun, ...
-    const horario = HORARIOS[diaSemana];
+    const diaSemana = fecha.getDay();
+    const horario = horariosTer[diaSemana];
     if (!horario) continue;
 
-    const fechaStr = fecha.toISOString().split("T")[0]; // "2024-12-30"
+    const fechaStr = fecha.toISOString().split("T")[0];
 
     for (const franja of horario.franjas) {
-      // Generar slots cada 90 min dentro de la franja
       let hora = franja.inicio;
       while (hora + DURACION_SESION_MIN / 60 <= franja.fin) {
         const inicioISO = slotToISO(fechaStr, hora);
         const finISO = slotToISO(fechaStr, hora + DURACION_SESION_MIN / 60);
-
         const inicioDate = new Date(inicioISO + ":00-03:00");
         const finDate = new Date(finISO + ":00-03:00");
 
-        // No mostrar slots en el pasado
-        if (inicioDate <= ahora) {
-          hora += DURACION_SESION_MIN / 60;
-          continue;
-        }
+        if (inicioDate <= ahora) { hora += DURACION_SESION_MIN / 60; continue; }
 
-        // Chequear si el slot choca con algún evento
+        // Verificar solapamiento SOLO con eventos de ESTE terapeuta
         const ocupado = eventosOcupados.some((ev) => {
-          const evInicio = new Date(ev.start.dateTime || ev.start.date);
-          const evFin = new Date(ev.end.dateTime || ev.end.date);
-          // Se superpone si el inicio del slot es antes del fin del evento
-          // y el fin del slot es después del inicio del evento
-          // Además buffer de 90min antes y después
-          const bufferMs = DURACION_SESION_MIN * 60 * 1000;
-          return inicioDate < new Date(evFin.getTime() + bufferMs) &&
-                 finDate > new Date(evInicio.getTime() - bufferMs);
+          const evI = new Date(ev.start.dateTime || ev.start.date);
+          const evF = new Date(ev.end.dateTime || ev.end.date);
+          // Buffer de 0 min — dos terapeutas pueden empezar a la misma hora
+          return inicioDate < evF && finDate > evI;
         });
 
         if (!ocupado) {
@@ -183,15 +165,17 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
           const mm = (hora % 1) * 60;
           const hhFin = Math.floor(hora + DURACION_SESION_MIN / 60);
           const mmFin = ((hora + DURACION_SESION_MIN / 60) % 1) * 60;
-
           slots.push({
             fecha: fechaStr,
             fechaLabel: formatFecha(fechaStr),
             horaInicio: `${pad(hh)}:${pad(mm)}`,
             horaFin: `${pad(hhFin)}:${pad(mmFin)}`,
-            label: `${formatFecha(fechaStr)} a las ${pad(hh)}:${pad(mm)}`,
+            label: `${formatFecha(fechaStr)} a las ${pad(hh)}:${pad(mm)} con ${terapeutaConfig.nombre}`,
             inicioISO: inicioISO + ":00-03:00",
             finISO: finISO + ":00-03:00",
+            terapeutaId: terapeutaConfig.id,
+            terapeutaNombre: terapeutaConfig.nombre,
+            terapeutaColor: terapeutaConfig.color || "#5a7a5a",
           });
         }
 
@@ -199,31 +183,89 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
       }
     }
   }
+  return slots;
+}
+
+// ============================================================
+// DISPONIBILIDAD — para todos los terapeutas en paralelo
+// Cada terapeuta puede tener alguien al mismo tiempo
+// ============================================================
+async function getDisponibilidadTodos(diasDesdeHoy = 0) {
+  let terapeutasConfig = [];
+  try {
+    const { leerTerapeutas } = require("./terapeutas");
+    terapeutasConfig = await leerTerapeutas();
+  } catch {
+    terapeutasConfig = TERAPEUTAS;
+  }
+  if (!terapeutasConfig.length) terapeutasConfig = TERAPEUTAS;
+
+  const ahora = toMontevideoDate(new Date());
+  const desde = new Date(ahora);
+  desde.setDate(desde.getDate() + diasDesdeHoy);
+  desde.setHours(0, 0, 0, 0);
+  const hasta = new Date(desde);
+  hasta.setDate(hasta.getDate() + DIAS_A_MOSTRAR);
+
+  // Obtener slots de todos los terapeutas en paralelo
+  const resultados = await Promise.all(
+    terapeutasConfig.map(ter => getSlotsParaTerapeuta(ter, ahora, desde, hasta))
+  );
+
+  // Combinar y ordenar por fecha+hora
+  const todos = resultados.flat().sort((a, b) => a.inicioISO.localeCompare(b.inicioISO));
+  return todos;
+}
+
+// Backward-compatible: getDisponibilidad retorna slots de todos los terapeutas
+// pero si hay un solo terapeuta, se comporta igual que antes
+async function getDisponibilidad(diasDesdeHoy = 0) {
+  return getDisponibilidadTodos(diasDesdeHoy);
+}
 
   return slots;
 }
 
 // ============================================================
 // FORMATEAR DISPONIBILIDAD PARA MOSTRAR AL CLIENTE
+// Agrupa por fecha y terapeuta
 // ============================================================
 function formatearDisponibilidad(slots) {
   if (!slots.length) {
     return "No tengo turnos disponibles en los próximos 7 días. ¿Querés que miremos para más adelante?";
   }
 
-  // Agrupar por fecha
+  // Verificar si hay múltiples terapeutas
+  const terapeutasUnicos = [...new Set(slots.map(s => s.terapeutaNombre).filter(Boolean))];
+  const hayMultiples = terapeutasUnicos.length > 1;
+
+  // Agrupar por fecha y terapeuta
   const porFecha = {};
   for (const slot of slots) {
     if (!porFecha[slot.fecha]) {
-      porFecha[slot.fecha] = { label: slot.fechaLabel, horarios: [] };
+      porFecha[slot.fecha] = { label: slot.fechaLabel, terapeutas: {} };
     }
-    porFecha[slot.fecha].horarios.push(slot.horaInicio);
+    const terNombre = slot.terapeutaNombre || "Citrino";
+    if (!porFecha[slot.fecha].terapeutas[terNombre]) {
+      porFecha[slot.fecha].terapeutas[terNombre] = [];
+    }
+    // Evitar duplicar la misma hora si ya está (puede pasar en casos edge)
+    if (!porFecha[slot.fecha].terapeutas[terNombre].includes(slot.horaInicio)) {
+      porFecha[slot.fecha].terapeutas[terNombre].push(slot.horaInicio);
+    }
   }
 
   let texto = "📅 *Turnos disponibles:*\n\n";
   for (const [, info] of Object.entries(porFecha)) {
     texto += `*${info.label.charAt(0).toUpperCase() + info.label.slice(1)}*\n`;
-    texto += info.horarios.map((h) => `• ${h} hs`).join("\n");
+    if (hayMultiples) {
+      for (const [terNombre, horarios] of Object.entries(info.terapeutas)) {
+        texto += `_${terNombre}_: ${horarios.map(h => `${h}hs`).join(", ")}\n`;
+      }
+    } else {
+      const horarios = Object.values(info.terapeutas).flat();
+      texto += horarios.map((h) => `• ${h} hs`).join("\n");
+    }
     texto += "\n\n";
   }
   texto += "¿Cuál te queda mejor?";
@@ -232,34 +274,38 @@ function formatearDisponibilidad(slots) {
 
 // ============================================================
 // CREAR EVENTO EN GOOGLE CALENDAR
+// terapeutaId: opcional — si se pasa, usa el calendar de ese terapeuta
 // ============================================================
-async function crearTurno({ nombre, telefono, servicio, slot, notas = "" }) {
+async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terapeutaId = null }) {
   const calendar = getCalendar();
 
+  // Resolver calendar ID del terapeuta
+  let calendarId = slot?.terapeutaId ? null : CALENDAR_ID;
+  const terIdFinal = terapeutaId || slot?.terapeutaId || null;
+
+  if (terIdFinal) {
+    try {
+      const { leerTerapeutas } = require("./terapeutas");
+      const terapeutas = await leerTerapeutas();
+      const ter = terapeutas.find(t => t.id === terIdFinal);
+      if (ter?.calendarId) calendarId = ter.calendarId;
+    } catch {}
+  }
+  if (!calendarId) calendarId = CALENDAR_ID;
+
+  const terapeutaNombre = slot?.terapeutaNombre || "";
+
   const event = {
-    summary: `Turno ${nombre} — ${servicio}`,
-    description: `Cliente: ${nombre}\nTeléfono: ${telefono}\nServicio: ${servicio}${notas ? "\nNotas: " + notas : ""}`,
-    start: {
-      dateTime: slot.inicioISO,
-      timeZone: TIMEZONE,
-    },
-    end: {
-      dateTime: slot.finISO,
-      timeZone: TIMEZONE,
-    },
-    colorId: "2", // verde
-    reminders: {
-      useDefault: false,
-      overrides: [{ method: "popup", minutes: 60 }],
-    },
+    summary: `${nombre} — ${servicio}${terapeutaNombre ? ` (${terapeutaNombre})` : ""}`,
+    description: `Cliente: ${nombre}\nTeléfono: ${telefono}\nServicio: ${servicio}${terapeutaNombre ? `\nTerapeuta: ${terapeutaNombre}` : ""}${notas ? "\nNotas: " + notas : ""}`,
+    start: { dateTime: slot.inicioISO, timeZone: TIMEZONE },
+    end:   { dateTime: slot.finISO,   timeZone: TIMEZONE },
+    colorId: "2",
+    reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 60 }] },
   };
 
-  const res = await calendar.events.insert({
-    calendarId: CALENDAR_ID,
-    resource: event,
-  });
-
-  return res.data; // contiene .id, .htmlLink, etc.
+  const res = await calendar.events.insert({ calendarId, resource: event });
+  return { ...res.data, terapeutaId: terIdFinal, calendarId };
 }
 
 // ============================================================
@@ -365,6 +411,8 @@ async function getEventosAgenda(desde, hasta) {
 
 module.exports = {
   getDisponibilidad,
+  getDisponibilidadTodos,
+  getSlotsParaTerapeuta,
   formatearDisponibilidad,
   crearTurno,
   cancelarTurno,

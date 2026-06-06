@@ -149,12 +149,16 @@ app.post("/webhook", async (req, res) => {
       ((OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from));
     if (esAdmin) {
       if (msg.type === "audio") {
-        // Audio del dueño — pedirle que use texto hasta tener Whisper
-        const { enviarMensaje } = require("./bot/sender");
-        await enviarMensaje(msg.from,
-          "🎤 Recibí tu audio pero por ahora no puedo transcribirlo automáticamente.\n\nEscribime lo que necesitás registrar, por ejemplo:\n_\"Vino María, pagó $1500 con débito. No vino Juan.\"_",
-          "whatsapp"
-        );
+        // Audio del dueño — transcribir con Gemini si está disponible
+        if (process.env.GEMINI_API_KEY && media?.type === "audio_transcripto") {
+          await handleAdminMessage({ text: `[Nico por audio]: ${media.texto}`, platform: "whatsapp" });
+        } else {
+          const { enviarMensaje } = require("./bot/sender");
+          await enviarMensaje(msg.from,
+            "🎤 No pude transcribir el audio. Configurá GEMINI_API_KEY para activar la transcripción, o escribime lo que necesitás.\n\nEj: _Vino María, pagó $1500 débito. No vino Juan._",
+            "whatsapp"
+          );
+        }
         return;
       }
       if (msg.type === "image" || msg.type === "document") {
@@ -634,7 +638,7 @@ app.post("/api/agenda/turno", async (req, res) => {
   try {
     const { crearTurno, resolverSlot, getDisponibilidad } = require("./bot/calendar");
     const { registrarTurno, registrarCliente } = require("./bot/crm");
-    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO } = req.body;
+    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO, terapeutaId } = req.body;
 
     if (!nombre || !servicio) {
       return res.status(400).json({ error: "nombre y servicio son requeridos" });
@@ -660,7 +664,9 @@ app.post("/api/agenda/turno", async (req, res) => {
     if (!slot) return res.status(400).json({ error: "Slot no encontrado o inválido" });
 
     const userId = telefono || `manual_${Date.now()}`;
-    const evento = await crearTurno({ nombre, telefono: userId, servicio, slot });
+    // Inyectar terapeutaId en el slot si vino del request
+    if (terapeutaId && slot) slot.terapeutaId = terapeutaId;
+    const evento = await crearTurno({ nombre, telefono: userId, servicio, slot, terapeutaId });
 
     // Registrar en CRM
     await registrarCliente({ userId, nombre, servicio, canal: "dashboard" });

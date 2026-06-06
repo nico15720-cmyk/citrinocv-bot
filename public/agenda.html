@@ -389,6 +389,7 @@
     <label>Servicio *</label>
     <select id="inputServicio">
       <option value="">Seleccioná un servicio...</option>
+      <option value="Cuponera — Método Citrino">🎟 Cuponera (usa sesión del pack)</option>
       <option value="Método Citrino">Método Citrino ($1.500)</option>
       <option value="Drenaje Linfático">Drenaje Linfático ($1.500)</option>
       <option value="Masaje Descontracturante">Masaje Descontracturante ($1.200)</option>
@@ -401,6 +402,12 @@
       <option value="Manicuría">Manicuría ($1.300)</option>
       <option value="Podología">Podología ($1.300)</option>
       <option value="Depilación">Depilación ($1.300)</option>
+      <option value="Psicología">🧠 Psicología (sala grande)</option>
+      <option value="Consulta médica">🩺 Consulta médica (sala grande)</option>
+    </select>
+    <label>Terapeuta *</label>
+    <select id="inputTerapeuta">
+      <option value="">Cargando...</option>
     </select>
     <div class="modal-botones">
       <button class="btn btn-gris" id="btnCancelarModal">Cancelar</button>
@@ -549,6 +556,14 @@ function renderTerapeutas() {
       ${t.nombre}
     </div>`
   ).join("");
+
+  // Poblar selector de terapeuta en el modal de nuevo turno
+  const sel = document.getElementById("inputTerapeuta");
+  if (sel) {
+    sel.innerHTML = terapeutas.map(t =>
+      `<option value="${t.id}">${t.nombre}</option>`
+    ).join("");
+  }
 }
 
 // ============================================================
@@ -722,6 +737,7 @@ async function confirmarTurno() {
   const nombre = document.getElementById("inputNombre").value.trim();
   const telefono = document.getElementById("inputTelefono").value.trim();
   const servicio = document.getElementById("inputServicio").value;
+  const terapeutaId = document.getElementById("inputTerapeuta")?.value || "";
 
   if (!nombre || !servicio) {
     mostrarToast("Completá nombre y servicio", "rojo");
@@ -734,6 +750,7 @@ async function confirmarTurno() {
       nombre,
       telefono,
       servicio,
+      terapeutaId,
       slotLabel: slotSeleccionado?.horaStr
         ? `${slotSeleccionado.fechaStr} ${slotSeleccionado.horaStr}`
         : undefined,

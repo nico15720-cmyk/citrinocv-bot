@@ -92,15 +92,66 @@ function detectarTipoMedia(msg) {
 }
 
 // ============================================================
+// TRANSCRIBIR AUDIO CON GEMINI
+// Usa Google Gemini Flash (gratis y soporte de audio nativo)
+// Requiere GEMINI_API_KEY en .env
+// ============================================================
+async function transcribirAudioConGemini(base64, mimeType) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const res = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        contents: [{
+          parts: [
+            {
+              inline_data: {
+                mime_type: mimeType || "audio/ogg",
+                data: base64,
+              }
+            },
+            {
+              text: "Transcribí este audio en español rioplatense (Uruguay). Devolvé SOLO el texto transcripto, sin comentarios ni explicaciones. Si el audio no tiene palabras claras, devolvé: [audio inaudible]"
+            }
+          ]
+        }]
+      },
+      { timeout: 20000 }
+    );
+    const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    if (text && !text.includes("[audio inaudible]")) return text.trim();
+    return null;
+  } catch (err) {
+    console.error("❌ Gemini transcripción:", err.response?.data?.error?.message || err.message);
+    return null;
+  }
+}
+
+// ============================================================
 // PROCESAR MENSAJE DE MEDIA COMPLETO
-// Descarga si es imagen/documento, clasifica audio
+// Descarga si es imagen/documento, transcribe audio con Gemini
 // ============================================================
 async function procesarMensajeMedia(msg) {
   const tipo = detectarTipoMedia(msg);
   if (!tipo) return null;
 
   if (tipo === "audio") {
-    // No transcribimos audio por ahora — Marta pedirá que escriban
+    // Intentar transcribir con Gemini si hay API key
+    if (process.env.GEMINI_API_KEY && msg.audio?.id) {
+      try {
+        const { base64, mimeType } = await descargarMediaWhatsApp(msg.audio.id);
+        const transcripcion = await transcribirAudioConGemini(base64, mimeType || "audio/ogg");
+        if (transcripcion) {
+          console.log(`🎤 Transcripción Gemini: ${transcripcion.slice(0, 80)}`);
+          return { type: "audio_transcripto", texto: transcripcion };
+        }
+      } catch (err) {
+        console.error("❌ No se pudo transcribir el audio:", err.message);
+      }
+    }
+    // Sin Gemini o falló la transcripción → Marta pedirá que escriban
     return { type: "audio" };
   }
 

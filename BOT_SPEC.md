@@ -260,11 +260,35 @@ ID | Nombre | Color | Horarios (JSON) | CalendarID | Activa (si/no)
 - `/alerta MOTIVO` — manda 4 mensajes de alerta + descripción
 - `/nollego [nombre]` — envía recordatorio a cliente que no llegó
 
-## 14. PENDIENTES / ROADMAP
+## 14. MULTI-TERAPEUTA
 
-- [ ] Transcripción de audio con Whisper (necesita OPENAI_API_KEY)
-- [ ] Importar clientes desde CSV (app anterior: hay 180 clientes)
-- [ ] Periodo de prueba: Nico recibe copia de cada conversación en curso
+Citrino tiene 3-4 gabinetes de masajes + sala grande (psicólogo/médico).
+Múltiples terapeutas pueden atender simultáneamente.
+
+- `getDisponibilidadTodos()` — verifica por separado el calendar de CADA terapeuta
+- `getSlotsParaTerapeuta(config)` — slots libres de un terapeuta específico
+- `crearTurno({ ..., terapeutaId })` — crea el evento en el calendar del terapeuta correcto
+- Agenda web muestra selector de terapeuta al crear un turno
+- Marta muestra disponibilidad agrupada por terapeuta cuando hay múltiples
+
+**Para agregar terapeutas**: ir a `/agenda` → botón "Terapeutas" → agregar con nombre, color, horarios y Google Calendar ID propio.
+
+## 15. AUDIO CON GEMINI
+
+Para transcripción de audios de WhatsApp:
+1. Obtener GEMINI_API_KEY en https://aistudio.google.com (gratis)
+2. Agregar a las variables de entorno en Railway: `GEMINI_API_KEY=...`
+3. El bot transcribirá automáticamente las notas de voz
+
+Sin la clave, el bot pedirá que escriban el mensaje.
+
+## 16. PENDIENTES / ROADMAP
+
+- [ ] Importar clientes desde CSV (app anterior: hay 180 clientes con sesiones)
+- [ ] Inbox de chats en el dashboard (ver conversaciones en curso)
+- [ ] Periodo de prueba: Nico recibe copia de cada conversación
+- [ ] Reconfirmación a las 12hs si no confirman a las 24hs
+- [ ] Botón "No llegó aún" directo desde agenda para enviar mensaje al cliente
 
 ---
 

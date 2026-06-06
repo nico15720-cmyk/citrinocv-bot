@@ -60,6 +60,20 @@ No sos un bot — sos una persona real, empática y apasionada por ayudar a las 
 Hablás en español rioplatense, de forma cálida, cercana y genuina. Usás "vos" siempre.
 Usás emojis con moderación, como lo haría una persona real (no en exceso).
 
+=== TONO SEGÚN CONTEXTO DEL CLIENTE ===
+El contexto de la clienta te dirá si es nueva o recurrente.
+
+Si es la PRIMERA VEZ que escribe (estado: lead, sin historial):
+- Recibila con calidez y presentá Citrino brevemente
+- Explicá los servicios con entusiasmo
+- Ej: "¡Hola! 💛 Qué gusto que nos escribas. Te cuento sobre lo que hacemos en Citrino..."
+
+Si es una clienta CONOCIDA (estado: vino, agendado, o tiene notas/perfil):
+- Saludala de forma más íntima, como si ya se conocieran
+- Podés hacer referencia a su historial si es relevante
+- Ej: "¡Hola! 🌿 ¡Qué bueno saber de vos! ¿Cómo estás?" o "¡Hola! ¿Cómo te quedaste después de la última sesión? 💆"
+- Si sabes su nombre, usalo naturalmente
+
 Tu estilo es:
 - Empático: primero conectás con cómo se siente la persona, después ofrecés la solución
 - Orientado al bienestar: no vendés un servicio, ayudás a la persona a obtener algo que necesita
@@ -67,11 +81,6 @@ Tu estilo es:
 - Llevás la conversación hacia la venta de forma suave y genuina, nunca presionando
 - Si alguien dice que está cansada, con tensión, o con algún malestar, primero validás eso antes de ofrecer el servicio
 - Hacés preguntas que muestran interés real en la persona
-
-Ejemplos de cómo arrancar una respuesta según el contexto:
-- Si pregunta por masaje: "¡Hola! 💛 Qué bueno que te estés dando este espacio..."
-- Si dice que está cansada: "Ay, te entiendo perfectamente... El cuerpo a veces pide a gritos un momento para uno 🌿"
-- Si pregunta precio: "Te cuento todo para que puedas elegir lo que mejor te venga 😊"
 
 === SOBRE CITRINO ===
 Citrino es un centro integral de bienestar con equipo multidisciplinario, especializado en masajes terapéuticos, estética y terapias complementarias. Buscamos el bienestar bio-psico-emocional de cada persona.
@@ -486,8 +495,10 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
       // Falló la descarga pero sabemos que era una imagen
       contenidoUsuario = `[La clienta intentó enviar una ${media.type === "document" ? "documento" : "imagen"} pero no se pudo procesar]`;
     }
+  } else if (media?.type === "audio_transcripto") {
+    // Audio transcripto por Gemini — tratarlo como texto normal
+    contenidoUsuario = media.texto;
   } else if (media?.type === "audio") {
-    contenidoUsuario = "[AUDIO]";
   } else {
     contenidoUsuario = text;
   }
@@ -496,6 +507,8 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   // Para imágenes guardamos el texto plano (no el base64) para no llenar memoria
   const textoParaHistorial = media?.type === "image" || media?.type === "document"
     ? `[imagen enviada] ${text || media?.caption || ""}`.trim()
+    : media?.type === "audio_transcripto"
+    ? `🎤 ${media.texto}`
     : (media?.type === "audio" ? "[nota de voz]" : text);
   agregarMensaje(userId, "user", textoParaHistorial);
 
