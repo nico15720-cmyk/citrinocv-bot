@@ -117,8 +117,8 @@
        TOKENS
     ════════════════════════════════════════ */
     :root {
-      --bg:       #0D0A07;
-      --bg2:      #130F0B;
+      --bg:       #1C1208;
+      --bg2:      #241810;
       --terra:    #C47550;
       --terra-l:  #D9917A;
       --terra-d:  #8B4A2E;
@@ -129,10 +129,10 @@
       --slate-l:  #6E8898;
       --cream:    #F8EDE2;
       --cream-d:  #C4AE96;
-      --border:   rgba(255,255,255,.07);
-      --border-h: rgba(196,117,80,.38);
-      --glass:    rgba(255,255,255,.028);
-      --glass-h:  rgba(255,255,255,.058);
+      --border:   rgba(255,255,255,.11);
+      --border-h: rgba(196,117,80,.42);
+      --glass:    rgba(255,255,255,.055);
+      --glass-h:  rgba(255,255,255,.09);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -143,10 +143,10 @@
       font-size: 17px;
       background-color: var(--bg);
       background-image:
-        radial-gradient(ellipse 110% 55% at 50% -5%,  rgba(196,117,80,.17) 0%, transparent 65%),
-        radial-gradient(ellipse 70%  45% at 8%  85%,  rgba(97,125,92,.09)  0%, transparent 58%),
-        radial-gradient(ellipse 55%  40% at 92% 55%,  rgba(201,168,108,.07) 0%, transparent 55%);
-      color: #fff;
+        radial-gradient(ellipse 110% 55% at 50% -5%,  rgba(196,117,80,.22) 0%, transparent 65%),
+        radial-gradient(ellipse 70%  45% at 8%  85%,  rgba(97,125,92,.12)  0%, transparent 58%),
+        radial-gradient(ellipse 55%  40% at 92% 55%,  rgba(201,168,108,.10) 0%, transparent 55%);
+      color: rgba(255,255,255,.92);
       overflow-x: hidden;
       min-height: 100vh;
     }
@@ -325,7 +325,7 @@
     .hm:last-child::after { display:none; }
     .hm:hover { background:rgba(196,117,80,.06); }
     .hm-n { font-family:'Cormorant Garamond',serif; font-size:2.1rem; font-weight:600; color:var(--terra-l); display:block; line-height:1; }
-    .hm-l { font-size:.6rem; color:rgba(255,255,255,.32); letter-spacing:.12em; margin-top:.4rem; text-transform:uppercase; }
+    .hm-l { font-size:.6rem; color:rgba(255,255,255,.55); letter-spacing:.12em; margin-top:.4rem; text-transform:uppercase; }
 
     /* ════════════════════════════════════════
        WAVE DIVIDERS
@@ -352,7 +352,7 @@
       font-weight:600; letter-spacing:-.01em;
     }
     .s-h em { font-style:italic; font-weight:300; color:var(--terra-l); }
-    .s-p { color:rgba(255,255,255,.5); line-height:1.95; font-size:1.02rem; font-weight:300; }
+    .s-p { color:rgba(255,255,255,.72); line-height:1.95; font-size:1.02rem; font-weight:300; }
     .tc { text-align:center; }
     .tc .s-p { max-width:560px; margin-inline:auto; }
     .s-h-deco {
@@ -395,7 +395,7 @@
     .p-num-wrap::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:1px solid rgba(196,117,80,.18); animation:spin 14s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
     .p-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:600; margin-bottom:.6rem; color:var(--cream); }
-    .p-card p { font-size:.9rem; color:rgba(255,255,255,.5); line-height:1.75; }
+    .p-card p { font-size:.9rem; color:rgba(255,255,255,.68); line-height:1.75; }
 
     /* ════════════════════════════════════════
        BLOB GALLERY
@@ -574,7 +574,7 @@
     .roi-stat-ico { margin-bottom:.75rem; }
     .roi-stat-ico svg { width:26px; height:26px; }
     .roi-stat-n { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:600; color:var(--terra-l); line-height:1; margin-bottom:.4rem; }
-    .roi-stat-l { font-size:.78rem; color:rgba(255,255,255,.42); line-height:1.45; }
+    .roi-stat-l { font-size:.78rem; color:rgba(255,255,255,.65); line-height:1.45; }
     .roi-txt .s-p { margin-bottom:2rem; }
     .roi-cita { background:var(--glass); border-left:2px solid var(--verde); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 18px 18px 0; padding:1.5rem 1.6rem; }
     .roi-cita p { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.08rem; color:rgba(255,255,255,.65); line-height:1.75; margin-bottom:.65rem; }
@@ -908,8 +908,9 @@
     .i-row { transition: background .3s, border-color .3s, transform .3s; }
     .i-row:hover { transform: translateX(4px); }
 
-    /* Mejora color texto hero-lead */
-    .hero-lead { color: rgba(255,255,255,.58); }
+    .hero-lead { color: rgba(255,255,255,.72); }
+    .faq-e-a p { color:rgba(255,255,255,.72) !important; }
+    .s-h-deco-sym { color:rgba(196,117,80,.6); }
 
     /* Eyebrow sutil glow */
     .s-eyebrow { transition: box-shadow .3s; }
@@ -1087,7 +1088,7 @@
     .pv2-base { font-size:.78rem; color:rgba(255,255,255,.3); margin-bottom:1.6rem; line-height:1.5; }
     .pv2-sep { height:1px; background:var(--border); margin-bottom:1.5rem; }
     .pv2-list { display:flex; flex-direction:column; gap:.6rem; flex:1; }
-    .pv2-item { display:flex; gap:.55rem; align-items:flex-start; font-size:.83rem; color:rgba(255,255,255,.55); line-height:1.5; }
+    .pv2-item { display:flex; gap:.55rem; align-items:flex-start; font-size:.83rem; color:rgba(255,255,255,.72); line-height:1.5; }
     .pv2-card.star .pv2-item { color:rgba(255,255,255,.8); }
     .pv2-item::before { content:'→'; color:var(--terra-l); font-size:.78rem; flex-shrink:0; margin-top:.05rem; }
     .pv2-cta {
@@ -1150,7 +1151,7 @@
     .beneficio-ico.verde { background:rgba(97,125,92,.15); border:1px solid rgba(97,125,92,.25); }
     .beneficio-ico svg { width:18px; height:18px; }
     .beneficio-card h4 { font-size:.88rem; font-weight:600; color:var(--cream); margin-bottom:.22rem; }
-    .beneficio-card p { font-size:.8rem; color:rgba(255,255,255,.45); line-height:1.55; }
+    .beneficio-card p { font-size:.8rem; color:rgba(255,255,255,.68); line-height:1.55; }
     /* beneficio-grid mobile → cubierto en bloque responsive ↑ */
 
     /* Luxury spacing extra */
