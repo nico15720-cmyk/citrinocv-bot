@@ -9,16 +9,18 @@
   <meta property="og:image" content="https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg">
   <link rel="icon" href="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --crema:    #FDF8F2;
+      --crema:    #FDF7EF;
       --crema2:   #F0E6D6;
-      --crema3:   #E8D9C4;
-      --terra:    #C17A5A;
-      --terra2:   #A05E40;
-      --terra3:   #7D4830;
-      --verde:    #8BAF8C;
+      --crema3:   #E4D3BC;
+      --terra:    #B8694A;
+      --terra2:   #9A5234;
+      --terra3:   #7D3F22;
+      --verde:    #6E8E6A;
+      --verde2:   #4F6E4B;
+      --verde-l:  #C8D9C4;
       --oscuro:   #1E1612;
       --gris:     #6B5E58;
       --gris2:    #9E918B;
@@ -28,6 +30,23 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; font-size: 16px; }
     body { font-family: 'Inter', sans-serif; background: var(--crema); color: var(--oscuro); overflow-x: hidden; }
+
+    /* ── ORGANIC BLOBS / BOTANICAL ── */
+    .blob-deco {
+      position: absolute; pointer-events: none; border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
+      animation: blobFloat 12s ease-in-out infinite;
+    }
+    @keyframes blobFloat {
+      0%,100%{border-radius:60% 40% 70% 30%/50% 60% 40% 50%;transform:translate(0,0) rotate(0deg)}
+      33%{border-radius:40% 60% 30% 70%/60% 40% 60% 40%;transform:translate(8px,-10px) rotate(5deg)}
+      66%{border-radius:70% 30% 50% 50%/40% 70% 30% 60%;transform:translate(-6px,6px) rotate(-5deg)}
+    }
+    .leaf-deco { position: absolute; pointer-events: none; animation: leafSway 8s ease-in-out infinite; }
+    @keyframes leafSway {
+      0%,100%{transform:rotate(-5deg) scale(1)} 50%{transform:rotate(5deg) scale(1.05)}
+    }
+    .section-wave { overflow: hidden; line-height: 0; }
+    .section-wave svg { display: block; width: 100%; }
     img { max-width: 100%; display: block; }
     a { text-decoration: none; color: inherit; }
 
@@ -135,7 +154,7 @@
     }
     .hero-tag::before { content: '✦'; font-size: .6rem; }
     .hero h1 {
-      font-family: 'Playfair Display', serif;
+      font-family: 'Cormorant Garamond', 'Playfair Display', serif;
       font-size: clamp(2.4rem, 5vw, 4rem);
       line-height: 1.12; color: var(--oscuro); margin-bottom: 1.5rem;
     }
@@ -163,7 +182,7 @@
     /* ── SECCIONES ── */
     section { padding: 6rem 5%; }
     .tag { display: inline-block; background: var(--crema2); color: var(--terra); padding: .35rem 1rem; border-radius: 50px; font-size: .72rem; letter-spacing: .14em; font-weight: 600; margin-bottom: 1rem; }
-    .section-h { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 3.5vw, 2.8rem); line-height: 1.2; margin-bottom: 1rem; }
+    .section-h { font-family: 'Cormorant Garamond', 'Playfair Display', serif; font-size: clamp(2rem, 3.5vw, 3.2rem); line-height: 1.15; margin-bottom: 1rem; font-weight: 600; }
     .section-p { color: var(--gris); line-height: 1.8; max-width: 560px; margin-bottom: 3rem; }
     .tc { text-align: center; }
     .tc .section-p { margin-inline: auto; }
@@ -216,7 +235,7 @@
       background: var(--terra); color: #fff; padding: 1.5rem;
       border-radius: 20px; text-align: center; box-shadow: 0 12px 32px rgba(193,122,90,.4);
     }
-    .metodo-badge .big { font-family: 'Playfair Display', serif; font-size: 2rem; display: block; }
+    .metodo-badge .big { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; display: block; font-style: italic; }
     .metodo-badge .sm { font-size: .75rem; opacity: .85; letter-spacing: .08em; }
     .pasos { display: flex; flex-direction: column; gap: 1.25rem; margin: 2rem 0; }
     .paso { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; border-radius: 14px; transition: background .3s; }
@@ -265,7 +284,7 @@
     #nosotros { background: var(--crema2); }
     .nos-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
     .nos-img img { width: 100%; height: 460px; object-fit: cover; border-radius: 30px; }
-    .nos-txt blockquote { font-family: 'Playfair Display', serif; font-size: 1.35rem; font-style: italic; color: var(--terra); border-left: 3px solid var(--terra); padding-left: 1.25rem; margin: 1.5rem 0; line-height: 1.5; }
+    .nos-txt blockquote { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--verde2); border-left: 3px solid var(--verde2); padding-left: 1.25rem; margin: 1.5rem 0; line-height: 1.5; }
     .valores { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
     .valor { background: #fff; border-radius: 14px; padding: 1.2rem; transition: all .3s; }
     .valor:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(30,22,18,.08); }
@@ -275,6 +294,7 @@
 
     /* ── EMPRESAS CTA ── */
     .empresas-cta {
+      background: linear-gradient(135deg, var(--verde2) 0%, #2E4A2A 100%) !important;
       background: var(--oscuro); padding: 5rem 5%;
       display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
     }
@@ -301,7 +321,7 @@
     .mapa iframe { width: 100%; height: 340px; border: none; display: block; }
 
     /* ── FOOTER ── */
-    footer { background: var(--oscuro); padding: 3rem 5% 1.5rem; }
+    footer { background: linear-gradient(135deg, #1A1208 0%, var(--oscuro) 60%, #0F1A0D 100%); padding: 3rem 5% 1.5rem; }
     .footer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; flex-wrap: wrap; padding-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,.08); }
     .footer-brand img { width: 36px; filter: brightness(0) invert(.9) sepia(1) saturate(3) hue-rotate(340deg); margin-bottom: .75rem; }
     .footer-brand p { font-size: .82rem; color: rgba(255,255,255,.45); max-width: 220px; line-height: 1.6; margin-top: .5rem; }
@@ -309,6 +329,7 @@
     .footer-links h5 { font-size: .75rem; letter-spacing: .12em; color: rgba(255,255,255,.45); margin-bottom: 1rem; }
     .footer-links a { display: block; font-size: .85rem; color: rgba(255,255,255,.65); margin-bottom: .6rem; transition: color .3s; }
     .footer-links a:hover { color: var(--terra); }
+    .verde-tag { background:rgba(110,142,106,.15) !important; color:var(--verde2) !important; }
     footer .copy { font-size: .75rem; color: rgba(255,255,255,.3); text-align: center; padding-top: 1.5rem; }
 
     /* ── WA FLOAT ── */
@@ -442,9 +463,24 @@
   </div>
 </section>
 
+<!-- Ola orgánica separadora -->
+<div class="section-wave" style="background:var(--crema);margin-top:-2px">
+  <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="height:60px">
+    <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#ffffff"/>
+  </svg>
+</div>
+
 <!-- ── SERVICIOS ── -->
-<section id="servicios">
-  <div class="tc reveal">
+<section id="servicios" style="position:relative;overflow:hidden">
+  <!-- Blob decorativo fondo -->
+  <div class="blob-deco" style="width:400px;height:400px;background:rgba(110,142,106,.06);top:-100px;right:-100px;z-index:0"></div>
+  <div class="blob-deco" style="width:250px;height:250px;background:rgba(184,105,74,.05);bottom:-50px;left:-50px;z-index:0;animation-delay:4s"></div>
+  <!-- Hoja decorativa retro -->
+  <div class="leaf-deco" style="top:2rem;right:4%;z-index:0;opacity:.12">
+    <svg width="80" height="120" viewBox="0 0 80 120" fill="none"><path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="var(--verde)"/><line x1="40" y1="10" x2="40" y2="112" stroke="var(--crema)" stroke-width="1.5"/><line x1="40" y1="35" x2="22" y2="55" stroke="var(--crema)" stroke-width="1"/><line x1="40" y1="50" x2="58" y2="68" stroke="var(--crema)" stroke-width="1"/><line x1="40" y1="65" x2="24" y2="80" stroke="var(--crema)" stroke-width="1"/></svg>
+  </div>
+  <div class="tc reveal" style="position:relative;z-index:1">
+    <div class="s-ornament"><span class="s-ornament-line"></span><svg width="16" height="16" viewBox="0 0 16 16" fill="var(--terra)"><path d="M8 1l1.2 5L15 7l-5 3.5 1.5 5.5L8 13l-3.5 3L6 10.5 1 7l5.8-1z"/></svg><span class="s-ornament-line r"></span></div>
     <span class="tag">NUESTROS SERVICIOS</span>
     <h2 class="section-h">Encontrá el tratamiento<br>que necesitás</h2>
     <p class="section-p">Cada sesión de 50 minutos reales dedicados completamente a vos.</p>
@@ -598,13 +634,16 @@
 
 
 <!-- ── SOBRE NOSOTROS ── -->
-<section id="nosotros">
-  <div class="nos-wrap">
+<section id="nosotros" style="background:linear-gradient(135deg,var(--verde-l) 0%,var(--crema2) 60%,var(--crema) 100%);position:relative;overflow:hidden">
+  <!-- Blob verde orgánico -->
+  <div class="blob-deco" style="width:500px;height:500px;background:rgba(110,142,106,.12);top:-150px;left:-150px;z-index:0;animation-delay:6s"></div>
+  <div class="nos-wrap" style="position:relative;z-index:1">
     <div class="nos-img reveal-left">
       <img src="https://static.wixstatic.com/media/352540af0345423b8d447b3b337f557a.jpg" alt="Equipo Citrino" loading="lazy">
     </div>
     <div class="reveal-right">
-      <span class="tag">SOBRE NOSOTROS</span>
+      <div class="s-ornament" style="justify-content:flex-start"><span class="s-ornament-line" style="background:linear-gradient(90deg,transparent,var(--verde2))"></span><svg width="16" height="16" viewBox="0 0 20 26" fill="var(--verde2)"><path d="M10 1C5 6 2 12 2 17a8 8 0 0016 0C18 12 15 6 10 1z"/></svg><span class="s-ornament-line r" style="background:linear-gradient(90deg,var(--verde2),transparent)"></span></div>
+      <span class="tag" style="background:rgba(110,142,106,.15);color:var(--verde2)">SOBRE NOSOTROS</span>
       <h2 class="section-h">Un equipo comprometido<br>con tu bienestar</h2>
       <p style="color:var(--gris);line-height:1.8;margin-bottom:.75rem">Citrino es un espacio con equipo multidisciplinario enfocado en la estética y la salud. Nos especializamos en masajes terapéuticos y terapias complementarias.</p>
       <p style="color:var(--gris);line-height:1.8;margin-bottom:1rem">Buscamos el bienestar bio-psico-emocional de cada persona que nos visita.</p>
@@ -619,15 +658,26 @@
   </div>
 </section>
 
+<!-- Ola separadora -->
+<div class="section-wave" style="background:var(--verde-l);margin-top:-2px">
+  <svg viewBox="0 0 1440 50" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="height:50px">
+    <path d="M0,25 C360,50 720,0 1080,25 C1260,37 1380,15 1440,20 L1440,50 L0,50 Z" fill="#4F6E4B"/>
+  </svg>
+</div>
 <!-- ── EMPRESAS CTA ── -->
-<div class="empresas-cta">
-  <div class="reveal-left">
-    <span class="tag" style="background:rgba(193,122,90,.2)">PARA EMPRESAS</span>
+<div class="empresas-cta" style="position:relative;overflow:hidden">
+  <div class="blob-deco" style="width:350px;height:350px;background:rgba(255,255,255,.04);top:-80px;right:10%;z-index:0"></div>
+  <!-- Hoja decorativa -->
+  <div style="position:absolute;right:5%;top:50%;transform:translateY(-50%);opacity:.07;z-index:0">
+    <svg width="120" height="180" viewBox="0 0 80 120" fill="none"><path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="white"/></svg>
+  </div>
+  <div class="reveal-left" style="position:relative;z-index:1">
+    <span class="tag" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2)">PARA EMPRESAS</span>
     <h2>Llevamos el bienestar<br>a tu oficina</h2>
     <p>Terapeutas certificados que van hasta tu empresa. Masajes express de 10 minutos — rápidos, efectivos y con factura empresa incluida.</p>
-    <a href="empresas.html" class="btn btn-terra">Ver propuesta completa →</a>
+    <a href="empresas.html" class="btn" style="background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,105,74,.4)">Ver propuesta completa →</a>
   </div>
-  <div class="e-stats reveal-right">
+  <div class="e-stats reveal-right" style="position:relative;z-index:1">
     <div class="e-stat"><span class="en">10'</span><span class="el">min por persona</span></div>
     <div class="e-stat"><span class="en">6</span><span class="el">personas / hora</span></div>
     <div class="e-stat"><span class="en">$2K</span><span class="el">UYU / hora</span></div>
@@ -635,8 +685,12 @@
 </div>
 
 <!-- ── CONTACTO ── -->
-<section id="contacto">
-  <div class="tc reveal" style="margin-bottom:3rem">
+<section id="contacto" style="position:relative;overflow:hidden">
+  <div class="leaf-deco" style="bottom:2rem;left:2%;opacity:.08;z-index:0">
+    <svg width="60" height="90" viewBox="0 0 80 120" fill="none"><path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="var(--verde)"/></svg>
+  </div>
+  <div class="tc reveal" style="margin-bottom:3rem;position:relative;z-index:1">
+    <div class="s-ornament"><span class="s-ornament-line"></span><svg width="16" height="16" viewBox="0 0 16 16" fill="var(--terra)"><path d="M8 1l1.2 5L15 7l-5 3.5 1.5 5.5L8 13l-3.5 3L6 10.5 1 7l5.8-1z"/></svg><span class="s-ornament-line r"></span></div>
     <span class="tag">CONTACTO</span>
     <h2 class="section-h">Vení a visitarnos</h2>
   </div>
