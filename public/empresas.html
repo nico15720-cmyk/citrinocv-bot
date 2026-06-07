@@ -655,43 +655,94 @@
 
     /* MOBILE ≤768px */
     @media (max-width:768px) {
-      section { padding:3.5rem 5%; }
-      .hero { padding:5rem 5% 3rem; min-height:90vh; }
-      .hero h1 { font-size:clamp(2.2rem,8vw,3.2rem); }
-      .hero-inner::before, .h-corner, .hero-topo { display:none; }
-      .hero-lead { font-size:.95rem; line-height:1.85; }
-      .hero-btns { flex-direction:column; align-items:center; gap:.75rem; }
-      .btn { width:100%; max-width:340px; justify-content:center; font-size:.92rem; padding:1rem 1.6rem; }
+      /* GENERAL: página más liviana */
+      section { padding:2.8rem 5%; }
+      .wave-div { height:32px; }
 
-      /* Eyebrow que se corta — permitir wrap */
-      .eyebrow { white-space:normal; text-align:center; max-width:280px; line-height:1.5; }
+      /* Hero */
+      .hero { padding:5rem 5% 2.5rem; min-height:85vh; }
+      .hero h1 { font-size:clamp(2.2rem,8vw,3rem); }
+      .hero-inner::before, .h-corner, .hero-topo, .geo-lines { display:none; }
+      .hero-lead { font-size:.92rem; line-height:1.75; max-width:100%; margin-bottom:1.8rem; }
+      .hero-btns { flex-direction:column; align-items:center; gap:.65rem; margin-bottom:2rem; }
+      .btn { width:100%; max-width:340px; justify-content:center; font-size:.9rem; padding:.95rem 1.6rem; }
 
-      /* Cards de precios — 1 columna siempre */
+      /* Hero metrics — 2 columnas en mobile */
+      .hero-metrics { grid-template-columns:1fr 1fr !important; border-radius:14px; }
+      .hm:last-child { grid-column:1/-1; border-right:none !important; }
+      .hm { padding:.9rem .6rem; }
+      .hm-n { font-size:1.5rem; }
+      .hm-l { font-size:.52rem; letter-spacing:.06em; }
+      .hm::after { right:0; top:15%; bottom:15%; }
+
+      /* Marquee hero — ocultar en mobile (ya está en eyebrow) */
+      .marquee-e { display:none; }
+
+      /* Eyebrow — wrap en 2 líneas */
+      .eyebrow { white-space:normal; text-align:center; max-width:260px; line-height:1.6; padding:.5rem 1rem; }
+
+      /* Nav */
+      .nav-back, .nav-cta { display:none; }
+      .nav-hamburger { display:flex; }
+
+      /* Photo strip — más chico */
+      .photo-strip { height:200px; }
+      .photo-strip-inner { max-width:280px; }
+      .photo-strip-tag { font-size:.55rem; padding:.28rem .7rem; }
+      .photo-strip-h { font-size:1.5rem; margin-bottom:.5rem; }
+      .photo-strip-p { display:none; }
+
+      /* Proceso — 1 columna */
+      .proceso-grid { grid-template-columns:1fr; gap:.75rem; }
+      .proceso-grid::before { display:none; }
+      .p-card { padding:1.8rem 1.2rem 1.5rem; }
+      .p-num-wrap { width:48px; height:48px; margin-bottom:1rem; }
+      .p-num { width:48px; height:48px; font-size:1.2rem; }
+
+      /* Precios — 1 columna */
       .propuesta-grid-v2 { grid-template-columns:1fr !important; max-width:100% !important; }
-      .pv2-card.star { transform:none; } /* quitar elevación en mobile */
+      .pv2-card.star { transform:none; }
+      .pv2-card { padding:1.8rem 1.4rem; border-radius:18px; }
+      .pv2-precio { font-size:2.2rem; }
 
-      /* Beneficio 30% — stack limpio: número arriba, info abajo */
-      .beneficio-grid { grid-template-columns:1fr !important; gap:1.5rem !important; }
+      /* Beneficio 30% */
+      .beneficio-grid { grid-template-columns:1fr !important; gap:1.2rem !important; }
       .beneficio-grid .fade-left,
       .beneficio-grid .fade-right { opacity:1 !important; transform:none !important; }
-      .desc-numero-wrap {
-        flex-direction:row !important; align-items:center !important;
-        gap:1.2rem !important; padding:1.4rem !important;
-        border-radius:18px !important;
-      }
-      .desc-pct { font-size:3.5rem !important; }
-      .desc-pct-label { font-size:.7rem !important; letter-spacing:.15em !important; }
+      .desc-numero-wrap { flex-direction:row !important; align-items:center !important; gap:1rem !important; padding:1.2rem !important; border-radius:16px !important; }
+      .desc-pct { font-size:3.2rem !important; }
+      .desc-pct-label { font-size:.65rem !important; letter-spacing:.12em !important; }
       .desc-pct-sub { display:none !important; }
-      /* Título de la sección beneficio */
-      .beneficio-grid .s-h { font-size:clamp(1.8rem,6vw,2.4rem); }
-      .beneficio-cards { gap:.65rem; margin:1.2rem 0; }
-      .beneficio-card { padding:.9rem 1rem; }
-      .beneficio-ico { width:34px; height:34px; border-radius:10px; flex-shrink:0; }
+      .beneficio-grid .s-h { font-size:clamp(1.7rem,5.5vw,2.2rem); }
+      .beneficio-cards { gap:.6rem; margin:.9rem 0; }
+      .beneficio-card { padding:.85rem .9rem; }
+      .beneficio-ico { width:32px; height:32px; border-radius:9px; flex-shrink:0; }
 
-      /* ROI grid */
+      /* ROI */
       .roi-grid { grid-template-columns:1fr !important; }
-      .roi-stats { grid-template-columns:1fr 1fr; gap:.75rem; }
+      .roi-stats-grid { grid-template-columns:1fr 1fr; gap:.75rem; }
       .roi-stat { padding:1.2rem .8rem; }
+      .roi-stat-n { font-size:1.8rem; }
+
+      /* Calculadora */
+      .calc-wrap { border-radius:18px; }
+      .calc-head, .calc-body { padding:1.3rem; }
+      .calc-result { grid-template-columns:1fr 1fr 1fr; margin:0 1.3rem; }
+      .cr-val { font-size:1.2rem; }
+      .cr-lbl { font-size:.52rem; }
+
+      /* CTA final */
+      .cta-wrap { padding:4rem 5%; }
+      .cta-frame { padding:2.4rem 1.4rem; border-radius:20px; }
+      .cta-btns { flex-direction:column; align-items:center; gap:.65rem; }
+      .cta-btns .btn { width:100%; max-width:300px; justify-content:center; }
+
+      /* FAQ */
+      .faq-e-q { font-size:.9rem; padding:1rem 1.2rem; }
+
+      /* Footer */
+      footer { flex-direction:column; text-align:center; gap:.75rem; }
+    }
 
       /* Hero metrics — 3 col compacto */
       .hero-metrics { border-radius:16px; }
