@@ -7,391 +7,1058 @@
   <meta name="description" content="Programa de bienestar corporativo para empresas en Montevideo. Terapeutas certificados en tu oficina. Sesiones de 10 min · 6 personas/hora · Factura empresa.">
   <link rel="icon" href="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <style>
+
+    /* ════════════════════════════════════════
+       TOKENS
+    ════════════════════════════════════════ */
     :root {
-      --bg:      #08060400;
-      --bg2:     #0C0907;
-      --terra:   #B8694A;
-      --terra-l: #CC8060;
-      --terra-d: #8B4A2E;
-      --verde:   #5A7A56;
-      --verde-l: #7A9E76;
-      --gold:    #C5A46A;
-      --cream:   #F5EAD8;
-      --cream-d: #C8B49A;
-      --border:  rgba(255,255,255,.07);
-      --border-h:rgba(184,105,74,.35);
-      --glass:   rgba(255,255,255,.035);
-      --glass-h: rgba(255,255,255,.06);
+      --bg:       #0D0A07;
+      --bg2:      #130F0B;
+      --terra:    #C47550;
+      --terra-l:  #D9917A;
+      --terra-d:  #8B4A2E;
+      --verde:    #617D5C;
+      --verde-l:  #7FA47B;
+      --gold:     #C9A86C;
+      --slate:    #4A5D6B;
+      --slate-l:  #6E8898;
+      --cream:    #F8EDE2;
+      --cream-d:  #C4AE96;
+      --border:   rgba(255,255,255,.07);
+      --border-h: rgba(196,117,80,.38);
+      --glass:    rgba(255,255,255,.028);
+      --glass-h:  rgba(255,255,255,.058);
     }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif; font-size: 17px;
-      background: radial-gradient(ellipse 100% 60% at 50% -5%, rgba(184,105,74,.18) 0%, transparent 65%),
-                  radial-gradient(ellipse 70% 50% at 10% 80%, rgba(90,122,86,.1) 0%, transparent 60%),
-                  radial-gradient(ellipse 60% 40% at 90% 60%, rgba(197,164,106,.07) 0%, transparent 55%),
-                  #08060400;
-      background-color: #0A0705;
-      color: #fff; overflow-x: hidden; min-height: 100vh;
-    }
-    img { max-width: 100%; display: block; }
-    a { text-decoration: none; color: inherit; }
 
-    /* ─── ANIMACIONES ─── */
-    .fade-up   { opacity:0; transform:translateY(50px); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
-    .fade-left { opacity:0; transform:translateX(-60px); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
-    .fade-right{ opacity:0; transform:translateX(60px); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
-    .fade-scale{ opacity:0; transform:scale(.92); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 17px;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 110% 55% at 50% -5%,  rgba(196,117,80,.17) 0%, transparent 65%),
+        radial-gradient(ellipse 70%  45% at 8%  85%,  rgba(97,125,92,.09)  0%, transparent 58%),
+        radial-gradient(ellipse 55%  40% at 92% 55%,  rgba(201,168,108,.07) 0%, transparent 55%);
+      color: #fff;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    body::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+      opacity:.42; mix-blend-mode:screen;
+    }
+    .page-dots {
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:radial-gradient(circle, rgba(196,117,80,.03) 1px, transparent 1px);
+      background-size:36px 36px;
+    }
+    img { max-width:100%; display:block; }
+    a   { text-decoration:none; color:inherit; }
+
+    /* ════════════════════════════════════════
+       ANIMACIONES
+    ════════════════════════════════════════ */
+    .fade-up    { opacity:0; transform:translateY(48px);  transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+    .fade-left  { opacity:0; transform:translateX(-60px); transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+    .fade-right { opacity:0; transform:translateX(60px);  transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+    .fade-scale { opacity:0; transform:scale(.93);        transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
     .in { opacity:1 !important; transform:none !important; }
     .d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}
     .d4{transition-delay:.4s}.d5{transition-delay:.5s}
 
-    /* ─── NAVBAR ─── */
+    /* ════════════════════════════════════════
+       NAV
+    ════════════════════════════════════════ */
     nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.1rem 5%; transition: all .45s cubic-bezier(.16,1,.3,1);
-      animation: navIn .8s ease both;
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.15rem 5%; transition:all .45s cubic-bezier(.16,1,.3,1);
+      animation:navIn .8s ease both;
     }
     @keyframes navIn { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:none} }
     nav.scrolled {
-      background: rgba(10,7,5,.95); backdrop-filter: blur(24px) saturate(1.5);
-      border-bottom: 1px solid var(--border); padding: .8rem 5%;
+      background:rgba(13,10,7,.96); backdrop-filter:blur(24px) saturate(1.6);
+      border-bottom:1px solid var(--border); padding:.8rem 5%;
     }
-    .nav-logo { display: flex; align-items: center; gap: .75rem; }
+    .nav-logo { display:flex; align-items:center; gap:.75rem; }
     .nav-logo-ring {
-      width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid rgba(184,105,74,.35);
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(184,105,74,.08); transition: all .35s;
+      width:40px; height:40px; border-radius:50%;
+      border:1.5px solid rgba(196,117,80,.35);
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(196,117,80,.08); transition:all .35s;
     }
-    .nav-logo:hover .nav-logo-ring { border-color: var(--terra); background: rgba(184,105,74,.15); }
-    .nav-logo img { width: 26px; height: 26px; object-fit: contain; }
-    .nav-logo-txt { line-height: 1; }
-    .nav-logo-txt .nl1 { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-style: italic; color: var(--cream); letter-spacing: .03em; }
-    .nav-logo-txt .nl2 { font-size: .55rem; letter-spacing: .22em; color: rgba(255,255,255,.35); margin-top: .1rem; }
-    .nav-right { display: flex; align-items: center; gap: 1.25rem; }
-    .nav-back { font-size: .8rem; color: rgba(255,255,255,.45); display: flex; align-items: center; gap: .35rem; transition: color .3s; }
-    .nav-back:hover { color: var(--terra-l); }
+    .nav-logo:hover .nav-logo-ring { border-color:var(--terra); background:rgba(196,117,80,.15); }
+    .nav-logo img { width:26px; height:26px; object-fit:contain; }
+    .nav-logo-txt { line-height:1; }
+    .nav-logo-txt .nl1 { font-family:'Cormorant Garamond',serif; font-size:1.15rem; font-style:italic; color:var(--cream); letter-spacing:.03em; }
+    .nav-logo-txt .nl2 { font-size:.55rem; letter-spacing:.22em; color:rgba(255,255,255,.32); margin-top:.12rem; display:block; }
+    .nav-right { display:flex; align-items:center; gap:1.25rem; }
+    .nav-back { font-size:.8rem; color:rgba(255,255,255,.42); display:flex; align-items:center; gap:.35rem; transition:color .3s; }
+    .nav-back:hover { color:var(--terra-l); }
     .nav-cta {
-      padding: .6rem 1.5rem; border-radius: 50px; font-size: .82rem; font-weight: 600;
-      background: linear-gradient(135deg, var(--terra), var(--terra-d));
-      color: #fff; border: 1px solid rgba(255,255,255,.1);
-      box-shadow: 0 4px 20px rgba(184,105,74,.3); transition: all .35s;
+      padding:.6rem 1.5rem; border-radius:50px; font-size:.82rem; font-weight:600;
+      background:linear-gradient(135deg, var(--terra), var(--terra-d));
+      color:#fff; border:1px solid rgba(255,255,255,.1);
+      box-shadow:0 4px 20px rgba(196,117,80,.28); transition:all .35s;
     }
-    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(184,105,74,.45); }
+    .nav-cta:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(196,117,80,.44); }
+    .nav-hamburger {
+      display:none; flex-direction:column; gap:5px; cursor:pointer;
+      width:28px; padding:4px; background:none; border:none;
+    }
+    .nav-hamburger span { display:block; height:1.5px; background:rgba(255,255,255,.65); border-radius:2px; transition:all .3s; transform-origin:center; }
+    .nav-hamburger.open span:nth-child(1) { transform:translateY(6.5px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity:0; transform:scaleX(0); }
+    .nav-hamburger.open span:nth-child(3) { transform:translateY(-6.5px) rotate(-45deg); }
+    .nav-mobile-menu {
+      display:none; position:fixed; inset:0; top:68px; z-index:999;
+      background:rgba(13,10,7,.98); backdrop-filter:blur(24px);
+      flex-direction:column; align-items:center; justify-content:center; gap:2.5rem;
+    }
+    .nav-mobile-menu.open { display:flex; animation:mobileIn .3s ease both; }
+    @keyframes mobileIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+    .nav-mobile-menu a { font-family:'Cormorant Garamond',serif; font-size:2rem; font-style:italic; color:rgba(255,255,255,.7); transition:color .3s; }
+    .nav-mobile-menu a:hover { color:var(--terra-l); }
+    .nav-mobile-menu .nav-cta { font-family:'DM Sans',sans-serif; font-style:normal; font-size:1rem; padding:.85rem 2rem; }
 
-    /* ─── HERO ─── */
+    /* ════════════════════════════════════════
+       HERO
+    ════════════════════════════════════════ */
     .hero {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      padding: 7rem 5% 5rem; position: relative; overflow: hidden; text-align: center;
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:7rem 5% 5rem; position:relative; overflow:hidden; text-align:center;
+      isolation: isolate;
     }
     .hero-photo {
-      position: absolute; inset: 0;
-      background: url('https://static.wixstatic.com/media/a35aecb9d76b4ae39f68a92c19ffe590.jpg') center 40%/cover no-repeat;
-      opacity: .08; transform: scale(1.05);
+      position:absolute; inset:0;
+      background:url('https://static.wixstatic.com/media/a35aecb9d76b4ae39f68a92c19ffe590.jpg') center 40%/cover no-repeat;
+      opacity:.07; transform:scale(1.04);
+      filter: grayscale(50%);
     }
-    .hero-grad { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(8,6,4,1) 0%, rgba(8,6,4,.85) 50%, rgba(90,122,86,.12) 100%); }
-    /* Orbes animados -->*/
-    .orb { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
-    .orb1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(184,105,74,.2) 0%, transparent 70%); top: -100px; left: 50%; transform: translateX(-50%); animation: orbPulse 9s ease-in-out infinite; }
-    .orb2 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(90,122,86,.12) 0%, transparent 70%); bottom: 5%; right: 5%; animation: orbPulse 12s ease-in-out infinite 3s; }
-    @keyframes orbPulse { 0%,100%{opacity:.6;transform:translateX(-50%) scale(1)} 50%{opacity:1;transform:translateX(-50%) scale(1.2)} }
+    .hero-grad { position:absolute; inset:0; background:linear-gradient(150deg, rgba(13,10,7,1) 0%, rgba(13,10,7,.88) 45%, rgba(74,93,107,.08) 100%); }
+    .orb { position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none; }
+    .orb1 { width:560px; height:560px; background:radial-gradient(circle, rgba(196,117,80,.16) 0%, transparent 70%); top:-130px; left:50%; transform:translateX(-50%); animation:orbA 9s ease-in-out infinite; }
+    .orb2 { width:300px; height:300px; background:radial-gradient(circle, rgba(74,93,107,.12) 0%, transparent 70%); bottom:5%; right:5%; animation:orbB 12s ease-in-out infinite 3s; }
+    .orb3 { width:200px; height:200px; background:radial-gradient(circle, rgba(97,125,92,.09) 0%, transparent 70%); bottom:15%; left:5%; animation:orbB 15s ease-in-out infinite 6s; }
+    @keyframes orbA { 0%,100%{opacity:.55;transform:translateX(-50%) scale(1)}   50%{opacity:1;transform:translateX(-50%) scale(1.2)} }
+    @keyframes orbB { 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:.85;transform:scale(1.15)} }
 
-    /* Líneas geométricas decorativas */
-    .geo-lines { position: absolute; inset: 0; pointer-events: none; opacity: .04; }
+    /* Topographic decoration */
+    .hero-topo {
+      position:absolute; right:-2%; top:3%; width:320px; height:94%;
+      opacity:.1; pointer-events:none;
+    }
+    .geo-lines { position:absolute; inset:0; pointer-events:none; opacity:.04; }
+    .hero-inner {
+      position:relative; z-index:2; max-width:860px;
+    }
+    .hero-inner::before {
+      content:''; position:absolute; inset:-4rem -3rem;
+      border:1px solid rgba(196,117,80,.07);
+      border-radius:36px; pointer-events:none;
+    }
+    .h-corner { position:absolute; width:32px; height:32px; pointer-events:none; opacity:.45; }
+    .h-corner--tl { top:-3.5rem; left:-2.8rem; }
+    .h-corner--tr { top:-3.5rem; right:-2.8rem; transform:scaleX(-1); }
+    .h-corner--bl { bottom:-3.5rem; left:-2.8rem; transform:scaleY(-1); }
+    .h-corner--br { bottom:-3.5rem; right:-2.8rem; transform:scale(-1,-1); }
 
-    .hero-inner { position: relative; z-index: 2; max-width: 800px; }
     .eyebrow {
-      display: inline-flex; align-items: center; gap: .6rem;
-      padding: .4rem 1.1rem; border-radius: 50px; margin-bottom: 2rem;
-      border: 1px solid rgba(184,105,74,.3); background: rgba(184,105,74,.08);
-      font-size: .7rem; letter-spacing: .18em; color: var(--terra-l); font-weight: 600;
+      display:inline-flex; align-items:center; gap:.6rem;
+      padding:.45rem 1.2rem; border-radius:50px; margin-bottom:2.2rem;
+      border:1px solid rgba(196,117,80,.28); background:rgba(196,117,80,.07);
+      font-size:.68rem; letter-spacing:.2em; color:var(--terra-l); font-weight:600;
     }
-    .eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--terra); animation: blink 2.5s ease-in-out infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .eyebrow-dot { width:5px; height:5px; border-radius:50%; background:var(--terra); animation:blink 2.5s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
     .hero h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      line-height: 1.08; font-weight: 600; margin-bottom: 1.5rem;
-      background: linear-gradient(160deg, #fff 0%, var(--cream) 45%, var(--terra-l) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(3.4rem, 7.5vw, 6.2rem);
+      line-height:1.04; font-weight:600; margin-bottom:.8rem;
+      letter-spacing:-.02em;
+      background:linear-gradient(160deg, #fff 0%, var(--cream) 40%, var(--terra-l) 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
     }
-    .hero h1 em { font-style: italic; }
-    .hero-lead { font-size: 1.05rem; color: rgba(255,255,255,.55); line-height: 1.85; max-width: 560px; margin: 0 auto 2.5rem; font-weight: 300; }
-    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
+    .hero h1 em { font-style:italic; font-weight:300; }
 
-    /* BTNS */
-    .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .9rem 2rem; border-radius: 50px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: .9rem; cursor: pointer; border: none; transition: all .35s cubic-bezier(.16,1,.3,1); }
-    .btn-primary { background: linear-gradient(135deg, var(--terra), var(--terra-d)); color: #fff; box-shadow: 0 4px 24px rgba(184,105,74,.35); border: 1px solid rgba(255,255,255,.1); }
-    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(184,105,74,.5); }
-    .btn-ghost { background: rgba(255,255,255,.04); color: rgba(255,255,255,.7); border: 1px solid var(--border); backdrop-filter: blur(8px); }
-    .btn-ghost:hover { border-color: var(--border-h); color: #fff; background: rgba(255,255,255,.07); transform: translateY(-2px); }
+    /* Hero rule */
+    .hero-rule { display:flex; justify-content:center; margin:.4rem 0 2rem; }
 
-    /* Métricas hero */
+    .hero-lead {
+      font-size:1.08rem; color:rgba(255,255,255,.5); line-height:2;
+      max-width:580px; margin:0 auto 2.8rem; font-weight:300;
+    }
+    .hero-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:4.5rem; }
+
+    .btn {
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:.95rem 2.2rem; border-radius:50px; font-family:'DM Sans',sans-serif;
+      font-weight:600; font-size:.9rem; cursor:pointer; border:none;
+      transition:all .35s cubic-bezier(.16,1,.3,1); letter-spacing:.01em;
+    }
+    .btn-primary { background:linear-gradient(135deg, var(--terra), var(--terra-d)); color:#fff; box-shadow:0 4px 28px rgba(196,117,80,.35); border:1px solid rgba(255,255,255,.1); }
+    .btn-primary:hover { transform:translateY(-3px); box-shadow:0 14px 45px rgba(196,117,80,.52); }
+    .btn-ghost { background:rgba(255,255,255,.04); color:rgba(255,255,255,.68); border:1px solid var(--border); backdrop-filter:blur(8px); }
+    .btn-ghost:hover { border-color:var(--border-h); color:#fff; background:rgba(255,255,255,.07); transform:translateY(-2px); }
+
     .hero-metrics {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      border: 1px solid var(--border); border-radius: 20px;
-      background: rgba(255,255,255,.025); backdrop-filter: blur(16px);
-      overflow: hidden;
+      display:grid; grid-template-columns:repeat(4,1fr);
+      border:1px solid var(--border); border-radius:22px;
+      background:rgba(255,255,255,.022); backdrop-filter:blur(16px); overflow:hidden;
+      position:relative;
     }
-    .hm { padding: 1.4rem 1rem; text-align: center; position: relative; transition: background .3s; }
+    .hero-metrics::before {
+      content:''; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+      width:48px; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.4),transparent);
+    }
+    .hm { padding:1.5rem 1rem; text-align:center; position:relative; transition:background .3s; }
     .hm::after { content:''; position:absolute; right:0; top:20%; bottom:20%; width:1px; background:var(--border); }
     .hm:last-child::after { display:none; }
-    .hm:hover { background: rgba(184,105,74,.06); }
-    .hm-n { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 600; color: var(--terra-l); display: block; line-height: 1; }
-    .hm-l { font-size: .62rem; color: rgba(255,255,255,.35); letter-spacing: .1em; margin-top: .35rem; text-transform: uppercase; }
+    .hm:hover { background:rgba(196,117,80,.06); }
+    .hm-n { font-family:'Cormorant Garamond',serif; font-size:2.1rem; font-weight:600; color:var(--terra-l); display:block; line-height:1; }
+    .hm-l { font-size:.6rem; color:rgba(255,255,255,.32); letter-spacing:.12em; margin-top:.4rem; text-transform:uppercase; }
 
-    /* ─── DIVIDER ─── */
-    .divider { height: 1px; margin: 0 5%; background: linear-gradient(90deg, transparent, rgba(184,105,74,.2) 40%, rgba(90,122,86,.15) 70%, transparent); }
-
-    /* ─── BASE SECTION ─── */
-    section { padding: 7rem 5%; position: relative; }
-    .s-eyebrow {
-      display: inline-flex; align-items: center; gap: .5rem;
-      padding: .3rem .9rem; border-radius: 50px; font-size: .68rem;
-      letter-spacing: .15em; font-weight: 600; margin-bottom: 1.25rem;
-      border: 1px solid rgba(184,105,74,.2); background: rgba(184,105,74,.06); color: var(--terra-l);
+    /* ════════════════════════════════════════
+       WAVE DIVIDERS
+    ════════════════════════════════════════ */
+    .wave-div {
+      width:100%; height:64px; overflow:visible;
+      display:flex; align-items:center; position:relative; z-index:1;
     }
-    .s-h { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.4rem, 4vw, 3.6rem); line-height: 1.1; margin-bottom: 1.1rem; font-weight: 600; }
-    .s-p { color: rgba(255,255,255,.55); line-height: 1.9; font-size: 1.05rem; font-weight: 300; }
-    .tc { text-align: center; }
-    .tc .s-p { max-width: 560px; margin-inline: auto; }
+    .wave-div svg { width:100%; height:100%; display:block; overflow:visible; }
 
-    /* ─── PROCESO ─── */
-    #proceso { }
-    .proceso-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 4rem; }
+    /* ════════════════════════════════════════
+       BASE SECTION
+    ════════════════════════════════════════ */
+    section { padding:7rem 5%; position:relative; z-index:1; }
+    .s-eyebrow {
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.32rem .95rem; border-radius:50px; font-size:.66rem;
+      letter-spacing:.2em; font-weight:600; margin-bottom:1.25rem;
+      border:1px solid rgba(196,117,80,.2); background:rgba(196,117,80,.06); color:var(--terra-l);
+    }
+    .s-h {
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(2.6rem,4.8vw,4.2rem); line-height:1.08; margin-bottom:.8rem;
+      font-weight:600; letter-spacing:-.01em;
+    }
+    .s-h em { font-style:italic; font-weight:300; color:var(--terra-l); }
+    .s-p { color:rgba(255,255,255,.5); line-height:1.95; font-size:1.02rem; font-weight:300; }
+    .tc { text-align:center; }
+    .tc .s-p { max-width:560px; margin-inline:auto; }
+    .s-h-deco {
+      display:flex; align-items:center; gap:.55rem;
+      margin-top:-.3rem; margin-bottom:1.8rem;
+    }
+    .tc .s-h-deco { justify-content:center; }
+    .s-h-deco-line { width:36px; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.28)); }
+    .s-h-deco-line.r { background:linear-gradient(90deg,rgba(196,117,80,.28),transparent); }
+    .s-h-deco-sym { font-size:.55rem; color:rgba(196,117,80,.42); letter-spacing:.08em; }
+
+    /* ════════════════════════════════════════
+       PROCESO
+    ════════════════════════════════════════ */
+    .proceso-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem; margin-top:4rem;
+      position:relative;
+    }
+    .proceso-grid::before {
+      content:''; position:absolute; top:46px; left:calc(12.5% + 29px); right:calc(12.5% + 29px);
+      height:1px; background:linear-gradient(90deg, var(--terra-d), rgba(196,117,80,.35), var(--terra-d));
+      z-index:0;
+    }
     .p-card {
-      background: var(--glass); border: 1px solid var(--border); border-radius: 24px;
-      padding: 2.5rem 1.5rem 2rem; text-align: center;
-      transition: all .4s cubic-bezier(.16,1,.3,1); position: relative; overflow: hidden;
+      background:var(--glass); border:1px solid var(--border); border-radius:22px;
+      padding:2.5rem 1.5rem 2rem; text-align:center;
+      transition:all .4s cubic-bezier(.16,1,.3,1); position:relative; overflow:hidden; z-index:1;
     }
     .p-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent); }
-    .p-card:hover { background: rgba(184,105,74,.07); border-color: var(--border-h); transform: translateY(-8px); box-shadow: 0 24px 60px rgba(0,0,0,.4), 0 0 0 1px rgba(184,105,74,.1); }
-    .p-num-wrap { width: 58px; height: 58px; margin: 0 auto 1.5rem; position: relative; }
+    .p-card::after { content:''; position:absolute; inset:3px; border-radius:19px; border:1px solid rgba(255,255,255,.022); pointer-events:none; }
+    .p-card:hover { background:rgba(196,117,80,.07); border-color:var(--border-h); transform:translateY(-10px); box-shadow:0 28px 70px rgba(0,0,0,.42), 0 0 0 1px rgba(196,117,80,.1); }
+    .p-num-wrap { width:58px; height:58px; margin:0 auto 1.5rem; position:relative; }
     .p-num {
-      width: 58px; height: 58px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--terra), var(--terra-d));
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 600; color: #fff;
-      box-shadow: 0 8px 24px rgba(184,105,74,.4);
+      width:58px; height:58px; border-radius:50%;
+      background:linear-gradient(135deg, var(--terra), var(--terra-d));
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:600; color:#fff;
+      box-shadow:0 8px 28px rgba(196,117,80,.42);
     }
-    .p-num-wrap::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:1px solid rgba(184,105,74,.2); animation:spin 12s linear infinite; }
+    .p-num-wrap::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:1px solid rgba(196,117,80,.18); animation:spin 14s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg)} }
-    .p-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600; margin-bottom: .6rem; color: var(--cream); }
-    .p-card p { font-size: .92rem; color: rgba(255,255,255,.55); line-height: 1.7; }
+    .p-card h3 { font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-weight:600; margin-bottom:.6rem; color:var(--cream); }
+    .p-card p { font-size:.9rem; color:rgba(255,255,255,.5); line-height:1.75; }
 
-    /* ─── IMPACTO (antes beneficios) ─── */
-    #impacto { }
-    .impacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
-    .impacto-visual { position: relative; }
+    /* ════════════════════════════════════════
+       BLOB GALLERY
+    ════════════════════════════════════════ */
+    .blob-gallery-section {
+      padding:2rem 5% 6rem; position:relative; z-index:1;
+    }
+    .blob-gallery-wrap {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:2rem; margin-top:2.5rem;
+      align-items:start;
+    }
+    .blob-item { display:flex; flex-direction:column; align-items:center; gap:.8rem; }
+    .blob-item:nth-child(even) { margin-top:2.5rem; }
+    .blob-img-wrap {
+      width:100%; aspect-ratio:1; overflow:hidden; position:relative;
+      border-radius:52% 48% 60% 40% / 44% 54% 46% 56%;
+      border:1.5px solid rgba(196,117,80,.22);
+      transition:all .5s cubic-bezier(.16,1,.3,1);
+      box-shadow:0 16px 50px rgba(0,0,0,.4);
+    }
+    .blob-item:nth-child(2) .blob-img-wrap { border-radius:40% 60% 45% 55% / 55% 45% 60% 40%; border-color:rgba(97,125,92,.28); }
+    .blob-item:nth-child(3) .blob-img-wrap { border-radius:65% 35% 50% 50% / 50% 60% 40% 50%; border-color:rgba(201,168,108,.25); }
+    .blob-item:nth-child(4) .blob-img-wrap { border-radius:45% 55% 38% 62% / 58% 42% 58% 42%; border-color:rgba(110,136,152,.28); }
+    .blob-img-wrap:hover {
+      border-radius:50% 50% 55% 45% / 50% 55% 45% 50%;
+      box-shadow:0 24px 70px rgba(0,0,0,.5);
+      border-color:rgba(196,117,80,.48);
+      transform:translateY(-6px) scale(1.02);
+    }
+    .blob-img-wrap img {
+      width:100%; height:100%; object-fit:cover;
+      filter:grayscale(65%) sepia(22%) brightness(.82) contrast(1.05);
+      transition:filter .6s ease, transform .6s ease;
+    }
+    .blob-img-wrap:hover img {
+      filter:grayscale(15%) sepia(8%) brightness(.92) saturate(1.25);
+      transform:scale(1.08);
+    }
+    .blob-label {
+      font-size:.64rem; letter-spacing:.16em; color:rgba(255,255,255,.32);
+      font-weight:500; text-transform:uppercase; text-align:center;
+    }
+
+    /* ════════════════════════════════════════
+       IMPACTO
+    ════════════════════════════════════════ */
+    #impacto { background:linear-gradient(135deg, rgba(74,93,107,.05) 0%, transparent 55%); }
+    .impacto-grid { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center; }
+    .impacto-visual { position:relative; }
     .img-frame {
-      border-radius: 28px; overflow: hidden; position: relative;
-      border: 1px solid var(--border);
-      box-shadow: 0 40px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04);
+      border-radius:52% 48% 60% 40% / 44% 54% 46% 56%;
+      overflow:hidden; position:relative;
+      border:none;
+      box-shadow:0 0 0 2px rgba(196,117,80,.2), 0 0 0 10px rgba(196,117,80,.05), 0 40px 80px rgba(0,0,0,.52);
+      transition:border-radius .6s ease, box-shadow .4s;
     }
-    .img-frame img { width: 100%; height: 480px; object-fit: cover; display: block; filter: brightness(.82) saturate(1.1); }
-    .img-frame-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,6,4,.85) 0%, rgba(8,6,4,.25) 50%, transparent 100%); }
-    /* Tarjeta flotante de stats */
+    .img-frame:hover {
+      border-radius:58% 42% 50% 50% / 50% 46% 54% 50%;
+      box-shadow:0 0 0 2px rgba(196,117,80,.32), 0 0 0 14px rgba(196,117,80,.07), 0 40px 80px rgba(0,0,0,.52);
+    }
+    .img-frame img {
+      width:100%; height:480px; object-fit:cover;
+      filter:grayscale(75%) sepia(25%) brightness(.82) contrast(1.05);
+      transition:filter 1.2s ease, transform .6s ease;
+      display:block;
+    }
+    .img-frame:hover img {
+      filter:grayscale(20%) sepia(10%) brightness(.9) saturate(1.3);
+      transform:scale(1.04);
+    }
+    .img-frame-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(13,10,7,.8) 0%, rgba(13,10,7,.18) 55%, transparent 100%); }
     .stats-card {
-      position: absolute; bottom: -1.5rem; right: -1.5rem;
-      background: rgba(12,9,7,.92); backdrop-filter: blur(20px);
-      border: 1px solid rgba(184,105,74,.25); border-radius: 18px; padding: 1.4rem;
-      box-shadow: 0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
-      min-width: 195px;
+      position:absolute; bottom:-2rem; right:-2rem;
+      background:rgba(13,10,7,.94); backdrop-filter:blur(20px);
+      border:1px solid rgba(196,117,80,.22); border-radius:20px; padding:1.5rem;
+      box-shadow:0 20px 55px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.05);
+      min-width:200px;
     }
-    .stats-card-label { font-size: .65rem; color: var(--terra-l); letter-spacing: .14em; font-weight: 600; margin-bottom: .85rem; }
-    .s-bar-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; }
-    .s-bar-row:last-child { margin: 0; }
-    .s-bar-name { font-size: .7rem; color: rgba(255,255,255,.45); width: 80px; line-height: 1.2; }
-    .s-bar-wrap { flex: 1; height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
-    .s-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--terra), var(--verde-l)); transition: width 1.5s ease; }
-    .s-bar-val { font-size: .7rem; color: var(--terra-l); font-weight: 600; width: 32px; text-align: right; }
-    /* Ornamento esquina verde */
-    .corner-leaf {
-      position: absolute; top: -2rem; left: -2rem;
-      width: 80px; height: 80px; opacity: .15;
-    }
+    .stats-card-label { font-size:.62rem; color:var(--terra-l); letter-spacing:.16em; font-weight:600; margin-bottom:.9rem; }
+    .s-bar-row { display:flex; align-items:center; gap:.6rem; margin-bottom:.5rem; }
+    .s-bar-row:last-child { margin:0; }
+    .s-bar-name { font-size:.7rem; color:rgba(255,255,255,.42); width:80px; line-height:1.2; }
+    .s-bar-wrap { flex:1; height:3px; background:rgba(255,255,255,.07); border-radius:2px; overflow:hidden; }
+    .s-bar-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--terra), var(--verde-l)); transition:width 1.5s ease; }
+    .s-bar-val { font-size:.7rem; color:var(--terra-l); font-weight:600; width:32px; text-align:right; }
+    .corner-leaf { position:absolute; top:-2rem; left:-2rem; width:80px; height:80px; opacity:.14; }
+    .impacto-list { display:flex; flex-direction:column; gap:.75rem; }
+    .i-row { display:flex; align-items:flex-start; gap:1rem; padding:1rem 1.2rem; border-radius:14px; border:1px solid transparent; transition:all .35s; }
+    .i-row:hover { background:var(--glass); border-color:var(--border); }
+    .i-check { width:28px; height:28px; border-radius:50%; flex-shrink:0; margin-top:.05rem; background:rgba(196,117,80,.1); border:1px solid rgba(196,117,80,.22); display:flex; align-items:center; justify-content:center; }
+    .i-check svg { width:12px; height:12px; }
+    .i-row h4 { font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:600; color:var(--cream); margin-bottom:.2rem; }
+    .i-row p { font-size:.82rem; color:rgba(255,255,255,.42); line-height:1.55; }
 
-    .impacto-list { display: flex; flex-direction: column; gap: .75rem; }
-    .i-row {
-      display: flex; align-items: flex-start; gap: 1rem;
-      padding: 1rem 1.2rem; border-radius: 14px; border: 1px solid transparent;
-      transition: all .35s;
+    /* ════════════════════════════════════════
+       PROPUESTA
+    ════════════════════════════════════════ */
+    #propuesta {
+      background-image:
+        repeating-linear-gradient(45deg, rgba(196,117,80,.018) 0, rgba(196,117,80,.018) 1px, transparent 1px, transparent 14px),
+        radial-gradient(ellipse 100% 80% at 50% 50%, rgba(74,93,107,.07) 0%, transparent 65%);
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
     }
-    .i-row:hover { background: var(--glass); border-color: var(--border); }
-    .i-check {
-      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; margin-top: .05rem;
-      background: rgba(184,105,74,.12); border: 1px solid rgba(184,105,74,.25);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .i-check svg { width: 12px; height: 12px; }
-    .i-row h4 { font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 600; color: var(--cream); margin-bottom: .2rem; }
-    .i-row p { font-size: .8rem; color: rgba(255,255,255,.45); line-height: 1.55; }
-
-    /* ─── PROPUESTA (precios) ─── */
-    #propuesta { background: radial-gradient(ellipse 100% 80% at 50% 50%, rgba(184,105,74,.06) 0%, transparent 70%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .propuesta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 3.5rem; }
+    .propuesta-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; margin-top:3.5rem; }
     .prop-card {
-      border-radius: 24px; padding: 2.25rem 1.75rem; position: relative; overflow: hidden;
-      border: 1px solid var(--border); background: var(--glass);
-      backdrop-filter: blur(16px); transition: all .4s cubic-bezier(.16,1,.3,1);
+      border-radius:24px; padding:2.4rem 1.85rem; position:relative; overflow:hidden;
+      border:1px solid var(--border); background:var(--glass);
+      backdrop-filter:blur(16px); transition:all .4s cubic-bezier(.16,1,.3,1);
     }
     .prop-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent); }
-    .prop-card:hover { transform: translateY(-8px); border-color: rgba(184,105,74,.25); box-shadow: 0 32px 80px rgba(0,0,0,.45); }
-    .prop-card.star { background: linear-gradient(145deg, rgba(184,105,74,.18) 0%, rgba(139,74,46,.12) 100%); border-color: rgba(184,105,74,.35); box-shadow: 0 0 0 1px rgba(184,105,74,.15); }
-    .prop-card.star::before { background: linear-gradient(90deg, transparent, rgba(184,105,74,.4), transparent); }
-    .prop-badge { display: inline-block; background: linear-gradient(135deg, var(--terra), var(--gold)); color: #fff; font-size: .62rem; letter-spacing: .14em; font-weight: 700; padding: .25rem .85rem; border-radius: 50px; margin-bottom: 1.25rem; }
-    .prop-tipo { font-size: .68rem; letter-spacing: .15em; color: rgba(255,255,255,.38); margin-bottom: .5rem; font-weight: 600; }
-    .prop-precio { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; font-weight: 600; color: var(--cream); line-height: 1; margin-bottom: .25rem; }
-    .prop-card.star .prop-precio { color: var(--terra-l); }
-    .prop-base { font-size: .78rem; color: rgba(255,255,255,.35); margin-bottom: 1.75rem; line-height: 1.5; }
-    .prop-sep { height: 1px; background: var(--border); margin-bottom: 1.5rem; }
-    .prop-list { display: flex; flex-direction: column; gap: .6rem; }
-    .prop-item { display: flex; gap: .6rem; align-items: flex-start; font-size: .82rem; color: rgba(255,255,255,.6); }
-    .prop-card.star .prop-item { color: rgba(255,255,255,.8); }
-    .prop-item::before { content:'→'; color: var(--terra-l); font-size: .8rem; flex-shrink: 0; margin-top: .05rem; }
+    .prop-card:hover { transform:translateY(-10px); border-color:rgba(196,117,80,.28); box-shadow:0 36px 90px rgba(0,0,0,.45); }
+    .prop-card.star {
+      background:linear-gradient(145deg, rgba(196,117,80,.16) 0%, rgba(74,93,107,.1) 100%);
+      border-color:rgba(196,117,80,.35); box-shadow:0 0 0 1px rgba(196,117,80,.12);
+    }
+    .prop-card.star::before { background:linear-gradient(90deg, transparent, rgba(196,117,80,.4), transparent); }
+    .prop-card.star::after { content:''; position:absolute; inset:3px; border-radius:21px; border:1px solid rgba(196,117,80,.07); pointer-events:none; }
+    .prop-corner { position:absolute; top:1rem; right:1rem; width:38px; height:38px; opacity:.3; }
+    .prop-badge { display:inline-block; background:linear-gradient(135deg, var(--terra), var(--gold)); color:#fff; font-size:.62rem; letter-spacing:.14em; font-weight:700; padding:.25rem .85rem; border-radius:50px; margin-bottom:1.25rem; }
+    .prop-tipo { font-size:.66rem; letter-spacing:.16em; color:rgba(255,255,255,.35); margin-bottom:.5rem; font-weight:600; }
+    .prop-precio { font-family:'Cormorant Garamond',serif; font-size:2.6rem; font-weight:600; color:var(--cream); line-height:1; margin-bottom:.25rem; }
+    .prop-card.star .prop-precio { color:var(--terra-l); }
+    .prop-base { font-size:.78rem; color:rgba(255,255,255,.32); margin-bottom:1.75rem; line-height:1.5; }
+    .prop-sep { height:1px; background:var(--border); margin-bottom:1.5rem; }
+    .prop-list { display:flex; flex-direction:column; gap:.65rem; }
+    .prop-item { display:flex; gap:.6rem; align-items:flex-start; font-size:.82rem; color:rgba(255,255,255,.58); }
+    .prop-card.star .prop-item { color:rgba(255,255,255,.82); }
+    .prop-item::before { content:'→'; color:var(--terra-l); font-size:.8rem; flex-shrink:0; margin-top:.05rem; }
 
-    /* ─── CALCULADORA ─── */
-    #calculadora { }
+    /* ════════════════════════════════════════
+       CALCULADORA
+    ════════════════════════════════════════ */
     .calc-wrap {
-      max-width: 720px; margin: 3.5rem auto 0;
-      background: rgba(255,255,255,.025); border: 1px solid var(--border);
-      border-radius: 28px; overflow: hidden;
-      box-shadow: 0 40px 100px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
-      backdrop-filter: blur(20px);
+      max-width:720px; margin:3.5rem auto 0;
+      background:rgba(255,255,255,.022); border:1px solid var(--border);
+      border-radius:28px; overflow:hidden; position:relative;
+      box-shadow:0 40px 100px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+      backdrop-filter:blur(20px);
     }
-    .calc-head { padding: 2.25rem 2.5rem; border-bottom: 1px solid var(--border); background: rgba(184,105,74,.04); }
-    .calc-head h3 { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; margin-bottom: .35rem; }
-    .calc-head p { font-size: .85rem; color: rgba(255,255,255,.4); }
-    .calc-body { padding: 2.25rem 2.5rem; display: flex; flex-direction: column; gap: 1.75rem; }
-    .calc-viz { }
-    .calc-viz-label { font-size: .72rem; color: rgba(255,255,255,.4); letter-spacing: .1em; margin-bottom: .75rem; display: flex; justify-content: space-between; }
-    .calc-viz-label span { color: var(--terra-l); font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; }
-    .calc-people { display: flex; flex-wrap: wrap; gap: 5px; min-height: 54px; }
-    .calc-field label { display: flex; justify-content: space-between; margin-bottom: .8rem; font-size: .8rem; color: rgba(255,255,255,.5); font-weight: 500; }
-    .calc-field label span { color: var(--terra-l); font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; }
-    input[type=range] {
-      width: 100%; height: 4px; border-radius: 2px; outline: none; appearance: none; cursor: pointer;
-      background: linear-gradient(90deg, var(--terra) var(--pct,33%), rgba(255,255,255,.1) var(--pct,33%));
-    }
-    input[type=range]::-webkit-slider-thumb {
-      appearance: none; width: 20px; height: 20px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--terra-l), var(--terra));
-      border: 2px solid rgba(255,255,255,.2); box-shadow: 0 4px 16px rgba(184,105,74,.5); cursor: pointer; transition: transform .2s;
-    }
-    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.25); }
-    .calc-duracion { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; }
-    .calc-duracion span:first-child { font-size: .8rem; color: rgba(255,255,255,.45); }
-    .calc-duracion span:last-child { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: var(--terra-l); }
+    .calc-wrap::after { content:''; position:absolute; inset:3px; border-radius:24px; border:1px solid rgba(255,255,255,.022); pointer-events:none; z-index:0; }
+    .calc-head { padding:2.25rem 2.5rem; border-bottom:1px solid var(--border); background:rgba(196,117,80,.038); position:relative; z-index:1; }
+    .calc-head h3 { font-family:'Cormorant Garamond',serif; font-size:1.7rem; margin-bottom:.35rem; }
+    .calc-head p { font-size:.84rem; color:rgba(255,255,255,.38); }
+    .calc-head-rule { display:flex; justify-content:flex-start; margin:.6rem 0 0; }
+    .calc-body { padding:2.25rem 2.5rem; display:flex; flex-direction:column; gap:1.75rem; position:relative; z-index:1; }
+    .calc-viz-label { font-size:.72rem; color:rgba(255,255,255,.38); letter-spacing:.1em; margin-bottom:.75rem; display:flex; justify-content:space-between; }
+    .calc-viz-label span { color:var(--terra-l); font-family:'Cormorant Garamond',serif; font-size:1.1rem; }
+    .calc-people { display:flex; flex-wrap:wrap; gap:5px; min-height:54px; }
+    .calc-field label { display:flex; justify-content:space-between; margin-bottom:.8rem; font-size:.8rem; color:rgba(255,255,255,.48); font-weight:400; }
+    .calc-field label span { color:var(--terra-l); font-family:'Cormorant Garamond',serif; font-size:1.05rem; }
+    input[type=range] { width:100%; height:4px; border-radius:2px; outline:none; appearance:none; cursor:pointer; background:linear-gradient(90deg, var(--terra) var(--pct,33%), rgba(255,255,255,.1) var(--pct,33%)); }
+    input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg, var(--terra-l), var(--terra)); border:2px solid rgba(255,255,255,.2); box-shadow:0 4px 16px rgba(196,117,80,.5); cursor:pointer; transition:transform .2s; }
+    input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.25); }
+    .calc-duracion { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:12px; padding:.9rem 1.2rem; display:flex; justify-content:space-between; align-items:center; }
+    .calc-duracion span:first-child { font-size:.8rem; color:rgba(255,255,255,.42); }
+    .calc-duracion span:last-child { font-family:'Cormorant Garamond',serif; font-size:1.2rem; color:var(--terra-l); }
     .calc-result {
-      margin: 0 2.5rem 2.5rem;
-      background: linear-gradient(135deg, rgba(184,105,74,.16) 0%, rgba(139,74,46,.1) 100%);
-      border: 1px solid rgba(184,105,74,.25); border-radius: 18px; padding: 1.75rem;
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center; position: relative; overflow: hidden;
+      margin:0 2.5rem 2.5rem; position:relative; z-index:1;
+      background:linear-gradient(135deg, rgba(196,117,80,.15) 0%, rgba(74,93,107,.1) 100%);
+      border:1px solid rgba(196,117,80,.22); border-radius:18px; padding:1.75rem;
+      display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; text-align:center; overflow:hidden;
     }
-    .calc-result::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(184,105,74,.5),transparent); }
-    .cr-lbl { font-size: .63rem; color: var(--terra-l); letter-spacing: .12em; font-weight: 600; margin-bottom: .4rem; }
-    .cr-val { font-family: 'Cormorant Garamond', serif; font-size: 1.9rem; font-weight: 600; color: var(--cream); }
-    .calc-note { padding: 0 2.5rem 1.5rem; font-size: .72rem; color: rgba(255,255,255,.22); text-align: center; }
+    .calc-result::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.5),transparent); }
+    .cr-lbl { font-size:.63rem; color:var(--terra-l); letter-spacing:.12em; font-weight:600; margin-bottom:.4rem; }
+    .cr-val { font-family:'Cormorant Garamond',serif; font-size:1.9rem; font-weight:600; color:var(--cream); }
+    .calc-note { padding:0 2.5rem 1.5rem; font-size:.72rem; color:rgba(255,255,255,.2); text-align:center; position:relative; z-index:1; }
 
-    /* ─── ROI ─── */
-    #roi { }
-    .roi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
-    .roi-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-    .roi-stat {
-      background: var(--glass); border: 1px solid var(--border); border-radius: 18px;
-      padding: 1.6rem; transition: all .4s;
-    }
-    .roi-stat:hover { background: var(--glass-h); border-color: var(--border-h); transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.3); }
-    .roi-stat-ico { margin-bottom: .75rem; }
-    .roi-stat-ico svg { width: 26px; height: 26px; }
-    .roi-stat-n { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 600; color: var(--terra-l); line-height: 1; margin-bottom: .4rem; }
-    .roi-stat-l { font-size: .78rem; color: rgba(255,255,255,.45); line-height: 1.4; }
-    .roi-txt .s-h em { font-style: italic; color: var(--terra-l); }
-    .roi-txt .s-p { margin-bottom: 2rem; }
-    .roi-cita { background: var(--glass); border-left: 2px solid var(--verde); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0 16px 16px 0; padding: 1.4rem 1.5rem; }
-    .roi-cita p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.05rem; color: rgba(255,255,255,.65); line-height: 1.7; margin-bottom: .65rem; }
-    .roi-cita cite { font-size: .72rem; color: rgba(255,255,255,.3); }
+    /* ════════════════════════════════════════
+       ROI
+    ════════════════════════════════════════ */
+    #roi { background:linear-gradient(140deg, rgba(74,93,107,.08) 0%, transparent 55%); }
+    .roi-grid { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center; }
+    .roi-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    .roi-stat { background:var(--glass); border:1px solid var(--border); border-radius:20px; padding:1.7rem; transition:all .4s; }
+    .roi-stat:hover { background:var(--glass-h); border-color:var(--border-h); transform:translateY(-5px); box-shadow:0 20px 50px rgba(0,0,0,.35); }
+    .roi-stat-ico { margin-bottom:.75rem; }
+    .roi-stat-ico svg { width:26px; height:26px; }
+    .roi-stat-n { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:600; color:var(--terra-l); line-height:1; margin-bottom:.4rem; }
+    .roi-stat-l { font-size:.78rem; color:rgba(255,255,255,.42); line-height:1.45; }
+    .roi-txt .s-p { margin-bottom:2rem; }
+    .roi-cita { background:var(--glass); border-left:2px solid var(--verde); border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0 18px 18px 0; padding:1.5rem 1.6rem; }
+    .roi-cita p { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:1.08rem; color:rgba(255,255,255,.65); line-height:1.75; margin-bottom:.65rem; }
+    .roi-cita cite { font-size:.72rem; color:rgba(255,255,255,.28); }
+    .roi-cita-fleuron { display:block; margin-bottom:.6rem; }
 
-    /* ─── CTA FINAL ─── */
-    .cta-wrap {
-      padding: 8rem 5%; text-align: center; position: relative; overflow: hidden;
+    /* ════════════════════════════════════════
+       CTA FINAL
+    ════════════════════════════════════════ */
+    .cta-wrap { padding:9rem 5%; text-align:center; position:relative; overflow:hidden; z-index:1; }
+    .cta-glow { position:absolute; inset:0; background:radial-gradient(ellipse 90% 80% at 50% 50%, rgba(196,117,80,.14) 0%, transparent 65%); pointer-events:none; }
+    .cta-dots { position:absolute; inset:0; background:radial-gradient(circle, rgba(196,117,80,.09) 1px, transparent 1px) 0 0 / 32px 32px; pointer-events:none; opacity:.5; }
+    .cta-inner { position:relative; z-index:2; max-width:700px; margin:0 auto; }
+    .cta-frame {
+      border:1px solid rgba(196,117,80,.2); border-radius:32px; padding:5rem 3.5rem;
+      background:rgba(255,255,255,.018); backdrop-filter:blur(20px);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 90px rgba(196,117,80,.08);
+      position:relative; overflow:hidden;
     }
-    .cta-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 70% at 50% 50%, rgba(184,105,74,.12) 0%, transparent 70%); pointer-events: none; }
-    .cta-dots { position: absolute; inset: 0; background: radial-gradient(circle, rgba(184,105,74,.1) 1px, transparent 1px) 0 0 / 32px 32px; pointer-events: none; opacity: .5; }
-    .cta-inner { position: relative; z-index: 2; max-width: 660px; margin: 0 auto; }
-    .cta-frame { border: 1px solid rgba(184,105,74,.2); border-radius: 28px; padding: 4rem 3rem; background: rgba(255,255,255,.02); backdrop-filter: blur(20px); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 0 80px rgba(184,105,74,.07); }
-    .cta-inner .s-h { font-size: clamp(2.2rem, 4.5vw, 3.6rem); margin-bottom: 1.1rem; background: linear-gradient(135deg, #fff, var(--cream), var(--terra-l)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .cta-inner .s-p { max-width: 440px; margin: 0 auto 2.75rem; }
-    .cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .cta-frame::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.45),transparent); }
+    .cta-inner .s-h { font-size:clamp(2.4rem,5vw,4rem); margin-bottom:1.2rem; background:linear-gradient(135deg,#fff,var(--cream),var(--terra-l)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .cta-inner .s-p { max-width:460px; margin:0 auto 3rem; font-size:1.05rem; }
+    .cta-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
 
-    /* ─── FOOTER ─── */
-    footer { padding: 1.75rem 5%; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: rgba(0,0,0,.2); }
-    footer p { font-size: .75rem; color: rgba(255,255,255,.25); }
-    footer a { font-size: .82rem; color: rgba(255,255,255,.4); transition: color .3s; }
-    footer a:hover { color: var(--terra-l); }
-
-    /* ─── WA FLOAT ─── */
-    .wa-float { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; width: 56px; height: 56px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 24px rgba(37,211,102,.4); transition: all .35s; }
-    .wa-float:hover { transform: scale(1.1); box-shadow: 0 8px 40px rgba(37,211,102,.55); }
-    .wa-float::before { content:''; position:absolute; width:100%; height:100%; border-radius:50%; background:rgba(37,211,102,.3); animation:wap 2.5s ease-out infinite; }
-    .wa-float svg { width: 27px; height: 27px; fill: #fff; position: relative; }
-    @keyframes wap { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(2);opacity:0} }
-
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 1024px) {
-      .impacto-grid, .roi-grid { grid-template-columns: 1fr; }
-      .img-frame img { height: 320px; }
-      .stats-card { right: 1rem; bottom: -1rem; }
-      .propuesta-grid { grid-template-columns: 1fr; max-width: 420px; margin-inline: auto; }
-      .proceso-grid { grid-template-columns: 1fr 1fr; }
+    /* ════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════ */
+    footer {
+      padding:2.2rem 5%; border-top:1px solid var(--border);
+      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;
+      background:rgba(0,0,0,.2); position:relative; z-index:1;
     }
-    @media (max-width: 768px) {
-      section { padding: 5rem 5%; }
-      nav { padding: 1rem 5%; }
-      .hero { padding: 6rem 5% 4rem; }
-      .hero h1 { font-size: 2.8rem; }
-      .hero-metrics { grid-template-columns: repeat(2, 1fr); }
-      .hm::after { right: 0; top: auto; bottom: 0; width: auto; height: 1px; }
-      .hm:nth-child(2)::after { display: none; }
-      .hm:nth-child(4)::after { display: none; }
-      .proceso-grid { grid-template-columns: 1fr; }
-      .roi-stats-grid { grid-template-columns: 1fr 1fr; }
-      .calc-result { grid-template-columns: 1fr; gap: .75rem; }
-      .calc-body, .calc-head { padding: 1.75rem; }
-      .calc-result { margin: 0 1.75rem 1.75rem; }
-      .calc-note { padding: 0 1.75rem 1.25rem; }
-      .cta-frame { padding: 2.5rem 1.5rem; }
-      footer { flex-direction: column; text-align: center; }
-    }
-    /* ─── RETRO DETALLES ─── */
-    body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-      opacity:.4; mix-blend-mode:screen;
-    }
-    @keyframes sealSpin { to{transform:rotate(360deg)} }
+    footer p { font-size:.75rem; color:rgba(255,255,255,.22); }
+    footer a { font-size:.82rem; color:rgba(255,255,255,.38); transition:color .3s; }
+    footer a:hover { color:var(--terra-l); }
     .retro-stamp {
-      display:inline-block; border:1.5px solid rgba(184,105,74,.35); color:rgba(184,105,74,.7);
+      display:inline-block; border:1.5px solid rgba(196,117,80,.32); color:rgba(196,117,80,.65);
       padding:.25rem .85rem; font-size:.62rem; letter-spacing:.22em; font-weight:700;
-      border-radius:3px; transform:rotate(-1deg); font-family:'Inter',sans-serif;
+      border-radius:3px; transform:rotate(-1deg); font-family:'DM Sans',sans-serif; position:relative;
     }
-    .retro-stamp::before { content:''; position:absolute; inset:-4px; border:1px dashed rgba(184,105,74,.2); border-radius:4px; }
-    .vintage-sep { display:flex; align-items:center; gap:.75rem; }
-    .vintage-sep-line { flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(184,105,74,.25),transparent); }
+    .retro-stamp::before { content:''; position:absolute; inset:-4px; border:1px dashed rgba(196,117,80,.18); border-radius:4px; }
+    .vintage-sep { display:flex; align-items:center; gap:.75rem; width:200px; }
+    .vintage-sep-line { flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.22),transparent); }
 
-    /* ─── SAFE AREA (notch móvil) ─── */
+    /* ════════════════════════════════════════
+       WA FLOAT
+    ════════════════════════════════════════ */
+    .wa-float { position:fixed; bottom:1.5rem; right:1.5rem; z-index:999; width:58px; height:58px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 24px rgba(37,211,102,.38); transition:all .35s; }
+    .wa-float:hover { transform:scale(1.12); box-shadow:0 10px 44px rgba(37,211,102,.55); }
+    .wa-float::before { content:''; position:absolute; width:100%; height:100%; border-radius:50%; background:rgba(37,211,102,.28); animation:wap 2.5s ease-out infinite; }
+    .wa-float svg { width:28px; height:28px; fill:#fff; position:relative; }
+    @keyframes wap { 0%{transform:scale(1);opacity:.75} 100%{transform:scale(2.1);opacity:0} }
+    @keyframes sealSpin { to{transform:rotate(360deg)} }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════ */
+    /* ════════════════════════════════════════
+       RESPONSIVE — un solo bloque limpio
+    ════════════════════════════════════════ */
+    html, body { overflow-x:hidden; }
+
+    /* TABLET ≤1100px */
+    @media (max-width:1100px) {
+      .roi-grid { grid-template-columns:1fr; gap:3rem; }
+      .beneficio-grid { grid-template-columns:1fr; gap:3rem; }
+      .desc-numero-wrap { flex-direction:row; align-items:center; gap:2rem; padding:2rem; }
+      .desc-pct { font-size:5rem; }
+      .desc-pct-sub { border-top:none; padding-top:0; margin-top:0; }
+    }
+
+    /* TABLET PEQUEÑA ≤900px */
+    @media (max-width:900px) {
+      .proceso-grid { grid-template-columns:1fr 1fr; }
+      .proceso-grid::before { display:none; }
+      .propuesta-grid-v2 { grid-template-columns:1fr; max-width:440px; margin-inline:auto; }
+    }
+
+    /* MOBILE ≤768px */
+    @media (max-width:768px) {
+      section { padding:4.5rem 5%; }
+      .hero { padding:5.5rem 5% 3.5rem; min-height:95vh; }
+      .hero h1 { font-size:clamp(2rem,7.5vw,3rem); }
+      .hero-inner::before, .h-corner, .hero-topo { display:none; }
+      .hero-lead { font-size:.95rem; line-height:1.85; }
+      .hero-btns { flex-direction:column; align-items:center; gap:.75rem; }
+      .btn { width:100%; max-width:320px; justify-content:center; font-size:.88rem; padding:.9rem 1.6rem; }
+
+      /* Hero metrics — 3 col compacto */
+      .hero-metrics { border-radius:16px; }
+      .hm { padding:1rem .5rem; }
+      .hm-n { font-size:1.6rem; }
+      .hm-l { font-size:.5rem; letter-spacing:.08em; }
+      .hm::after { right:0; top:20%; bottom:20%; }
+
+      /* Nav */
+      .nav-back, .nav-cta { display:none; }
+      .nav-hamburger { display:flex; }
+
+      /* Photo strip */
+      .photo-strip { height:240px; }
+      .photo-strip-inner { max-width:280px; }
+      .photo-strip-tag { font-size:.58rem; padding:.3rem .8rem; }
+      .photo-strip-h { font-size:1.6rem; margin-bottom:.6rem; }
+      .photo-strip-p { font-size:.8rem; display:none; }
+
+      /* Proceso */
+      .proceso-grid { grid-template-columns:1fr; gap:1rem; }
+      .p-card { padding:2rem 1.4rem 1.8rem; }
+
+      /* Impacto numeros */
+      .impacto-numeros { gap:.75rem; margin:2.5rem 0 2.5rem; }
+      .imp-num { padding:1.4rem 1rem; border-radius:18px; }
+      .imp-n { font-size:2.2rem; }
+      .imp-l { font-size:.62rem; }
+      .impacto-list-grid { grid-template-columns:1fr; gap:.75rem; }
+
+      /* Precios */
+      .precio-hero { padding:2rem 1.4rem 1.8rem; border-radius:22px; }
+      .precio-main { font-size:3.8rem; }
+      .incluye-grid { grid-template-columns:1fr; gap:.65rem; margin-bottom:1.5rem; }
+      .adaptamos-box { padding:1rem 1.2rem; font-size:.9rem; }
+      .propuesta-grid-v2 { max-width:100%; }
+      .pv2-card { padding:2rem 1.5rem; border-radius:20px; }
+
+      /* Beneficio 30% */
+      .beneficio-grid { grid-template-columns:1fr; gap:2rem; }
+      .desc-numero-wrap { flex-direction:row; align-items:center; gap:1.5rem; padding:1.6rem; border-radius:20px; }
+      .desc-pct { font-size:4rem; }
+      .desc-pct-label { font-size:.68rem; }
+      .desc-pct-sub { display:none; }
+      .beneficio-card { padding:1rem 1.1rem; }
+
+      /* Calculadora */
+      .calc-wrap { border-radius:20px; }
+      .calc-head, .calc-body { padding:1.5rem; }
+      .calc-result { grid-template-columns:1fr 1fr 1fr; margin:0 1.5rem 0; }
+      .cr-val { font-size:1.3rem; }
+      .cr-lbl { font-size:.56rem; }
+      .calc-roi-strip { margin:1rem 1.5rem 1.5rem; padding:.85rem 1rem; }
+      .calc-note { padding:0 1.5rem 1.25rem; }
+      .calc-jornada-visual { gap:.6rem; }
+
+      /* ROI */
+      .roi-stats-grid { grid-template-columns:1fr 1fr; gap:1rem; }
+      .roi-stat { padding:1.3rem; }
+      .roi-stat-n { font-size:1.9rem; }
+
+      /* CTA */
+      .cta-frame { padding:2.8rem 1.5rem; border-radius:22px; }
+      .cta-btns { flex-direction:column; align-items:center; gap:.75rem; }
+      .cta-btns .btn { width:100%; max-width:300px; justify-content:center; }
+
+      /* Footer */
+      footer { flex-direction:column; text-align:center; gap:.75rem; }
+    }
+
+    /* MOBILE PEQUEÑO ≤480px */
+    @media (max-width:480px) {
+      section { padding:3.5rem 4%; }
+      .hero { padding:5rem 4% 3rem; }
+      .hero h1 { font-size:1.95rem; line-height:1.1; }
+      .hero-lead { font-size:.88rem; }
+
+      /* Hero metrics — 3 col muy compacto */
+      .hm { padding:.85rem .3rem; }
+      .hm-n { font-size:1.35rem; }
+      .hm-l { font-size:.44rem; letter-spacing:.04em; }
+
+      /* Photo strip */
+      .photo-strip { height:200px; }
+      .photo-strip-h { font-size:1.3rem; }
+      .photo-strip-tag { display:none; }
+
+      /* Impacto numeros — 2 col + última full */
+      .impacto-numeros { grid-template-columns:1fr 1fr; }
+      .imp-num:last-child { grid-column:1/-1; }
+
+      /* Precios */
+      .precio-main { font-size:3.2rem; }
+      .precio-sub { font-size:.75rem; }
+
+      /* 30% */
+      .desc-numero-wrap { flex-direction:column; align-items:flex-start; gap:.75rem; }
+      .desc-pct { font-size:4.5rem; }
+
+      /* Calculadora */
+      .calc-result { grid-template-columns:1fr; gap:.6rem; margin:0 1.25rem 0; }
+      .cr-val { font-size:1.5rem; }
+
+      /* ROI */
+      .roi-stats-grid { grid-template-columns:1fr 1fr; }
+
+      /* Proceso */
+      .p-num-wrap::after { display:none; }
+    }
     @supports (padding: max(0px)) {
-      nav { padding-left: max(5%, env(safe-area-inset-left)); padding-right: max(5%, env(safe-area-inset-right)); }
-      footer { padding-bottom: max(1.75rem, env(safe-area-inset-bottom)); }
+      nav { padding-left:max(5%,env(safe-area-inset-left)); padding-right:max(5%,env(safe-area-inset-right)); }
+      footer { padding-bottom:max(2.2rem,env(safe-area-inset-bottom)); }
+    }
+
+    /* ════════════════════════════════════════
+       FINAL DE OBRA — sombras, colores, responsive
+    ════════════════════════════════════════ */
+
+    /* Sombras mejoradas */
+    .p-card:hover {
+      box-shadow:
+        0 1px 2px rgba(0,0,0,.5),
+        0 8px 24px rgba(0,0,0,.45),
+        0 28px 70px rgba(0,0,0,.42),
+        0 0 0 1px rgba(196,117,80,.12);
+    }
+    .pv2-card:hover {
+      box-shadow:
+        0 2px 4px rgba(0,0,0,.4),
+        0 12px 32px rgba(0,0,0,.4),
+        0 36px 90px rgba(0,0,0,.45);
+    }
+    .pv2-card.star {
+      box-shadow:
+        0 0 0 1px rgba(196,117,80,.2),
+        0 8px 32px rgba(196,117,80,.14),
+        0 24px 60px rgba(0,0,0,.5);
+    }
+    .imp-num:hover {
+      box-shadow:
+        0 4px 12px rgba(0,0,0,.4),
+        0 20px 50px rgba(0,0,0,.35),
+        0 0 0 1px rgba(196,117,80,.18);
+    }
+    .roi-stat:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,.35), 0 16px 40px rgba(0,0,0,.3);
+    }
+
+    /* Animaciones refinadas */
+    .fade-up, .fade-left, .fade-right, .fade-scale {
+      will-change: transform, opacity;
+    }
+    .p-num-wrap::after { animation-timing-function: linear; }
+
+    /* Número grande del 30% — contador animado */
+    @keyframes countUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .desc-pct { animation: countUp .8s cubic-bezier(.16,1,.3,1) both; }
+
+    /* Hover refinado en i-row */
+    .i-row { transition: background .3s, border-color .3s, transform .3s; }
+    .i-row:hover { transform: translateX(4px); }
+
+    /* Mejora color texto hero-lead */
+    .hero-lead { color: rgba(255,255,255,.58); }
+
+    /* Eyebrow sutil glow */
+    .s-eyebrow { transition: box-shadow .3s; }
+
+    /* CTA frame — borde animado */
+    .cta-frame {
+      transition: box-shadow .4s;
+    }
+    .cta-frame:hover {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 0 120px rgba(196,117,80,.12);
+    }
+
+    /* responsive consolidado ↑ */
+
+    /* ════════════════════════════════════════
+       PRECIO HERO — sección precios rediseñada
+    ════════════════════════════════════════ */
+    .precio-hero {
+      max-width:780px; margin:3.5rem auto 0; position:relative; overflow:hidden;
+      background:linear-gradient(145deg, rgba(196,117,80,.18) 0%, rgba(13,10,7,.95) 55%, rgba(74,93,107,.12) 100%);
+      border:1px solid rgba(196,117,80,.38); border-radius:32px;
+      padding:3.5rem 3rem 3rem; text-align:center;
+      box-shadow:0 0 0 1px rgba(196,117,80,.1), 0 50px 110px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);
+    }
+    .precio-hero::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(196,117,80,.55),rgba(201,168,108,.45),rgba(196,117,80,.55),transparent);
+    }
+    .precio-eyebrow {
+      font-size:.62rem; letter-spacing:.22em; color:var(--terra-l); font-weight:600;
+      margin-bottom:1.2rem; display:block;
+    }
+    .precio-main {
+      font-family:'Cormorant Garamond',serif; font-size:clamp(4rem,9vw,6.5rem);
+      font-weight:600; color:var(--cream); line-height:1; display:block; margin-bottom:.1rem;
+    }
+    .precio-uyu {
+      font-size:.75rem; letter-spacing:.25em; color:rgba(255,255,255,.35);
+      display:block; margin-bottom:.6rem;
+    }
+    .precio-sub {
+      font-size:.82rem; color:rgba(255,255,255,.38); margin-bottom:2.5rem;
+      line-height:1.7; max-width:440px; margin-inline:auto;
+    }
+    .incluye-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:.9rem;
+      margin:0 0 2rem; text-align:left;
+    }
+    .incluye-item {
+      display:flex; align-items:flex-start; gap:.6rem;
+      font-size:.84rem; color:rgba(255,255,255,.62); line-height:1.5;
+    }
+    .incluye-ico {
+      width:20px; height:20px; border-radius:50%; flex-shrink:0; margin-top:.05rem;
+      background:rgba(196,117,80,.14); border:1px solid rgba(196,117,80,.28);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .incluye-ico svg { width:10px; height:10px; }
+    .adaptamos-box {
+      background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
+      border-radius:16px; padding:1.2rem 1.5rem; margin-bottom:2.5rem;
+      font-size:.88rem; color:rgba(255,255,255,.48); line-height:1.75;
+      font-style:italic; font-family:'Cormorant Garamond',serif; font-size:1.02rem;
+    }
+    .adaptamos-box strong { color:var(--terra-l); font-style:normal; font-weight:600; }
+
+    /* CALCULADORA mejorada */
+    .calc-jornada-visual {
+      background:linear-gradient(135deg, rgba(196,117,80,.12), rgba(74,93,107,.08));
+      border:1px solid rgba(196,117,80,.2); border-radius:18px;
+      padding:1.4rem 1.6rem; margin-bottom:.5rem; display:flex; align-items:center; gap:1.2rem;
+    }
+    .calc-clock-ico { flex-shrink:0; width:42px; height:42px; border-radius:50%;
+      background:rgba(196,117,80,.12); border:1px solid rgba(196,117,80,.28);
+      display:flex; align-items:center; justify-content:center; }
+    .calc-clock-ico svg { width:22px; height:22px; }
+    .calc-jornada-txt { flex:1; }
+    .calc-jornada-lbl { font-size:.66rem; color:rgba(255,255,255,.35); letter-spacing:.1em; display:block; margin-bottom:.2rem; }
+    .calc-jornada-val { font-family:'Cormorant Garamond',serif; font-size:1.6rem; color:var(--cream); }
+    .calc-result { grid-template-columns:1fr 1fr 1fr; }
+    .cr-val { font-size:1.6rem; }
+    .calc-roi-strip {
+      margin:0 2.5rem 2rem; padding:1rem 1.4rem;
+      background:rgba(97,125,92,.08); border:1px solid rgba(97,125,92,.18); border-radius:12px;
+      display:flex; align-items:center; gap:.8rem; font-size:.8rem; color:rgba(255,255,255,.45);
+    }
+    .calc-roi-strip svg { flex-shrink:0; }
+    .calc-roi-strip strong { color:var(--verde-l); }
+
+    /* ── IMPACTO REDESIGN (sin imagen) ── */
+    .impacto-numeros {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem;
+      margin:4rem 0 3.5rem;
+    }
+    .imp-num {
+      background:var(--glass); border:1px solid var(--border); border-radius:24px;
+      padding:2.2rem 1.5rem; text-align:center; position:relative; overflow:hidden;
+      transition:all .4s cubic-bezier(.16,1,.3,1);
+    }
+    .imp-num::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,117,80,.35),transparent); }
+    .imp-num:hover { background:rgba(196,117,80,.07); border-color:var(--border-h); transform:translateY(-6px); box-shadow:0 24px 60px rgba(0,0,0,.4); }
+    .imp-n { font-family:'Cormorant Garamond',serif; font-size:clamp(2.8rem,5vw,4rem); font-weight:600; color:var(--terra-l); display:block; line-height:1; margin-bottom:.5rem; }
+    .imp-l { font-size:.72rem; color:rgba(255,255,255,.38); letter-spacing:.14em; text-transform:uppercase; }
+    .impacto-list-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem;
+    }
+    @media (max-width:768px) {
+      .impacto-numeros { grid-template-columns:1fr; }
+      .impacto-list-grid { grid-template-columns:1fr; }
+    }
+    @media (max-width:600px) {
+      .impacto-numeros { grid-template-columns:1fr 1fr; }
+    }
+
+    /* ── FOTO STRIP ── */
+    .photo-strip {
+      width:100%; height:clamp(340px,48vw,560px);
+      position:relative; overflow:hidden; z-index:1;
+    }
+    .photo-strip img {
+      width:100%; height:100%; object-fit:cover; object-position:center 28%;
+      display:block; filter:brightness(.82) saturate(1.05);
+      transition:transform 8s ease;
+    }
+    .photo-strip:hover img { transform:scale(1.03); }
+    .photo-strip-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(100deg, rgba(13,10,7,.72) 0%, rgba(13,10,7,.35) 55%, rgba(13,10,7,.12) 100%);
+      display:flex; align-items:center; padding:0 7%;
+    }
+    .photo-strip-inner { max-width:500px; }
+    .photo-strip-tag {
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid rgba(196,117,80,.35); background:rgba(196,117,80,.1);
+      padding:.35rem 1rem; border-radius:50px; font-size:.65rem;
+      letter-spacing:.2em; color:var(--terra-l); font-weight:600; margin-bottom:1.4rem;
+    }
+    .photo-strip-h {
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(2rem,4vw,3.2rem); line-height:1.1; font-weight:600;
+      color:#fff; margin-bottom:1rem; letter-spacing:-.01em;
+    }
+    .photo-strip-h em { font-style:italic; color:var(--terra-l); }
+    .photo-strip-p { font-size:.92rem; color:rgba(255,255,255,.55); line-height:1.75; }
+
+    /* ── PROPUESTA 3 CARDS ── */
+    .propuesta-grid-v2 {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; margin-top:3.5rem;
+    }
+    .pv2-card {
+      border-radius:26px; padding:2.5rem 2rem; position:relative; overflow:hidden;
+      border:1px solid var(--border); background:var(--glass);
+      backdrop-filter:blur(16px); transition:all .4s cubic-bezier(.16,1,.3,1);
+      display:flex; flex-direction:column;
+    }
+    .pv2-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent); }
+    .pv2-card:hover { transform:translateY(-10px); border-color:rgba(196,117,80,.3); box-shadow:0 36px 90px rgba(0,0,0,.45); }
+    .pv2-card.star {
+      background:linear-gradient(145deg, rgba(196,117,80,.2) 0%, rgba(13,10,7,.95) 100%);
+      border-color:rgba(196,117,80,.45);
+      box-shadow:0 0 0 1px rgba(196,117,80,.14), 0 20px 60px rgba(196,117,80,.12);
+    }
+    .pv2-card.star::before { background:linear-gradient(90deg,transparent,rgba(196,117,80,.5),transparent); }
+    .pv2-badge {
+      display:inline-block; background:linear-gradient(135deg,var(--terra),var(--gold));
+      color:#fff; font-size:.6rem; letter-spacing:.16em; font-weight:700;
+      padding:.28rem .9rem; border-radius:50px; margin-bottom:1.2rem; align-self:flex-start;
+    }
+    .pv2-tipo { font-size:.65rem; letter-spacing:.18em; color:rgba(255,255,255,.32); margin-bottom:.5rem; font-weight:600; }
+    .pv2-precio {
+      font-family:'Cormorant Garamond',serif; font-size:2.8rem; font-weight:600;
+      color:var(--cream); line-height:1; margin-bottom:.25rem;
+    }
+    .pv2-card.star .pv2-precio { color:var(--terra-l); }
+    .pv2-base { font-size:.78rem; color:rgba(255,255,255,.3); margin-bottom:1.6rem; line-height:1.5; }
+    .pv2-sep { height:1px; background:var(--border); margin-bottom:1.5rem; }
+    .pv2-list { display:flex; flex-direction:column; gap:.6rem; flex:1; }
+    .pv2-item { display:flex; gap:.55rem; align-items:flex-start; font-size:.83rem; color:rgba(255,255,255,.55); line-height:1.5; }
+    .pv2-card.star .pv2-item { color:rgba(255,255,255,.8); }
+    .pv2-item::before { content:'→'; color:var(--terra-l); font-size:.78rem; flex-shrink:0; margin-top:.05rem; }
+    .pv2-cta {
+      margin-top:1.8rem; display:block; text-align:center;
+      padding:.8rem 1.4rem; border-radius:50px; font-size:.82rem; font-weight:600;
+      background:rgba(255,255,255,.06); border:1px solid var(--border);
+      color:rgba(255,255,255,.6); transition:all .3s;
+    }
+    .pv2-card.star .pv2-cta {
+      background:linear-gradient(135deg,var(--terra),var(--terra-d));
+      color:#fff; border-color:transparent; box-shadow:0 6px 24px rgba(196,117,80,.35);
+    }
+    .pv2-cta:hover { filter:brightness(1.15); transform:translateY(-1px); }
+    /* propuesta-grid-v2 mobile → cubierto en bloque responsive ↑ */
+
+    /* ── SECCIÓN 30% DESCUENTO ── */
+    #beneficio {
+      background:linear-gradient(135deg, rgba(196,117,80,.1) 0%, rgba(13,10,7,1) 40%, rgba(74,93,107,.08) 100%);
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      position:relative; overflow:hidden;
+    }
+    #beneficio::before {
+      content:''; position:absolute; top:-40%; right:-10%; width:500px; height:500px;
+      background:radial-gradient(circle, rgba(196,117,80,.12) 0%, transparent 65%);
+      pointer-events:none;
+    }
+    .beneficio-grid { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center; position:relative; z-index:1; }
+    .desc-numero-wrap {
+      display:flex; flex-direction:column; align-items:flex-start;
+      padding:3rem; background:rgba(196,117,80,.06); border:1px solid rgba(196,117,80,.2);
+      border-radius:28px; position:relative; overflow:hidden;
+    }
+    .desc-numero-wrap::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,rgba(196,117,80,.4),transparent); }
+    .desc-pct {
+      font-family:'Cormorant Garamond',serif; font-size:clamp(5rem,12vw,9rem);
+      font-weight:600; line-height:1; color:var(--terra-l);
+      background:linear-gradient(135deg, var(--terra-l), var(--gold));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .desc-pct-label {
+      font-size:.78rem; letter-spacing:.22em; color:rgba(255,255,255,.4);
+      text-transform:uppercase; margin-top:.4rem; font-weight:500;
+    }
+    .desc-pct-sub {
+      margin-top:1.5rem; font-size:.88rem; color:rgba(255,255,255,.38); line-height:1.65;
+      border-top:1px solid rgba(255,255,255,.07); padding-top:1.25rem; width:100%;
+    }
+    .beneficio-cards { display:flex; flex-direction:column; gap:.85rem; margin:2rem 0; }
+    .beneficio-card {
+      display:flex; gap:1rem; align-items:flex-start;
+      background:var(--glass); border:1px solid var(--border);
+      border-radius:16px; padding:1.2rem 1.4rem; transition:all .3s;
+    }
+    .beneficio-card:hover { border-color:var(--border-h); background:rgba(196,117,80,.06); }
+    .beneficio-ico {
+      width:38px; height:38px; border-radius:12px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .beneficio-ico.terra { background:rgba(196,117,80,.15); border:1px solid rgba(196,117,80,.25); }
+    .beneficio-ico.verde { background:rgba(97,125,92,.15); border:1px solid rgba(97,125,92,.25); }
+    .beneficio-ico svg { width:18px; height:18px; }
+    .beneficio-card h4 { font-size:.88rem; font-weight:600; color:var(--cream); margin-bottom:.22rem; }
+    .beneficio-card p { font-size:.8rem; color:rgba(255,255,255,.45); line-height:1.55; }
+    /* beneficio-grid mobile → cubierto en bloque responsive ↑ */
+
+    /* Luxury spacing extra */
+    section { padding:8rem 5%; }
+    .proceso-grid { gap:2rem; }
+    .p-card { padding:2.8rem 1.8rem 2.4rem; }
+    .prop-card { padding:2.8rem 2.2rem; }
+
+    /* ══ CULT UI: SPOTLIGHT CURSOR ══ */
+    .hero { isolation: isolate; }
+    #hero-spotlight {
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background: radial-gradient(600px circle at var(--mx,50%) var(--my,50%),
+        rgba(196,117,80,.10) 0%, rgba(196,117,80,.04) 35%, transparent 65%);
+      transition: background .08s linear;
+    }
+
+    /* ══ CULT UI: ANIMATED GRADIENT BORDER en p-card ══ */
+    .p-card {
+      position: relative;
+    }
+    .p-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 22px;
+      padding: 1px;
+      background: linear-gradient(135deg,
+        rgba(196,117,80,.0) 0%,
+        rgba(196,117,80,.5) 40%,
+        rgba(201,168,108,.4) 60%,
+        rgba(196,117,80,.0) 100%);
+      background-size: 300% 300%;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      animation: borderFlow 4s ease infinite;
+      opacity: 0; transition: opacity .4s;
+    }
+    .p-card:hover::before { opacity: 1; }
+    @keyframes borderFlow {
+      0%, 100% { background-position: 0% 50%; }
+      50%       { background-position: 100% 50%; }
+    }
+
+    /* ══ CULT UI: MARQUEE EN HERO METRICS ══ */
+    .marquee-e {
+      overflow: hidden; margin-top: 1.5rem;
+      border-top: 1px solid var(--border); padding-top: 1.2rem;
+      position: relative;
+    }
+    .marquee-e::before, .marquee-e::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none;
+    }
+    .marquee-e::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+    .marquee-e::after  { right: 0; background: linear-gradient(90deg, transparent, var(--bg)); }
+    .marquee-e-track {
+      display: flex; width: max-content;
+      animation: marqueeE 30s linear infinite;
+    }
+    @keyframes marqueeE { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .marquee-e-item {
+      display: flex; align-items: center; gap: .6rem; padding: 0 2rem;
+      white-space: nowrap; font-size: .75rem; letter-spacing: .15em;
+      color: rgba(255,255,255,.28); font-weight: 500;
+    }
+    .marquee-e-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--terra); opacity: .5; flex-shrink: 0; }
+
+    /* ══ CULT UI: GLOW BUTTON ══ */
+    .btn-glow-dark {
+      position: relative; z-index: 0;
+    }
+    .btn-glow-dark::after {
+      content: ''; position: absolute; inset: -3px; border-radius: 50px;
+      background: linear-gradient(90deg, var(--terra), var(--gold), var(--verde-l), var(--terra));
+      background-size: 400% 100%;
+      animation: glowE 4s linear infinite;
+      z-index: -1; opacity: 0; transition: opacity .35s;
+      filter: blur(5px);
+    }
+    .btn-glow-dark:hover::after { opacity: 1; }
+    @keyframes glowE { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
+
+    @media (max-width:768px) {
+      section { padding:5rem 5%; }
+      .img-frame img { height:300px; }
+      .incluye-grid { grid-template-columns:1fr; }
+      .precio-hero { padding:2.5rem 1.5rem 2rem; }
     }
   </style>
 </head>
 <body>
 
-<!-- NAV -->
+<div class="page-dots" aria-hidden="true"></div>
+
+<!-- ══ NAV ══ -->
 <nav id="nav">
   <a href="/" class="nav-logo">
     <div class="nav-logo-ring">
@@ -408,66 +1075,240 @@
       Inicio
     </a>
     <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="nav-cta">Solicitar programa</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menú"><span></span><span></span><span></span></button>
   </div>
 </nav>
+<div class="nav-mobile-menu" id="mobile-menu">
+  <a href="/" onclick="closeMenu()">Inicio</a>
+  <a href="#proceso" onclick="closeMenu()">El programa</a>
+  <a href="#propuesta" onclick="closeMenu()">Precios</a>
+  <a href="#calculadora" onclick="closeMenu()">Calculadora</a>
+  <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="nav-cta" onclick="closeMenu()">Solicitar programa</a>
+</div>
 
-<!-- HERO -->
+<!-- ══ HERO ══ -->
 <section class="hero" id="inicio">
+  <div id="hero-spotlight" aria-hidden="true"></div>
   <div class="hero-photo"></div>
   <div class="hero-grad"></div>
   <div class="orb orb1"></div>
-  <div class="orb orb2" style="animation:orbPulse2 12s ease-in-out infinite 3s"></div>
-  <svg class="geo-lines" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <!-- Topographic contour decoration -->
+  <div class="hero-topo" aria-hidden="true">
+    <svg viewBox="0 0 320 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M160,280 C80,220 18,242 28,322 C38,402 122,442 202,412 C282,382 302,300 270,228 C238,156 178,168 160,280Z" stroke="rgba(196,117,80,0.07)" stroke-width="1.5"/>
+      <path d="M160,280 C98,238 52,255 61,320 C70,385 132,416 196,390 C260,364 280,294 253,237 C226,180 174,186 160,280Z" stroke="rgba(196,117,80,0.09)" stroke-width="1.2"/>
+      <path d="M160,280 C116,254 86,268 94,318 C102,368 148,394 194,373 C240,352 256,290 234,244 C212,198 170,200 160,280Z" stroke="rgba(196,117,80,0.11)" stroke-width="1"/>
+      <path d="M160,280 C132,262 114,274 120,313 C126,352 158,374 192,357 C226,340 238,287 218,249 C198,211 162,214 160,280Z" stroke="rgba(196,117,80,.10)" stroke-width="0.9"/>
+      <path d="M160,280 C144,270 132,277 137,307 C142,337 164,352 186,338 C208,324 218,278 200,251 C182,224 156,228 160,280Z" stroke="rgba(196,117,80,.09)" stroke-width="0.8"/>
+      <path d="M160,280 C152,274 147,279 151,298 C155,317 168,328 181,319 C194,310 201,278 185,255 C169,232 150,240 160,280Z" stroke="rgba(97,125,92,.08)" stroke-width="0.7"/>
+      <path d="M160,280 C157,277 155,279 157,292 C159,305 166,312 174,306 C182,300 186,278 173,261 C160,244 152,254 160,280Z" stroke="rgba(97,125,92,.07)" stroke-width="0.5"/>
+      <!-- Upper cluster -->
+      <path d="M160,108 C128,88 105,98 110,130 C115,162 138,176 163,164 C188,152 196,122 182,104 C168,86 150,88 160,108Z" stroke="rgba(196,117,80,.08)" stroke-width="1"/>
+      <path d="M160,108 C138,95 124,103 128,125 C132,147 148,158 165,150 C182,142 188,120 176,104 C164,88 152,93 160,108Z" stroke="rgba(196,117,80,.07)" stroke-width="0.7"/>
+      <path d="M160,108 C148,100 140,106 143,120 C146,134 156,142 167,136 C178,130 182,112 172,100 C162,88 153,99 160,108Z" stroke="rgba(196,117,80,.06)" stroke-width="0.5"/>
+      <!-- Lower cluster -->
+      <path d="M160,442 C130,422 110,430 116,460 C122,490 148,502 173,491 C198,480 206,450 192,430 C178,410 158,420 160,442Z" stroke="rgba(97,125,92,.07)" stroke-width="0.9"/>
+      <path d="M160,442 C140,428 128,434 133,455 C138,476 155,485 174,477 C193,469 200,446 188,429 C176,412 158,424 160,442Z" stroke="rgba(97,125,92,.06)" stroke-width="0.7"/>
+      <!-- Connectors -->
+      <path d="M160,172 C163,205 161,242 160,280" stroke="rgba(196,117,80,.055)" stroke-width="0.7" stroke-linecap="round"/>
+      <path d="M160,390 C159,412 160,428 160,442" stroke="rgba(97,125,92,.055)" stroke-width="0.6" stroke-linecap="round"/>
+      <!-- Nodes -->
+      <circle cx="160" cy="280" r="3.5" fill="rgba(201,168,108,.18)"/>
+      <circle cx="160" cy="108" r="2.5" fill="rgba(201,168,108,.14)"/>
+      <circle cx="160" cy="442" r="2" fill="rgba(97,125,92,.14)"/>
+    </svg>
+  </div>
+
+  <svg class="geo-lines" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
     <circle cx="720" cy="450" r="380" stroke="white" fill="none" stroke-width=".5"/>
-    <circle cx="720" cy="450" r="600" stroke="white" fill="none" stroke-width=".5" stroke-dasharray="3 12"/>
+    <circle cx="720" cy="450" r="620" stroke="white" fill="none" stroke-width=".4" stroke-dasharray="3 14"/>
     <line x1="0" y1="450" x2="1440" y2="450" stroke="white" stroke-width=".3"/>
   </svg>
 
   <div class="hero-inner">
-    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1.5rem" class="fade-up">
-      <!-- Sello vintage retro -->
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="animation:sealSpin 25s linear infinite;flex-shrink:0" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="32" cy="32" r="29" stroke="rgba(184,105,74,.35)" stroke-width="1.2"/>
-        <circle cx="32" cy="32" r="24" stroke="rgba(184,105,74,.2)" stroke-width=".8" stroke-dasharray="2 4"/>
-        <text x="32" y="28" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="6" fill="rgba(184,105,74,.7)" letter-spacing="3">CITRINO</text>
-        <text x="32" y="36" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="10" font-weight="600" fill="rgba(184,105,74,.8)">2016</text>
-        <text x="32" y="43" text-anchor="middle" font-family="Inter,sans-serif" font-size="5" fill="rgba(184,105,74,.5)" letter-spacing="2">MVDEO</text>
-        <path d="M18 32 L14 32 M50 32 L46 32" stroke="rgba(184,105,74,.4)" stroke-width="1" stroke-linecap="round"/>
+    <svg class="h-corner h-corner--tl" viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 8 C2 4.7 4.7 2 8 2 L30 2" stroke="rgba(196,117,80,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="2" cy="2" r="1.8" fill="rgba(196,117,80,0.5)"/>
+    </svg>
+    <svg class="h-corner h-corner--tr" viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 8 C2 4.7 4.7 2 8 2 L30 2" stroke="rgba(196,117,80,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="2" cy="2" r="1.8" fill="rgba(196,117,80,0.5)"/>
+    </svg>
+    <svg class="h-corner h-corner--bl" viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 8 C2 4.7 4.7 2 8 2 L30 2" stroke="rgba(196,117,80,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="2" cy="2" r="1.8" fill="rgba(196,117,80,0.5)"/>
+    </svg>
+    <svg class="h-corner h-corner--br" viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 8 C2 4.7 4.7 2 8 2 L30 2" stroke="rgba(196,117,80,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="2" cy="2" r="1.8" fill="rgba(196,117,80,0.5)"/>
+    </svg>
+
+    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1.8rem" class="fade-up">
+      <svg width="66" height="66" viewBox="0 0 64 64" fill="none" style="animation:sealSpin 25s linear infinite;flex-shrink:0">
+        <circle cx="32" cy="32" r="29" stroke="rgba(196,117,80,.38)" stroke-width="1.2"/>
+        <circle cx="32" cy="32" r="24" stroke="rgba(196,117,80,.2)" stroke-width=".8" stroke-dasharray="2 4"/>
+        <path d="M32 6 C30 3 28 1 32 0 C36 1 34 3 32 6" fill="rgba(97,125,92,.55)" transform="translate(0,3)"/>
+        <text x="32" y="28" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="6" fill="rgba(196,117,80,.72)" letter-spacing="3">CITRINO</text>
+        <text x="32" y="37" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="10" font-weight="600" fill="rgba(196,117,80,.82)">2020</text>
+        <text x="32" y="44" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="5" fill="rgba(196,117,80,.5)" letter-spacing="2">MVDEO</text>
+        <path d="M17 32 L13 32 M51 32 L47 32" stroke="rgba(196,117,80,.4)" stroke-width="1" stroke-linecap="round"/>
       </svg>
-      <div class="eyebrow" style="margin-bottom:0"><span class="eyebrow-dot"></span>PROGRAMA CORPORATIVO · MONTEVIDEO</div>
+      <div class="eyebrow" style="margin-bottom:0"><span class="eyebrow-dot"></span>MASAJE EN SILLA · EN LA EMPRESA · MONTEVIDEO</div>
     </div>
+
     <h1 class="fade-up d1">El bienestar de tu equipo<br>es <em>rentable</em></h1>
-    <p class="hero-lead fade-up d2">El programa que los equipos de Recursos Humanos eligen para reducir el ausentismo, mejorar el clima organizacional y demostrar que la empresa cuida a su gente.</p>
+
+    <div class="hero-rule fade-up d1" aria-hidden="true">
+      <svg viewBox="0 0 240 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="7" x2="96" y2="7" stroke="rgba(196,117,80,.2)" stroke-width="0.6"/>
+        <path d="M103,3.5 C105,1 109,1 111,3.5" stroke="rgba(196,117,80,.38)" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+        <circle cx="120" cy="7" r="1.8" fill="rgba(196,117,80,.45)"/>
+        <path d="M129,3.5 C131,1 135,1 137,3.5" stroke="rgba(196,117,80,.38)" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+        <line x1="144" y1="7" x2="240" y2="7" stroke="rgba(196,117,80,.2)" stroke-width="0.6"/>
+      </svg>
+    </div>
+
+    <p class="hero-lead fade-up d2">Un terapeuta va hasta la empresa y da masajes de 10 minutos a cada colaborador, <em style="-webkit-text-fill-color:var(--terra-l);font-style:italic">en su lugar de trabajo, sin interrumpir la jornada.</em> El programa que Recursos Humanos elige para reducir el estrés, el ausentismo y demostrar que la organización cuida a su gente.</p>
     <div class="hero-btns fade-up d3">
-      <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20corporativo%20de%20bienestar" target="_blank" class="btn btn-primary">
+      <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20corporativo%20de%20bienestar" target="_blank" class="btn btn-primary btn-glow-dark">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         Solicitar propuesta
       </a>
       <a href="#proceso" class="btn btn-ghost">Ver el programa</a>
     </div>
-    <div class="hero-metrics fade-up d4">
-      <div class="hm"><span class="hm-n">10'</span><span class="hm-l">Min por persona</span></div>
-      <div class="hm"><span class="hm-n">6</span><span class="hm-l">Personas por hora</span></div>
-      <div class="hm"><span class="hm-n">$2.000</span><span class="hm-l">UYU por hora</span></div>
-      <div class="hm"><span class="hm-n">✓</span><span class="hm-l">Con factura</span></div>
+    <div class="hero-metrics fade-up d4" style="grid-template-columns:repeat(3,1fr)">
+      <div class="hm"><span class="hm-n" data-count="10" data-suffix="'">10'</span><span class="hm-l">Min por persona</span></div>
+      <div class="hm"><span class="hm-n" data-count="6">6</span><span class="hm-l">Personas por hora</span></div>
+      <div class="hm"><span class="hm-n">✓</span><span class="hm-l">Factura empresa</span></div>
+    </div>
+    <!-- Marquee beneficios corporativos -->
+    <div class="marquee-e fade-up" style="transition-delay:.6s;width:100%;max-width:860px;margin-top:2rem" aria-hidden="true">
+      <div class="marquee-e-track">
+        <span class="marquee-e-item">Sin moverse de la oficina</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Terapeuta certificado</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Factura empresa</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Sin contrato mínimo</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">6 personas / hora</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Sesiones de 10 min</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Equipo propio</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Sin moverse de la oficina</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Terapeuta certificado</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Factura empresa</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Sin contrato mínimo</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">6 personas / hora</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Sesiones de 10 min</span><span class="marquee-e-dot"></span>
+        <span class="marquee-e-item">Equipo propio</span><span class="marquee-e-dot"></span>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="divider"></div>
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C180,64 360,0 540,32 C720,64 900,0 1080,32 C1260,64 1380,48 1440,32" stroke="rgba(196,117,80,.13)" stroke-width="0.8"/>
+    <path d="M0,44 C240,20 480,56 720,36 C960,16 1200,52 1440,42" stroke="rgba(196,117,80,.06)" stroke-width="0.6"/>
+    <circle cx="720" cy="32" r="3" fill="rgba(196,117,80,.28)"/>
+  </svg>
+</div>
 
-<!-- PROCESO -->
+<!-- ══ FOTO STRIP ══ -->
+<div class="photo-strip">
+  <img src="../Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png"
+       onerror="this.onerror=function(){this.onerror=null;this.src='https://images.pexels.com/photos/3757952/pexels-photo-3757952.jpeg?auto=compress&cs=tinysrgb&w=1920&h=800&fit=crop'};this.src='/img/masaje-silla.png'"
+       alt="Masaje en silla corporativo Citrino">
+  <div class="photo-strip-overlay">
+    <div class="photo-strip-inner">
+      <div class="photo-strip-tag"><span style="width:5px;height:5px;border-radius:50%;background:var(--terra);display:inline-block"></span>MASAJE EN SILLA · EN TU EMPRESA</div>
+      <h2 class="photo-strip-h">10 minutos que<br><em>cambian el día</em></h2>
+      <p class="photo-strip-p">Sin instalaciones especiales, sin interrumpir la jornada.<br>El terapeuta llega, la persona descansa, y vuelve a trabajar mejor.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ IMPACTO ══ -->
+<section id="impacto">
+  <div class="tc">
+    <span class="s-eyebrow fade-up">✦ RETORNO DE INVERSIÓN</span>
+    <h2 class="s-h fade-up d1">Lo que transforma<br><em>en la organización</em></h2>
+    <div class="s-h-deco fade-up d1" aria-hidden="true">
+      <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+    </div>
+    <p class="s-p fade-up d2">Un masaje de 10 minutos libera dopamina, serotonina y oxitocina. Por cada $1 que Recursos Humanos invierte en bienestar, la organización ve $4 de retorno en productividad.</p>
+  </div>
+
+  <!-- Números de impacto -->
+  <div class="impacto-numeros">
+    <div class="imp-num fade-up d1">
+      <span class="imp-n">−85%</span>
+      <span class="imp-l">Tensión muscular</span>
+    </div>
+    <div class="imp-num fade-up d2">
+      <span class="imp-n">−72%</span>
+      <span class="imp-l">Nivel de estrés</span>
+    </div>
+    <div class="imp-num fade-up d3">
+      <span class="imp-n">+68%</span>
+      <span class="imp-l">Concentración</span>
+    </div>
+  </div>
+
+  <!-- Beneficios en grilla -->
+  <div class="impacto-list-grid">
+    <div class="i-row fade-up d1">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>Menos tensión, más energía</h4><p>Cuello, hombros y espalda tratados en 10 minutos. La persona vuelve a su lugar notablemente mejor.</p></div>
+    </div>
+    <div class="i-row fade-up d2">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>Mayor foco y rendimiento</h4><p>Incremento comprobado en concentración durante las horas posteriores a la sesión.</p></div>
+    </div>
+    <div class="i-row fade-up d3">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>La empresa que cuida a su gente</h4><p>Mejora el clima interno y el compromiso del equipo con la organización.</p></div>
+    </div>
+    <div class="i-row fade-up d4">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>Menos ausentismo y desgaste</h4><p>Menos días perdidos por dolencias musculares, cervicales y fatiga laboral acumulada.</p></div>
+    </div>
+    <div class="i-row fade-up d1">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>Sin interrumpir el trabajo</h4><p>10 minutos y la persona retoma lo que estaba haciendo. Cero logística compleja.</p></div>
+    </div>
+    <div class="i-row fade-up d2">
+      <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
+      <div><h4>Retorno comprobado</h4><p>Por cada $1 invertido en bienestar, las empresas ven $4 de retorno en productividad.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C360,0 720,64 1080,32 C1260,16 1380,40 1440,32" stroke="rgba(97,125,92,.12)" stroke-width="0.8"/>
+    <path d="M0,42 C300,60 600,18 900,44 C1100,62 1300,28 1440,44" stroke="rgba(196,117,80,.055)" stroke-width="0.6"/>
+    <circle cx="720" cy="32" r="2.5" fill="rgba(97,125,92,.25)"/>
+  </svg>
+</div>
+
+<!-- ══ PROCESO ══ -->
 <section id="proceso">
   <div class="tc">
     <span class="s-eyebrow fade-up">✦ IMPLEMENTACIÓN</span>
     <h2 class="s-h fade-up d1">Integración sin fricciones</h2>
-    <p class="s-p fade-up d2">Sin interrumpir la operación. Sin instalaciones especiales. Resultados desde el primer día.</p>
+    <div class="s-h-deco fade-up d1" aria-hidden="true">
+      <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+    </div>
+    <p class="s-p fade-up d2">El terapeuta viaja a la empresa con todo el equipamiento. Sin instalaciones especiales, sin interrumpir la jornada. Resultados que se sienten desde la primera sesión.</p>
   </div>
   <div class="proceso-grid">
     <div class="p-card fade-up d1">
       <div class="p-num-wrap"><div class="p-num">1</div></div>
       <h3>Diagnóstico inicial</h3>
-      <p>Relevamos el tamaño del equipo, disponibilidad horaria y objetivos del programa para diseñar la propuesta óptima.</p>
+      <p>Charlamos sobre el tamaño del equipo, los horarios y lo que buscan lograr, para armar la propuesta ideal para tu empresa.</p>
     </div>
     <div class="p-card fade-up d2">
       <div class="p-num-wrap"><div class="p-num">2</div></div>
@@ -476,8 +1317,8 @@
     </div>
     <div class="p-card fade-up d3">
       <div class="p-num-wrap"><div class="p-num">3</div></div>
-      <h3>Sesiones corporativas</h3>
-      <p>10 minutos por persona en cuello, hombros y espalda. Sin cambio de ropa, sin interrumpir el ritmo de trabajo.</p>
+      <h3>Masajes en tu empresa</h3>
+      <p>10 minutos por persona en cuello, hombros, espalda, brazos y manos. La persona no necesita moverse de su espacio ni interrumpir lo que está haciendo.</p>
     </div>
     <div class="p-card fade-up d4">
       <div class="p-num-wrap"><div class="p-num">4</div></div>
@@ -487,137 +1328,183 @@
   </div>
 </section>
 
-<div class="divider"></div>
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C360,64 720,0 1080,32 C1260,48 1380,24 1440,32" stroke="rgba(74,93,107,.15)" stroke-width="0.8"/>
+    <path d="M0,20 C300,44 600,8 900,28 C1100,44 1300,16 1440,20" stroke="rgba(196,117,80,.055)" stroke-width="0.6"/>
+    <circle cx="720" cy="28" r="2.5" fill="rgba(74,93,107,.3)"/>
+  </svg>
+</div>
 
-<!-- IMPACTO -->
-<section id="impacto">
-  <div class="impacto-grid">
-    <div class="impacto-visual fade-left">
-      <div class="corner-leaf">
-        <svg viewBox="0 0 80 80" fill="none"><path d="M40 5 C20 20 5 45 10 65 C15 80 40 78 40 78 C40 78 65 80 70 65 C75 45 60 20 40 5Z" fill="var(--verde)"/></svg>
-      </div>
-      <div class="img-frame">
-        <img src="https://static.wixstatic.com/media/aebbd1_b0d4cac97dfd4703b3859fd376be0e9b~mv2.png" alt="Programa corporativo Citrino" loading="lazy">
-        <div class="img-frame-overlay"></div>
-      </div>
-      <div class="stats-card">
-        <div class="stats-card-label">IMPACTO MEDIDO</div>
-        <div class="s-bar-row">
-          <span class="s-bar-name">Tensión muscular</span>
-          <div class="s-bar-wrap"><div class="s-bar-fill" style="width:85%"></div></div>
-          <span class="s-bar-val">−85%</span>
-        </div>
-        <div class="s-bar-row">
-          <span class="s-bar-name">Nivel de estrés</span>
-          <div class="s-bar-wrap"><div class="s-bar-fill" style="width:72%;transition-delay:.2s"></div></div>
-          <span class="s-bar-val">−72%</span>
-        </div>
-        <div class="s-bar-row">
-          <span class="s-bar-name">Concentración</span>
-          <div class="s-bar-wrap"><div class="s-bar-fill" style="width:68%;transition-delay:.4s"></div></div>
-          <span class="s-bar-val">+68%</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="fade-right">
-      <span class="s-eyebrow">✦ RETORNO DE INVERSIÓN</span>
-      <h2 class="s-h">Lo que transforma<br>en tu organización</h2>
-      <p class="s-p" style="margin-bottom:2rem">Un programa de bienestar bien diseñado no es un gasto — es una inversión con retorno medible en productividad, retención de talento y reducción del ausentismo.</p>
-      <div class="impacto-list">
-        <div class="i-row">
-          <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
-          <div><h4>Reducción inmediata de tensión muscular</h4><p>Cuello, hombros y espalda tratados en una sola sesión express.</p></div>
-        </div>
-        <div class="i-row">
-          <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
-          <div><h4>Mayor foco y rendimiento cognitivo</h4><p>Incremento comprobado en concentración durante las horas posteriores.</p></div>
-        </div>
-        <div class="i-row">
-          <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
-          <div><h4>Señal institucional de cuidado</h4><p>Mejora el clima interno y el compromiso del equipo con la organización.</p></div>
-        </div>
-        <div class="i-row">
-          <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
-          <div><h4>Disminución del ausentismo</h4><p>Menos días perdidos por dolencias musculares y cervicales crónicas.</p></div>
-        </div>
-        <div class="i-row">
-          <div class="i-check"><svg viewBox="0 0 12 12" fill="none" stroke="var(--terra-l)" stroke-width="2"><polyline points="2 6 5 9 10 3"/></svg></div>
-          <div><h4>Sin fricción operacional</h4><p>10 minutos y la persona retoma su trabajo. Sin logística compleja.</p></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- PROPUESTA -->
+<!-- ══ PROPUESTA ══ -->
 <section id="propuesta">
   <div class="tc">
-    <span class="s-eyebrow fade-up">✦ ESTRUCTURA DE PRECIOS</span>
-    <h2 class="s-h fade-up d1">Tres modalidades<br>de contratación</h2>
-    <p class="s-p fade-up d2">Cada empresa tiene necesidades distintas. Adaptamos el programa a tu operación.</p>
+    <span class="s-eyebrow fade-up">✦ INVERSIÓN</span>
+    <h2 class="s-h fade-up d1">La opción que<br><em>mejor se adapta a cada caso</em></h2>
+    <div class="s-h-deco fade-up d1" aria-hidden="true">
+      <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+    </div>
+    <p class="s-p fade-up d2">Tres opciones claras para Recursos Humanos — para probarlo una vez, para hacerlo parte de la cultura, o para un evento especial.</p>
   </div>
-  <div class="propuesta-grid">
-    <div class="prop-card fade-up d1">
-      <div class="prop-tipo">CONTRATACIÓN PUNTUAL</div>
-      <div class="prop-precio">$2.000 <span style="font-size:1rem;font-family:Inter,sans-serif;color:rgba(255,255,255,.4);font-weight:400">UYU</span></div>
-      <div class="prop-base">por hora · por terapeuta</div>
-      <div class="prop-sep"></div>
-      <div class="prop-list">
-        <div class="prop-item">6 personas por hora de cobertura</div>
-        <div class="prop-item">10 minutos por integrante del equipo</div>
-        <div class="prop-item">Factura empresa emitida al cierre</div>
-        <div class="prop-item">Terapeuta certificado y equipamiento</div>
+
+  <div class="propuesta-grid-v2">
+
+    <!-- CARD 1: Sesión puntual -->
+    <div class="pv2-card fade-up d1">
+      <div class="pv2-tipo">SESIÓN PUNTUAL</div>
+      <div class="pv2-precio">$2.000 <span style="font-size:.95rem;font-family:'DM Sans',sans-serif;color:rgba(255,255,255,.32);font-weight:400">UYU</span></div>
+      <div class="pv2-base">por hora · por terapeuta</div>
+      <div class="pv2-sep"></div>
+      <div class="pv2-list">
+        <div class="pv2-item">6 personas por hora de cobertura</div>
+        <div class="pv2-item">10 minutos por persona</div>
+        <div class="pv2-item">Terapeuta certificada con silla</div>
+        <div class="pv2-item">Factura empresa al cierre</div>
+        <div class="pv2-item">Ideal para conocer el servicio</div>
       </div>
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20agendar%20una%20sesi%C3%B3n%20de%20bienestar%20para%20el%20equipo." target="_blank" class="pv2-cta">Consultar →</a>
     </div>
-    <div class="prop-card star fade-up d2">
-      <div class="prop-badge">MODALIDAD MÁS ADOPTADA</div>
-      <div class="prop-tipo">PROGRAMA MENSUAL</div>
-      <div class="prop-precio">$2.000 <span style="font-size:1rem;font-family:Inter,sans-serif;color:rgba(255,255,255,.55);font-weight:400">UYU</span></div>
-      <div class="prop-base">por hora · jornada fija mensual</div>
-      <div class="prop-sep"></div>
-      <div class="prop-list">
-        <div class="prop-item">Fecha fija en tu empresa cada mes</div>
-        <div class="prop-item">Planificación de agenda anticipada</div>
-        <div class="prop-item">Prioridad en disponibilidad de terapeutas</div>
-        <div class="prop-item">Factura empresa y coordinación directa</div>
-        <div class="prop-item">Múltiples terapeutas disponibles si escala</div>
+
+    <!-- CARD 2: Programa mensual — RECOMENDADO -->
+    <div class="pv2-card star fade-up d2">
+      <div class="pv2-badge">✦ MÁS ELEGIDO</div>
+      <div class="pv2-tipo">PROGRAMA MENSUAL</div>
+      <div class="pv2-precio">Precio <em style="font-style:italic">preferencial</em></div>
+      <div class="pv2-base">por comprometerse a jornadas regulares</div>
+      <div class="pv2-sep"></div>
+      <div class="pv2-list">
+        <div class="pv2-item">Fecha fija mensual o quincenal</div>
+        <div class="pv2-item">Precio por hora más conveniente</div>
+        <div class="pv2-item">Prioridad en agenda de terapeutas</div>
+        <div class="pv2-item">Coordinación anticipada sin cargo</div>
+        <div class="pv2-item">Varios terapeutas si el equipo crece</div>
+        <div class="pv2-item">Factura empresa en cada jornada</div>
       </div>
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20armar%20un%20programa%20mensual%20de%20bienestar%20para%20mi%20empresa.%20Somos%20%5Bcantidad%5D%20personas." target="_blank" class="pv2-cta">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Quiero este programa
+      </a>
     </div>
-    <div class="prop-card fade-up d3">
-      <div class="prop-tipo">EVENTO O LANZAMIENTO</div>
-      <div class="prop-precio">A medida</div>
-      <div class="prop-base">Cotización personalizada por proyecto</div>
-      <div class="prop-sep"></div>
-      <div class="prop-list">
-        <div class="prop-item">Kick-offs, aniversarios o retiros</div>
-        <div class="prop-item">Múltiples terapeutas simultáneos</div>
-        <div class="prop-item">Coordinación integral del evento</div>
-        <div class="prop-item">Factura empresa incluida</div>
+
+    <!-- CARD 3: Evento especial -->
+    <div class="pv2-card fade-up d3">
+      <div class="pv2-tipo">EVENTO ESPECIAL</div>
+      <div class="pv2-precio">A medida</div>
+      <div class="pv2-base">Kick-offs · Aniversarios · Retiros</div>
+      <div class="pv2-sep"></div>
+      <div class="pv2-list">
+        <div class="pv2-item">Varios terapeutas al mismo tiempo</div>
+        <div class="pv2-item">Coordinación completa del evento</div>
+        <div class="pv2-item">Cotización personalizada</div>
+        <div class="pv2-item">Para equipos de cualquier tamaño</div>
+        <div class="pv2-item">Factura empresa incluida</div>
       </div>
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20cotizar%20un%20evento%20de%20bienestar%20para%20mi%20empresa." target="_blank" class="pv2-cta">Pedir cotización →</a>
     </div>
+
   </div>
 </section>
 
-<div class="divider"></div>
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C180,0 360,64 540,32 C720,0 900,64 1080,32 C1260,0 1380,48 1440,32" stroke="rgba(196,117,80,.12)" stroke-width="0.8"/>
+    <path d="M0,48 C360,24 720,56 1080,36 C1260,26 1380,44 1440,48" stroke="rgba(196,117,80,.05)" stroke-width="0.5"/>
+    <circle cx="720" cy="32" r="2.5" fill="rgba(196,117,80,.25)"/>
+  </svg>
+</div>
 
-<!-- CALCULADORA -->
+<!-- ══ BENEFICIO 30% ══ -->
+<section id="beneficio">
+  <div class="beneficio-grid">
+
+    <!-- Número grande -->
+    <div class="fade-left">
+      <div class="desc-numero-wrap">
+        <span class="desc-pct">30%</span>
+        <span class="desc-pct-label">de descuento</span>
+        <p class="desc-pct-sub">En sesiones completas de 50 minutos en nuestro centro · Ciudad Vieja, Montevideo</p>
+      </div>
+    </div>
+
+    <!-- Texto -->
+    <div class="fade-right">
+      <span class="s-eyebrow">✦ BENEFICIO PARA TU EQUIPO</span>
+      <h2 class="s-h">El equipo sigue<br><em>cuidándose en Citrino</em></h2>
+      <div class="s-h-deco" aria-hidden="true">
+        <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+      </div>
+      <p class="s-p" style="margin-bottom:1.8rem">Cada colaborador que recibe un masaje en la empresa accede a sesiones completas de 50 minutos en nuestro centro con un 30% de descuento. Un beneficio real que el equipo valora — sin costo adicional para Recursos Humanos.</p>
+
+      <div class="beneficio-cards">
+        <div class="beneficio-card">
+          <div class="beneficio-ico terra">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </div>
+          <div>
+            <h4>Para cada colaborador</h4>
+            <p>30% off en cualquier sesión de 50 minutos — masajes, drenaje, reflexología y más. Activo desde la primera visita de la organización.</p>
+          </div>
+        </div>
+        <div class="beneficio-card">
+          <div class="beneficio-ico verde">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--verde-l)" stroke-width="1.5"><path d="M12 2C12 2 5 7 5 13a7 7 0 0014 0C19 7 12 2 12 2z"/><path d="M12 13v-3M10.5 11.5l1.5 1.5 1.5-1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <h4>Para Recursos Humanos</h4>
+            <p>Cero costo adicional. Es un beneficio incluido con el programa — una razón más para que el equipo lo valore y renueve.</p>
+          </div>
+        </div>
+        <div class="beneficio-card">
+          <div class="beneficio-ico terra">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <h4>Sin vencimiento</h4>
+            <p>El descuento se mantiene mientras la empresa tenga el programa activo. Es un beneficio continuo, no una promoción puntual.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C360,0 720,64 1080,32 C1260,16 1380,44 1440,32" stroke="rgba(74,93,107,.14)" stroke-width="0.8"/>
+    <path d="M0,44 C240,60 480,20 720,40 C960,60 1200,24 1440,44" stroke="rgba(196,117,80,.05)" stroke-width="0.5"/>
+    <circle cx="720" cy="32" r="2.5" fill="rgba(74,93,107,.28)"/>
+  </svg>
+</div>
+
+<!-- ══ CALCULADORA ══ -->
 <section id="calculadora">
   <div class="tc">
-    <span class="s-eyebrow fade-up">✦ ESTIMACIÓN</span>
-    <h2 class="s-h fade-up d1">Calculá el costo<br>para tu empresa</h2>
-    <p class="s-p fade-up d2">Ajustá los parámetros para obtener una estimación en tiempo real.</p>
+    <span class="s-eyebrow fade-up">✦ CALCULADORA</span>
+    <h2 class="s-h fade-up d1">¿Cuánto cuesta<br><em>para tu equipo?</em></h2>
+    <div class="s-h-deco fade-up d1" aria-hidden="true">
+      <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+    </div>
+    <p class="s-p fade-up d2">Mové los controles y ves el costo al instante. Los valores son orientativos — el precio final lo confirmamos juntos.</p>
   </div>
   <div class="calc-wrap fade-scale d1">
     <div class="calc-head">
-      <h3>Calculadora de programa</h3>
-      <p>Los valores son orientativos — el precio final se confirma al coordinar.</p>
+      <h3>Calculá tu programa</h3>
+      <p>$2.000 UYU por hora · 6 personas por hora · 10 minutos por persona</p>
+      <div class="calc-head-rule" aria-hidden="true">
+        <svg width="120" height="8" viewBox="0 0 120 8" fill="none">
+          <line x1="0" y1="4" x2="50" y2="4" stroke="rgba(196,117,80,.18)" stroke-width="0.6"/>
+          <circle cx="60" cy="4" r="1.5" fill="rgba(196,117,80,.3)"/>
+          <line x1="70" y1="4" x2="120" y2="4" stroke="rgba(196,117,80,.18)" stroke-width="0.6"/>
+        </svg>
+      </div>
     </div>
     <div class="calc-body">
-      <div class="calc-viz">
-        <div class="calc-viz-label">Integrantes del equipo: <span id="pv2">20</span></div>
+      <div>
+        <div class="calc-viz-label">Personas del equipo: <span id="pv2">20</span></div>
         <div class="calc-people" id="people-viz"></div>
       </div>
       <div class="calc-field">
@@ -625,26 +1512,48 @@
         <input type="range" id="ri-p" min="6" max="60" value="20" step="6" oninput="calc()">
       </div>
       <div class="calc-field">
-        <label>Frecuencia mensual <span id="fv">1× al mes</span></label>
+        <label>Veces al mes <span id="fv">1× al mes</span></label>
         <input type="range" id="ri-f" min="1" max="4" value="1" step="1" oninput="calc()">
       </div>
-      <div class="calc-duracion">
-        <span>Duración estimada de jornada</span>
-        <span id="duracion">~4 horas</span>
+      <!-- Jornada visual -->
+      <div class="calc-jornada-visual">
+        <div class="calc-clock-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14" stroke-linecap="round"/></svg>
+        </div>
+        <div class="calc-jornada-txt">
+          <span class="calc-jornada-lbl">DURACIÓN DE LA JORNADA</span>
+          <span class="calc-jornada-val" id="duracion">~4 horas</span>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:.68rem;color:rgba(255,255,255,.28);display:block;margin-bottom:.15rem">TERAPEUTAS</span>
+          <span style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--cream)" id="cr-t">1</span>
+        </div>
       </div>
     </div>
     <div class="calc-result">
-      <div><div class="cr-lbl">INVERSIÓN / JORNADA</div><div class="cr-val" id="cr-j">$4.000</div></div>
+      <div><div class="cr-lbl">COSTO / JORNADA</div><div class="cr-val" id="cr-j">$4.000</div></div>
       <div><div class="cr-lbl">INVERSIÓN MENSUAL</div><div class="cr-val" id="cr-m">$4.000</div></div>
-      <div><div class="cr-lbl">COSTO / PERSONA</div><div class="cr-val" id="cr-p">$200</div></div>
+      <div><div class="cr-lbl">PERSONAS ATENDIDAS</div><div class="cr-val" id="cr-p">20</div></div>
     </div>
-    <div class="calc-note">* Estimación base: $2.000 UYU/hora · 6 personas/hora · 10 min/persona</div>
+    <!-- ROI strip -->
+    <div class="calc-roi-strip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--verde-l)" stroke-width="1.5" width="20" height="20"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Para más personas o frecuencia recurrente, <strong>escribinos y armamos una propuesta a medida.</strong></span>
+    </div>
+    <div class="calc-note">* Base: $2.000 UYU/hora · 6 personas/hora · 10 min/persona</div>
   </div>
 </section>
 
-<div class="divider"></div>
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C360,0 720,64 1080,32 C1260,16 1380,44 1440,32" stroke="rgba(74,93,107,.14)" stroke-width="0.8"/>
+    <path d="M0,44 C240,60 480,20 720,40 C960,60 1200,24 1440,44" stroke="rgba(196,117,80,.05)" stroke-width="0.5"/>
+    <circle cx="720" cy="32" r="2.5" fill="rgba(74,93,107,.28)"/>
+  </svg>
+</div>
 
-<!-- ROI -->
+<!-- ══ ROI ══ -->
 <section id="roi">
   <div class="roi-grid">
     <div class="roi-stats-grid fade-left">
@@ -670,10 +1579,16 @@
       </div>
     </div>
     <div class="roi-txt fade-right">
-      <span class="s-eyebrow">✦ PERSPECTIVA EMPRESARIAL</span>
+      <span class="s-eyebrow">✦ ROI COMPROBADO</span>
       <h2 class="s-h">El verdadero costo<br>de <em>no actuar</em></h2>
-      <p class="s-p">El estrés laboral no atendido tiene un costo directo: errores por fatiga, rotación de personal, días de baja médica. Un programa corporativo de bienestar es la intervención de menor costo y mayor impacto inmediato disponible hoy.</p>
+      <div class="s-h-deco" aria-hidden="true">
+        <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+      </div>
+      <p class="s-p">El estrés y el cansancio acumulado tienen un costo real: más errores, más rotación, más días perdidos. Un masaje de 10 minutos en tu empresa es la intervención de menor costo y mayor impacto inmediato disponible — porque el terapeuta va a tu oficina, no al revés.</p>
       <div class="roi-cita">
+        <svg class="roi-cita-fleuron" width="28" height="12" viewBox="0 0 28 12" fill="none" aria-hidden="true">
+          <path d="M0,6 C4,1 8,1 14,6 C20,1 24,1 28,6" stroke="rgba(97,125,92,.45)" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        </svg>
         <p>"Lo implementamos como piloto con 15 personas. El equipo lo adoptó de inmediato y al mes siguiente ya lo extendimos a toda la empresa."</p>
         <cite>— Gerente de Recursos Humanos · Empresa de servicios, Pocitos</cite>
       </div>
@@ -681,17 +1596,17 @@
   </div>
 </section>
 
-<!-- CTA FINAL -->
+<!-- ══ CTA FINAL ══ -->
 <div class="cta-wrap">
   <div class="cta-glow"></div>
   <div class="cta-dots"></div>
   <div class="cta-inner">
     <div class="cta-frame fade-scale">
-      <span class="s-eyebrow" style="margin-bottom:1.5rem">✦ PRÓXIMO PASO</span>
-      <h2 class="s-h">¿Tu empresa prioriza<br>el bienestar de su gente?</h2>
-      <p class="s-p">Escribinos por WhatsApp. En menos de 24 horas tenés una propuesta personalizada para tu equipo.</p>
+      <span class="s-eyebrow" style="margin-bottom:1.8rem">✦ PRÓXIMO PASO</span>
+      <h2 class="s-h">¿Recursos Humanos prioriza<br><em>el bienestar del equipo?</em></h2>
+      <p class="s-p">Escribinos por WhatsApp. En menos de 24 horas tienen una propuesta personalizada para el área.</p>
       <div class="cta-btns">
-        <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20implementar%20un%20programa%20de%20bienestar%20corporativo%20en%20mi%20empresa.%20Somos%20%5Bcantidad%5D%20personas." target="_blank" class="btn btn-primary" style="font-size:.95rem;padding:1rem 2.2rem">
+        <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20implementar%20un%20programa%20de%20bienestar%20corporativo%20en%20mi%20empresa.%20Somos%20%5Bcantidad%5D%20personas." target="_blank" class="btn btn-primary" style="font-size:.98rem;padding:1.1rem 2.5rem">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           Diseñar nuestro programa
         </a>
@@ -701,17 +1616,18 @@
   </div>
 </div>
 
+<!-- ══ FOOTER ══ -->
 <footer>
   <p>© 2026 Citrino · Centro Integral de Bienestar · Montevideo, Uruguay</p>
-  <div class="vintage-sep" style="width:200px">
+  <div class="vintage-sep">
     <span class="vintage-sep-line"></span>
-    <span class="retro-stamp" style="position:relative">DESDE 2016</span>
+    <span class="retro-stamp">DESDE 2020</span>
     <span class="vintage-sep-line"></span>
   </div>
   <a href="/">← Volver al inicio</a>
 </footer>
 
-<a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="wa-float">
+<a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="wa-float" aria-label="WhatsApp">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 
@@ -719,17 +1635,70 @@
   // Nav scroll
   window.addEventListener('scroll', () => {
     document.getElementById('nav').classList.toggle('scrolled', scrollY > 60);
-  }, { passive: true });
+  }, { passive:true });
 
   // Scroll reveal
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
-  }, { threshold: 0.08 });
+  }, { threshold:0.08 });
   document.querySelectorAll('.fade-up,.fade-left,.fade-right,.fade-scale').forEach(el => obs.observe(el));
 
+  // Hamburger
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+    document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+  });
+  function closeMenu() {
+    hamburger.classList.remove('open');
+    mobileMenu.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // ── CULT UI: SPOTLIGHT CURSOR ──
+  const spotlight = document.getElementById('hero-spotlight');
+  const heroSection = document.querySelector('.hero');
+  if (spotlight && heroSection) {
+    heroSection.addEventListener('mousemove', e => {
+      const r = heroSection.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%';
+      const y = ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%';
+      spotlight.style.setProperty('--mx', x);
+      spotlight.style.setProperty('--my', y);
+      spotlight.style.background = `radial-gradient(600px circle at ${x} ${y}, rgba(196,117,80,.13) 0%, rgba(196,117,80,.05) 35%, transparent 65%)`;
+    });
+    heroSection.addEventListener('mouseleave', () => {
+      spotlight.style.background = '';
+    });
+  }
+
+  // ── CULT UI: COUNTER ANIMATION en hm-n ──
+  const cntObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const target = parseFloat(el.dataset.count);
+      const suffix = el.dataset.suffix || '';
+      if (!target) return;
+      let start = 0; const duration = 1200;
+      const startTime = performance.now();
+      function step(now) {
+        const p = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * ease) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+      cntObs.unobserve(el);
+    });
+  }, { threshold: 0.6 });
+  document.querySelectorAll('.hm-n[data-count]').forEach(el => cntObs.observe(el));
+
   // Calculadora
-  const frecLabels = {1:'1× al mes',2:'2× al mes',3:'3× al mes',4:'4× al mes'};
-  const personIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="7" r="4" stroke="rgba(184,105,74,.65)" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(184,105,74,.65)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+  const fLbls = ['','1× al mes','2× al mes','3× al mes','4× al mes'];
+  const personIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="4" stroke="rgba(196,117,80,.7)" stroke-width="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(196,117,80,.7)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
   function updateViz(n) {
     const v = document.getElementById('people-viz'); if (!v) return;
@@ -738,35 +1707,52 @@
     for (let i = 0; i < shown; i++) {
       const d = document.createElement('div');
       d.innerHTML = personIcon;
-      d.style.cssText = `opacity:0;transform:scale(.4);transition:opacity .3s ease ${i*.025}s,transform .3s ease ${i*.025}s`;
+      d.style.cssText = `opacity:0;transform:scale(.4);transition:opacity .25s ease ${i*.018}s,transform .25s ease ${i*.018}s`;
       v.appendChild(d);
       requestAnimationFrame(() => requestAnimationFrame(() => { d.style.opacity='1'; d.style.transform='scale(1)'; }));
     }
     if (n > 30) {
       const m = document.createElement('div');
-      m.textContent = `+${n-30}`; m.style.cssText = 'font-size:.75rem;color:rgba(184,105,74,.6);align-self:center;font-family:Inter,sans-serif;margin-left:2px';
+      m.textContent = `+${n-30}`; m.style.cssText = 'font-size:.72rem;color:rgba(196,117,80,.55);align-self:center;font-family:DM Sans,sans-serif;margin-left:3px';
       v.appendChild(m);
     }
+  }
+
+  function animVal(el, newTxt) {
+    if (!el) return;
+    el.style.transform = 'translateY(-6px)'; el.style.opacity = '0';
+    setTimeout(() => { el.textContent = newTxt; el.style.transform = ''; el.style.opacity = '1'; }, 180);
   }
 
   function calc() {
     const p = +document.getElementById('ri-p').value;
     const f = +document.getElementById('ri-f').value;
-    ['pv','pv2'].forEach(id => document.getElementById(id).textContent = p);
-    document.getElementById('fv').textContent = frecLabels[f];
-    const pPct = ((p-6)/54*100).toFixed(1);
-    const fPct = ((f-1)/3*100).toFixed(1);
-    document.getElementById('ri-p').style.setProperty('--pct', pPct+'%');
-    document.getElementById('ri-f').style.setProperty('--pct', fPct+'%');
+    ['pv','pv2'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = p; });
+    document.getElementById('fv').textContent = fLbls[f] || `${f}× al mes`;
+    document.getElementById('ri-p').style.setProperty('--pct', ((p-6)/54*100).toFixed(1)+'%');
+    document.getElementById('ri-f').style.setProperty('--pct', ((f-1)/3*100).toFixed(1)+'%');
+
     const horas = Math.ceil(p/6);
+    const terapeutas = horas > 3 ? Math.ceil(horas/3) : 1;  // sugerencia de terapeutas
     const jornada = horas*2000;
     const mensual = jornada*f;
-    const pp = Math.round(mensual/(p*f));
-    document.getElementById('cr-j').textContent = '$'+jornada.toLocaleString('es-UY');
-    document.getElementById('cr-m').textContent = '$'+mensual.toLocaleString('es-UY');
-    document.getElementById('cr-p').textContent = '$'+pp.toLocaleString('es-UY');
+    const pp = Math.round(jornada/p);
+
     const min = p*10; const h = Math.floor(min/60); const m = min%60;
-    document.getElementById('duracion').textContent = h>0?`~${h}h${m>0?' '+m+'min':''}`:`~${m} min`;
+    const durStr = h>0 ? `~${h}h${m>0?' '+m+' min':''}` : `~${m} min`;
+
+    animVal(document.getElementById('cr-j'), '$'+jornada.toLocaleString('es-UY'));
+    animVal(document.getElementById('cr-m'), '$'+mensual.toLocaleString('es-UY'));
+    animVal(document.getElementById('cr-p'), p + ' personas');
+    animVal(document.getElementById('duracion'), durStr);
+
+    const tEl = document.getElementById('cr-t');
+    if (tEl) tEl.textContent = terapeutas > 1 ? terapeutas+' sugeridos' : '1';
+
+    document.getElementById('cr-j').style.transition = 'opacity .18s, transform .18s';
+    document.getElementById('cr-m').style.transition = 'opacity .18s, transform .18s';
+    document.getElementById('cr-p').style.transition = 'opacity .18s, transform .18s';
+
     updateViz(p);
   }
   calc();
