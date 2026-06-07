@@ -662,11 +662,36 @@
       .hero-lead { font-size:.95rem; line-height:1.85; }
       .hero-btns { flex-direction:column; align-items:center; gap:.75rem; }
       .btn { width:100%; max-width:340px; justify-content:center; font-size:.92rem; padding:1rem 1.6rem; }
-      /* Forzar 1 columna en precios */
+
+      /* Eyebrow que se corta — permitir wrap */
+      .eyebrow { white-space:normal; text-align:center; max-width:280px; line-height:1.5; }
+
+      /* Cards de precios — 1 columna siempre */
       .propuesta-grid-v2 { grid-template-columns:1fr !important; max-width:100% !important; }
-      /* Forzar visible elementos fade que no se animan */
+      .pv2-card.star { transform:none; } /* quitar elevación en mobile */
+
+      /* Beneficio 30% — stack limpio: número arriba, info abajo */
+      .beneficio-grid { grid-template-columns:1fr !important; gap:1.5rem !important; }
       .beneficio-grid .fade-left,
       .beneficio-grid .fade-right { opacity:1 !important; transform:none !important; }
+      .desc-numero-wrap {
+        flex-direction:row !important; align-items:center !important;
+        gap:1.2rem !important; padding:1.4rem !important;
+        border-radius:18px !important;
+      }
+      .desc-pct { font-size:3.5rem !important; }
+      .desc-pct-label { font-size:.7rem !important; letter-spacing:.15em !important; }
+      .desc-pct-sub { display:none !important; }
+      /* Título de la sección beneficio */
+      .beneficio-grid .s-h { font-size:clamp(1.8rem,6vw,2.4rem); }
+      .beneficio-cards { gap:.65rem; margin:1.2rem 0; }
+      .beneficio-card { padding:.9rem 1rem; }
+      .beneficio-ico { width:34px; height:34px; border-radius:10px; flex-shrink:0; }
+
+      /* ROI grid */
+      .roi-grid { grid-template-columns:1fr !important; }
+      .roi-stats { grid-template-columns:1fr 1fr; gap:.75rem; }
+      .roi-stat { padding:1.2rem .8rem; }
 
       /* Hero metrics — 3 col compacto */
       .hero-metrics { border-radius:16px; }
