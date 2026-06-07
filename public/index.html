@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citrino | Centro Integral de Bienestar | Ciudad Vieja, Montevideo</title>
+  <meta name="description" content="Masajes terapéuticos y estéticos en Ciudad Vieja, Montevideo. Masajes modeladores, descontracturantes, drenaje linfático, packs y talleres de bienestar. Agendá por WhatsApp.">
+  <meta property="og:title" content="Citrino | Centro Integral de Bienestar">
+  <meta property="og:description" content="Masajes terapéuticos y estéticos en Ciudad Vieja, Montevideo.">
+  <meta property="og:image" content="https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg">
+  <meta property="og:url" content="https://www.citrinobienestar.uy">
+  <link rel="icon" href="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png">
+  <style>
+    /* ── VARIABLES ── */
+    :root {
+      --crema:    #FDF6EE;
+      --crema2:   #F5EAD8;
+      --terracota:#C17A5A;
+      --terra2:   #A05E40;
+      --verde:    #7A9E7E;
+      --oscuro:   #2C2420;
+      --gris:     #6B5E58;
+      --blanco:   #FFFFFF;
+      --sombra:   0 4px 24px rgba(44,36,32,.10);
+      --radio:    16px;
+      --trans:    .3s ease;
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Georgia', 'Times New Roman', serif; background: var(--crema); color: var(--oscuro); }
+    img { max-width: 100%; display: block; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── TIPOGRAFÍA ── */
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.15; }
+    h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); line-height: 1.2; }
+    h3 { font-size: 1.15rem; }
+    p  { line-height: 1.7; color: var(--gris); }
+
+    /* ── BOTONES ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 2rem; border-radius: 50px; font-size: .95rem;
+      font-family: inherit; cursor: pointer; transition: var(--trans); border: none;
+      font-weight: 600; letter-spacing: .02em;
+    }
+    .btn-primary { background: var(--terracota); color: var(--blanco); }
+    .btn-primary:hover { background: var(--terra2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(193,122,90,.35); }
+    .btn-outline { background: transparent; color: var(--terracota); border: 2px solid var(--terracota); }
+    .btn-outline:hover { background: var(--terracota); color: var(--blanco); }
+    .btn-wa { background: #25D366; color: var(--blanco); }
+    .btn-wa:hover { background: #1ebe5a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,211,102,.35); }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 5%; background: rgba(253,246,238,.95);
+      backdrop-filter: blur(12px); border-bottom: 1px solid rgba(193,122,90,.15);
+      transition: var(--trans);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .75rem; }
+    .nav-logo img { width: 40px; height: 40px; object-fit: contain; }
+    .nav-logo span { font-size: 1.25rem; font-weight: 700; letter-spacing: .08em; color: var(--terracota); }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
+    .nav-links a { font-size: .9rem; color: var(--gris); transition: var(--trans); font-family: 'Helvetica Neue', sans-serif; letter-spacing: .04em; }
+    .nav-links a:hover { color: var(--terracota); }
+    .nav-wa { background: var(--terracota); color: var(--blanco)!important; padding: .5rem 1.25rem; border-radius: 50px; font-weight: 600!important; }
+    .nav-wa:hover { background: var(--terra2)!important; }
+
+    /* hamburger */
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: .5rem; }
+    .hamburger span { width: 24px; height: 2px; background: var(--oscuro); border-radius: 2px; transition: var(--trans); }
+    .nav-mobile { display: none; flex-direction: column; gap: 1.5rem; padding: 2rem 5%; background: var(--crema); border-bottom: 1px solid var(--crema2); }
+    .nav-mobile a { font-size: 1.1rem; color: var(--gris); border-bottom: 1px solid var(--crema2); padding-bottom: 1rem; }
+    .nav-mobile.open { display: flex; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+      padding: 8rem 5% 5rem;
+      background: linear-gradient(135deg, rgba(253,246,238,1) 0%, rgba(245,234,216,.8) 100%),
+                  url('https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg') center/cover no-repeat;
+      background-blend-mode: multiply;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; right: -5%; top: 10%; width: 55%; height: 80%;
+      background: url('https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg') center/cover no-repeat;
+      border-radius: 40% 0 0 40%; opacity: .35; pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 580px; }
+    .hero-tag { display: inline-block; background: var(--crema2); color: var(--terracota); padding: .4rem 1.2rem; border-radius: 50px; font-size: .8rem; letter-spacing: .12em; font-family: 'Helvetica Neue', sans-serif; margin-bottom: 1.5rem; }
+    .hero h1 { color: var(--oscuro); margin-bottom: 1.25rem; }
+    .hero h1 em { font-style: italic; color: var(--terracota); }
+    .hero p { font-size: 1.1rem; margin-bottom: 2rem; max-width: 440px; }
+    .hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .hero-info { display: flex; gap: 2rem; margin-top: 3rem; flex-wrap: wrap; }
+    .hero-info-item { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--gris); font-family: 'Helvetica Neue', sans-serif; }
+    .hero-info-item svg { color: var(--terracota); flex-shrink: 0; }
+
+    /* ── SECCIONES ── */
+    section { padding: 5rem 5%; }
+    .section-tag { display: inline-block; background: var(--crema2); color: var(--terracota); padding: .35rem 1rem; border-radius: 50px; font-size: .75rem; letter-spacing: .12em; font-family: 'Helvetica Neue', sans-serif; margin-bottom: 1rem; }
+    .section-title { margin-bottom: 1rem; }
+    .section-sub { max-width: 560px; margin-bottom: 3rem; }
+    .text-center { text-align: center; }
+    .text-center .section-sub { margin-inline: auto; }
+
+    /* ── SERVICIOS ── */
+    #servicios { background: var(--blanco); }
+    .servicios-tabs { display: flex; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center; }
+    .tab-btn {
+      padding: .6rem 1.5rem; border-radius: 50px; border: 2px solid var(--crema2);
+      background: transparent; cursor: pointer; font-family: inherit; font-size: .9rem;
+      color: var(--gris); transition: var(--trans);
+    }
+    .tab-btn.active, .tab-btn:hover { background: var(--terracota); color: var(--blanco); border-color: var(--terracota); }
+    .tab-content { display: none; }
+    .tab-content.active { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+    .servicio-card {
+      background: var(--crema); border-radius: var(--radio); padding: 1.75rem;
+      border: 1px solid var(--crema2); transition: var(--trans); cursor: pointer;
+    }
+    .servicio-card:hover { transform: translateY(-4px); box-shadow: var(--sombra); border-color: var(--terracota); }
+    .servicio-card.estrella { border-color: var(--terracota); background: linear-gradient(135deg, var(--crema) 0%, #fdf0e8 100%); }
+    .servicio-emoji { font-size: 2rem; margin-bottom: .75rem; }
+    .servicio-card h3 { margin-bottom: .5rem; color: var(--oscuro); }
+    .servicio-card p { font-size: .88rem; margin-bottom: 1rem; }
+    .servicio-precio { font-size: 1.1rem; font-weight: 700; color: var(--terracota); }
+    .estrella-badge { display: inline-block; background: var(--terracota); color: var(--blanco); padding: .2rem .75rem; border-radius: 50px; font-size: .7rem; letter-spacing: .08em; font-family: 'Helvetica Neue', sans-serif; margin-bottom: .75rem; }
+    .pack-list { margin-top: .75rem; font-size: .82rem; color: var(--gris); display: flex; flex-direction: column; gap: .25rem; }
+    .pack-list span { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--crema2); padding-bottom: .2rem; }
+
+    /* ── MÉTODO CITRINO ── */
+    #metodo { background: var(--crema2); }
+    .metodo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    .metodo-img { border-radius: var(--radio); overflow: hidden; }
+    .metodo-img img { width: 100%; height: 400px; object-fit: cover; }
+    .metodo-pasos { display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0; }
+    .metodo-paso { display: flex; gap: 1rem; align-items: flex-start; }
+    .paso-num { width: 36px; height: 36px; border-radius: 50%; background: var(--terracota); color: var(--blanco); display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-family: 'Helvetica Neue', sans-serif; font-size: .9rem; }
+    .paso-txt h4 { color: var(--oscuro); margin-bottom: .25rem; }
+    .paso-txt p { font-size: .88rem; }
+
+    /* ── EMPRESAS ── */
+    #empresas { background: var(--oscuro); color: var(--crema); }
+    #empresas h2 { color: var(--crema); }
+    #empresas p { color: rgba(253,246,238,.7); }
+    #empresas .section-tag { background: rgba(193,122,90,.25); color: var(--terracota); }
+    .empresas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin: 2.5rem 0; }
+    .empresa-card { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radio); padding: 2rem; text-align: center; }
+    .empresa-num { font-size: 2.5rem; font-weight: 700; color: var(--terracota); margin-bottom: .5rem; }
+    .empresa-label { font-size: .9rem; color: rgba(253,246,238,.8); font-family: 'Helvetica Neue', sans-serif; }
+    .empresa-features { display: flex; flex-direction: column; gap: .75rem; margin: 2rem 0; }
+    .empresa-feat { display: flex; align-items: center; gap: .75rem; font-size: .95rem; color: rgba(253,246,238,.85); }
+    .empresa-feat::before { content: '✓'; color: var(--terracota); font-weight: 700; flex-shrink: 0; }
+
+    /* ── TALLERES ── */
+    #talleres { background: var(--blanco); }
+    .talleres-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+    .taller-card { border-radius: var(--radio); overflow: hidden; border: 1px solid var(--crema2); transition: var(--trans); }
+    .taller-card:hover { transform: translateY(-4px); box-shadow: var(--sombra); }
+    .taller-img { height: 200px; background: var(--crema2); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+    .taller-body { padding: 1.5rem; }
+    .taller-body h3 { margin-bottom: .5rem; }
+    .taller-body p { font-size: .88rem; }
+    .taller-tag { display: inline-block; background: var(--crema2); color: var(--terracota); padding: .2rem .75rem; border-radius: 50px; font-size: .75rem; margin-top: 1rem; font-family: 'Helvetica Neue', sans-serif; }
+
+    /* ── SOBRE NOSOTROS ── */
+    #nosotros { background: var(--crema2); }
+    .nosotros-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    .nosotros-img { border-radius: var(--radio); overflow: hidden; }
+    .nosotros-img img { width: 100%; height: 420px; object-fit: cover; }
+    .valores { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+    .valor { background: var(--crema); border-radius: 12px; padding: 1.25rem; }
+    .valor-icon { font-size: 1.5rem; margin-bottom: .5rem; }
+    .valor h4 { font-size: .95rem; margin-bottom: .25rem; }
+    .valor p { font-size: .82rem; }
+
+    /* ── CONTACTO ── */
+    #contacto { background: var(--blanco); }
+    .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    .contacto-info { display: flex; flex-direction: column; gap: 1.5rem; }
+    .contacto-item { display: flex; gap: 1rem; align-items: flex-start; }
+    .contacto-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--crema2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .contacto-item h4 { font-size: .85rem; color: var(--terracota); letter-spacing: .06em; font-family: 'Helvetica Neue', sans-serif; margin-bottom: .25rem; }
+    .contacto-item p { font-size: .95rem; color: var(--oscuro); }
+    .mapa { border-radius: var(--radio); overflow: hidden; border: 1px solid var(--crema2); }
+    .mapa iframe { width: 100%; height: 320px; border: none; }
+    .social-links { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+    .social-link { display: flex; align-items: center; gap: .5rem; padding: .6rem 1.2rem; border-radius: 50px; background: var(--crema2); font-size: .85rem; transition: var(--trans); font-family: 'Helvetica Neue', sans-serif; color: var(--oscuro); }
+    .social-link:hover { background: var(--terracota); color: var(--blanco); }
+
+    /* ── FOOTER ── */
+    footer { background: var(--oscuro); color: rgba(253,246,238,.6); padding: 2.5rem 5%; }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-logo { display: flex; align-items: center; gap: .75rem; }
+    .footer-logo img { width: 32px; height: 32px; object-fit: contain; filter: brightness(0) invert(1); opacity: .8; }
+    .footer-logo span { color: rgba(253,246,238,.8); font-size: 1rem; letter-spacing: .08em; }
+    .footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: .85rem; }
+    .footer-links a { transition: var(--trans); font-family: 'Helvetica Neue', sans-serif; }
+    .footer-links a:hover { color: var(--terracota); }
+    footer p { font-size: .8rem; text-align: center; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.08); padding-top: 1.5rem; }
+
+    /* ── WA FLOTANTE ── */
+    .wa-float {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 99;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #25D366; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(37,211,102,.4); transition: var(--trans); cursor: pointer;
+    }
+    .wa-float:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(37,211,102,.5); }
+    .wa-float svg { width: 28px; height: 28px; fill: white; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .hero { padding: 7rem 5% 4rem; text-align: center; align-items: center; }
+      .hero::after { display: none; }
+      .hero-btns { justify-content: center; }
+      .hero-info { justify-content: center; }
+      .metodo-grid, .nosotros-grid, .contacto-grid { grid-template-columns: 1fr; }
+      .metodo-img, .nosotros-img { order: -1; }
+      .metodo-img img, .nosotros-img img { height: 250px; }
+      .valores { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <div class="nav-logo">
+    <img src="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png" alt="Citrino Logo">
+    <span>CITRINO</span>
+  </div>
+  <div class="nav-links">
+    <a href="#servicios">Servicios</a>
+    <a href="#metodo">Método Citrino</a>
+    <a href="#talleres">Talleres</a>
+    <a href="#empresas">Empresas</a>
+    <a href="#nosotros">Nosotros</a>
+    <a href="#contacto">Contacto</a>
+    <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20saber%20m%C3%A1s%20sobre%20sus%20servicios" target="_blank" class="nav-wa">Agendá</a>
+  </div>
+  <div class="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+<div class="nav-mobile" id="navMobile">
+  <a href="#servicios" onclick="toggleMenu()">Servicios</a>
+  <a href="#metodo" onclick="toggleMenu()">Método Citrino</a>
+  <a href="#talleres" onclick="toggleMenu()">Talleres</a>
+  <a href="#empresas" onclick="toggleMenu()">Empresas</a>
+  <a href="#nosotros" onclick="toggleMenu()">Nosotros</a>
+  <a href="#contacto" onclick="toggleMenu()">Contacto</a>
+  <a href="https://wa.me/59891998151?text=Hola!" target="_blank" class="btn btn-primary" style="margin-top:.5rem">📱 Agendá por WhatsApp</a>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero" id="inicio">
+  <div class="hero-content">
+    <span class="hero-tag">CIUDAD VIEJA · MONTEVIDEO</span>
+    <h1>Tu espacio de<br><em>bienestar integral</em><br>en el corazón de la ciudad</h1>
+    <p>Masajes terapéuticos, estética y terapias complementarias para tu bienestar bio-psico-emocional.</p>
+    <div class="hero-btns">
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20agendar%20una%20sesi%C3%B3n" target="_blank" class="btn btn-wa">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Agendá tu sesión
+      </a>
+      <a href="#servicios" class="btn btn-outline">Ver servicios</a>
+    </div>
+    <div class="hero-info">
+      <span class="hero-info-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Sarandí 554 ap. 1 · Ciudad Vieja
+      </span>
+      <span class="hero-info-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Lun–Vie 8:00–19:00 · Sáb por la mañana
+      </span>
+      <span class="hero-info-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Débito y crédito hasta 3 cuotas
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ── SERVICIOS ── -->
+<section id="servicios">
+  <div class="text-center">
+    <span class="section-tag">NUESTROS SERVICIOS</span>
+    <h2 class="section-title">Encontrá el tratamiento<br>que necesitás</h2>
+    <p class="section-sub">Cada sesión de 50 minutos reales dedicados completamente a vos.</p>
+  </div>
+
+  <div class="servicios-tabs">
+    <button class="tab-btn active" onclick="showTab('masajes', this)">Masajes</button>
+    <button class="tab-btn" onclick="showTab('estetica', this)">Estética</button>
+  </div>
+
+  <!-- MASAJES -->
+  <div class="tab-content active" id="tab-masajes">
+
+    <div class="servicio-card estrella">
+      <span class="estrella-badge">⭐ ESTRELLA DEL NEGOCIO</span>
+      <div class="servicio-emoji">✨</div>
+      <h3>Método Citrino</h3>
+      <p>Drenaje Linfático + Masaje Modelador + Maderoterapia + terapias específicas en una sola sesión. Modelá, drenás y renovás tu piel.</p>
+      <div class="servicio-precio">Desde $1.500</div>
+      <div class="pack-list">
+        <span><span>Pack 4 sesiones</span><span>$5.100</span></span>
+        <span><span>Pack 6 sesiones</span><span>$7.400</span></span>
+        <span><span>Pack 8 sesiones</span><span>$9.600</span></span>
+      </div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">🌿</div>
+      <h3>Drenaje Linfático</h3>
+      <p>Técnica manual suave y rítmica. Activa la circulación, elimina toxinas, reduce retención de líquidos. Sensación inmediata de ligereza.</p>
+      <div class="servicio-precio">$1.500 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">💪</div>
+      <h3>Masaje Descontracturante</h3>
+      <p>Trabaja zonas de tensión muscular profunda. Ideal para contracturas, dolor de espalda, cuello y hombros.</p>
+      <div class="servicio-precio">$1.200 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">💆</div>
+      <h3>Masaje Relax</h3>
+      <p>Masaje suave y relajante para liberar el estrés y reconectar con tu cuerpo. Ideal para el descanso profundo.</p>
+      <div class="servicio-precio">$1.300 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">🏋️</div>
+      <h3>Masaje Modelador</h3>
+      <p>Trabaja el contorno corporal, mejora la circulación y reduce la celulitis de forma visible.</p>
+      <div class="servicio-precio">$1.500 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">🪨</div>
+      <h3>Masaje Piedras Calientes</h3>
+      <p>Piedras volcánicas calientes para un relax profundo. Alivia tensiones musculares y mejora la circulación.</p>
+      <div class="servicio-precio">$1.500 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">🦶</div>
+      <h3>Reflexología</h3>
+      <p>Trabaja puntos reflejos en los pies para equilibrar el cuerpo y la mente de forma natural.</p>
+      <div class="servicio-precio">$1.300 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+    <div class="servicio-card">
+      <div class="servicio-emoji">🙏</div>
+      <h3>Reiki</h3>
+      <p>Terapia energética para equilibrar el campo energético, reducir el estrés y promover la sanación.</p>
+      <div class="servicio-precio">$1.200 <small style="font-size:.75rem;color:var(--gris)">/ 50 min</small></div>
+    </div>
+
+  </div>
+
+  <!-- ESTÉTICA -->
+  <div class="tab-content" id="tab-estetica">
+    <div class="servicio-card">
+      <div class="servicio-emoji">✨</div>
+      <h3>Limpieza de Cutis</h3>
+      <p>Tratamiento facial profundo para purificar, renovar e iluminar tu piel.</p>
+      <div class="servicio-precio">$1.500</div>
+    </div>
+    <div class="servicio-card">
+      <div class="servicio-emoji">💅</div>
+      <h3>Manicuría</h3>
+      <p>Cuidado profesional de manos y uñas con los mejores productos.</p>
+      <div class="servicio-precio">$1.300</div>
+    </div>
+    <div class="servicio-card">
+      <div class="servicio-emoji">🪒</div>
+      <h3>Depilación</h3>
+      <p>Depilación con técnicas suaves y eficaces para piel suave y cuidada.</p>
+      <div class="servicio-precio">$1.300</div>
+    </div>
+    <div class="servicio-card">
+      <div class="servicio-emoji">🦷</div>
+      <h3>Podología</h3>
+      <p>Cuidado integral de pies para tu salud y bienestar desde la base.</p>
+      <div class="servicio-precio">$1.300</div>
+    </div>
+    <div class="servicio-card">
+      <div class="servicio-emoji">💄</div>
+      <h3>Taller de Automaquillaje</h3>
+      <p>Aprendé técnicas de maquillaje profesional adaptadas a tu estilo y rutina diaria.</p>
+      <div class="servicio-precio">$1.500</div>
+    </div>
+    <div class="servicio-card estrella">
+      <span class="estrella-badge">💍 ESPECIAL</span>
+      <div class="servicio-emoji">👑</div>
+      <h3>Maquillaje Quinceañeras y Novias</h3>
+      <p>Maquillaje profesional para tu día especial. Te hacemos lucir espectacular.</p>
+      <div class="servicio-precio">$2.700</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:3rem">
+    <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20consultar%20por%20un%20servicio" target="_blank" class="btn btn-primary">📱 Consultar por WhatsApp</a>
+  </div>
+</section>
+
+<!-- ── MÉTODO CITRINO ── -->
+<section id="metodo">
+  <div class="metodo-grid">
+    <div>
+      <span class="section-tag">NUESTRO SELLO</span>
+      <h2 class="section-title">El Método Citrino</h2>
+      <p>Una experiencia única que combina las mejores técnicas en una sola sesión de 50 minutos. Estética y bienestar integrados para un resultado visible desde la primera vez.</p>
+      <div class="metodo-pasos">
+        <div class="metodo-paso">
+          <div class="paso-num">1</div>
+          <div class="paso-txt">
+            <h4>Drenaje Linfático</h4>
+            <p>Activamos la circulación y eliminamos toxinas acumuladas.</p>
+          </div>
+        </div>
+        <div class="metodo-paso">
+          <div class="paso-num">2</div>
+          <div class="paso-txt">
+            <h4>Masaje Modelador</h4>
+            <p>Trabajamos el contorno y reducimos la celulitis.</p>
+          </div>
+        </div>
+        <div class="metodo-paso">
+          <div class="paso-num">3</div>
+          <div class="paso-txt">
+            <h4>Maderoterapia</h4>
+            <p>Potenciamos los resultados con herramientas especializadas.</p>
+          </div>
+        </div>
+        <div class="metodo-paso">
+          <div class="paso-num">4</div>
+          <div class="paso-txt">
+            <h4>Terapias complementarias</h4>
+            <p>Fango, Yeso o Frío/Calor según lo que necesite tu cuerpo ese día.</p>
+          </div>
+        </div>
+      </div>
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20saber%20m%C3%A1s%20sobre%20el%20M%C3%A9todo%20Citrino" target="_blank" class="btn btn-primary">Quiero probarlo</a>
+    </div>
+    <div class="metodo-img">
+      <img src="https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg" alt="Método Citrino" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<!-- ── EMPRESAS ── -->
+<section id="empresas">
+  <div class="text-center">
+    <span class="section-tag">PARA EMPRESAS</span>
+    <h2 class="section-title">Llevamos el bienestar<br>a tu oficina</h2>
+    <p>Terapeutas certificados que van hasta tu empresa. Una inversión en el bienestar de tu equipo que se nota en la productividad.</p>
+  </div>
+
+  <div class="empresas-grid">
+    <div class="empresa-card">
+      <div class="empresa-num">10'</div>
+      <div class="empresa-label">minutos por persona</div>
+    </div>
+    <div class="empresa-card">
+      <div class="empresa-num">6</div>
+      <div class="empresa-label">personas por hora</div>
+    </div>
+    <div class="empresa-card">
+      <div class="empresa-num">$2.000</div>
+      <div class="empresa-label">UYU por hora / terapeuta</div>
+    </div>
+  </div>
+
+  <div class="empresa-features">
+    <div class="empresa-feat">Terapeutas certificados con experiencia empresarial</div>
+    <div class="empresa-feat">Masajes express de 10 minutos — rápidos y efectivos</div>
+    <div class="empresa-feat">Sin necesidad de cambiarse de ropa ni instalaciones especiales</div>
+    <div class="empresa-feat">Con factura empresa incluida</div>
+    <div class="empresa-feat">Coordinamos fecha, horario y cantidad de personas</div>
+    <div class="empresa-feat">Resultados inmediatos: menos tensión, más enfoque</div>
+  </div>
+
+  <div style="text-align:center;margin-top:2.5rem">
+    <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20servicio%20de%20masajes%20para%20empresas" target="_blank" class="btn btn-primary">Consultar para mi empresa</a>
+  </div>
+</section>
+
+<!-- ── TALLERES ── -->
+<section id="talleres">
+  <div class="text-center">
+    <span class="section-tag">CURSOS Y TALLERES</span>
+    <h2 class="section-title">Expandí tu bienestar</h2>
+    <p class="section-sub">Talleres vivenciales para conectar con tu mundo interior y el de las energías naturales.</p>
+  </div>
+
+  <div class="talleres-grid">
+    <div class="taller-card">
+      <div class="taller-img">💎</div>
+      <div class="taller-body">
+        <h3>Gemoterapia</h3>
+        <p>Descubrí el poder sanador de las piedras y cristales. Aprendé a usarlos para equilibrar tu energía y mejorar tu bienestar.</p>
+        <span class="taller-tag">Taller vivencial</span>
+      </div>
+    </div>
+    <div class="taller-card">
+      <div class="taller-img">🌸</div>
+      <div class="taller-body">
+        <h3>Flores de Bach</h3>
+        <p>Conocé las esencias florales del Dr. Bach y cómo utilizarlas para gestionar emociones y encontrar el equilibrio.</p>
+        <span class="taller-tag">Taller vivencial</span>
+      </div>
+    </div>
+    <div class="taller-card">
+      <div class="taller-img">✨</div>
+      <div class="taller-body">
+        <h3>Arcángeles y Más</h3>
+        <p>Conectá con la energía de los arcángeles. Un taller de espiritualidad práctica para tu vida cotidiana.</p>
+        <span class="taller-tag">Taller vivencial</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:3rem">
+    <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20saber%20sobre%20los%20talleres" target="_blank" class="btn btn-outline">Consultá fechas y precios</a>
+  </div>
+</section>
+
+<!-- ── SOBRE NOSOTROS ── -->
+<section id="nosotros">
+  <div class="nosotros-grid">
+    <div class="nosotros-img">
+      <img src="https://static.wixstatic.com/media/352540af0345423b8d447b3b337f557a.jpg" alt="Sobre Citrino" loading="lazy">
+    </div>
+    <div>
+      <span class="section-tag">SOBRE NOSOTROS</span>
+      <h2 class="section-title">Un equipo comprometido<br>con tu bienestar</h2>
+      <p style="margin-bottom:1rem">Citrino es un espacio que cuenta con un equipo multidisciplinario enfocado en la estética y la salud. Nos especializamos en diferentes técnicas de masaje y terapias complementarias.</p>
+      <p style="margin-bottom:1.5rem">Buscamos el bienestar bio-psico-emocional de cada una de las personas que nos visitan. Nuestro lema es poder ayudarte en lo que necesités.</p>
+      <p style="font-style:italic;color:var(--terracota);font-size:1.1rem;margin-bottom:2rem">"Tratamos de ayudarte en lo que necesites."</p>
+
+      <div class="valores">
+        <div class="valor">
+          <div class="valor-icon">🌿</div>
+          <h4>Enfoque integral</h4>
+          <p>Cuerpo, mente y emociones en equilibrio.</p>
+        </div>
+        <div class="valor">
+          <div class="valor-icon">💛</div>
+          <h4>Calidez humana</h4>
+          <p>Cada persona merece atención personalizada.</p>
+        </div>
+        <div class="valor">
+          <div class="valor-icon">✅</div>
+          <h4>Profesionalismo</h4>
+          <p>Terapeutas certificados con años de experiencia.</p>
+        </div>
+        <div class="valor">
+          <div class="valor-icon">🏙️</div>
+          <h4>En el corazón de la ciudad</h4>
+          <p>Frente a Plaza Matriz, Ciudad Vieja.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACTO ── -->
+<section id="contacto">
+  <div class="text-center" style="margin-bottom:3rem">
+    <span class="section-tag">CONTACTO</span>
+    <h2 class="section-title">¿Cómo llegar?</h2>
+  </div>
+
+  <div class="contacto-grid">
+    <div class="contacto-info">
+      <div class="contacto-item">
+        <div class="contacto-icon">📍</div>
+        <div>
+          <h4>DIRECCIÓN</h4>
+          <p>Sarandí 554 apto. 1<br>Frente a Plaza Matriz, Ciudad Vieja, Montevideo</p>
+        </div>
+      </div>
+      <div class="contacto-item">
+        <div class="contacto-icon">🕐</div>
+        <div>
+          <h4>HORARIOS</h4>
+          <p>Lunes a viernes: 8:00 – 19:00 hs<br>Sábados: por la mañana</p>
+        </div>
+      </div>
+      <div class="contacto-item">
+        <div class="contacto-icon">📱</div>
+        <div>
+          <h4>WHATSAPP</h4>
+          <p><a href="https://wa.me/59891998151" target="_blank" style="color:var(--terracota)">+598 91 998 151</a></p>
+        </div>
+      </div>
+      <div class="contacto-item">
+        <div class="contacto-icon">💳</div>
+        <div>
+          <h4>MEDIOS DE PAGO</h4>
+          <p>Débito y crédito hasta 3 cuotas sin recargo</p>
+        </div>
+      </div>
+      <div>
+        <div class="social-links">
+          <a href="https://www.instagram.com/citrino.cv/" target="_blank" class="social-link">📷 @citrino.cv</a>
+          <a href="https://www.facebook.com/Citrinocv" target="_blank" class="social-link">📘 Facebook</a>
+          <a href="https://www.youtube.com/channel/UCTrRNZBiVgnN_zSliIFtnsQ" target="_blank" class="social-link">▶️ YouTube</a>
+        </div>
+      </div>
+      <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20agendar%20una%20sesi%C3%B3n" target="_blank" class="btn btn-wa" style="width:fit-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Agendá ahora
+      </a>
+    </div>
+    <div class="mapa">
+      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3272.3!2d-34.9058!3d-56.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x959f80067b60c3c5%3A0xb9e74f74fc1d9f60!2sSarand%C3%AD%20554%2C%2011000%20Ciudad%20Vieja%2C%20Departamento%20de%20Montevideo!5e0!3m2!1ses!2suy!4v1699999999999!5m2!1ses!2suy" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png" alt="Citrino">
+      <span>CITRINO</span>
+    </div>
+    <div class="footer-links">
+      <a href="#servicios">Servicios</a>
+      <a href="#metodo">Método Citrino</a>
+      <a href="#talleres">Talleres</a>
+      <a href="#empresas">Empresas</a>
+      <a href="#nosotros">Nosotros</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+  </div>
+  <p>© 2026 Citrino · Centro Integral de Bienestar · Sarandí 554, Ciudad Vieja, Montevideo</p>
+</footer>
+
+<!-- ── WA FLOTANTE ── -->
+<a href="https://wa.me/59891998151?text=Hola!%20Quiero%20saber%20m%C3%A1s%20sobre%20sus%20servicios" target="_blank" class="wa-float" title="Hablá con nosotros">
+  <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<script>
+  function toggleMenu() {
+    document.getElementById('navMobile').classList.toggle('open');
+  }
+
+  function showTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Cerrar menú mobile al hacer scroll
+  window.addEventListener('scroll', () => {
+    document.getElementById('navMobile').classList.remove('open');
+  });
+</script>
+
+</body>
+</html>
