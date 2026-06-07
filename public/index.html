@@ -47,20 +47,56 @@
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1.1rem 5%; transition: all .4s ease;
+      padding: 1.1rem 5%; transition: all .45s cubic-bezier(.16,1,.3,1);
+      animation: navEntrance .8s ease both;
     }
+    @keyframes navEntrance { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:translateY(0)} }
     nav.scrolled {
-      background: rgba(253,248,242,.97); backdrop-filter: blur(16px);
-      box-shadow: 0 2px 32px rgba(30,22,18,.08); padding: .8rem 5%;
+      background: rgba(253,248,242,.97); backdrop-filter: blur(20px) saturate(1.5);
+      box-shadow: 0 1px 0 rgba(193,122,90,.12), 0 4px 32px rgba(30,22,18,.06);
+      padding: .75rem 5%;
     }
-    .nav-logo { display: flex; align-items: center; gap: .6rem; }
-    .nav-logo img { width: 38px; height: 38px; object-fit: contain; }
-    .nav-logo span { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--terra); letter-spacing: .06em; }
+    .nav-logo {
+      display: flex; align-items: center; gap: .75rem;
+      text-decoration: none; position: relative;
+    }
+    .nav-logo-img-wrap {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1.5px solid rgba(193,122,90,.25);
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(193,122,90,.06); transition: all .3s;
+      overflow: hidden;
+    }
+    .nav-logo:hover .nav-logo-img-wrap { border-color: var(--terra); background: rgba(193,122,90,.12); }
+    .nav-logo img { width: 28px; height: 28px; object-fit: contain; }
+    .nav-logo-text { display: flex; flex-direction: column; line-height: 1; }
+    .nav-logo-text .nl1 {
+      font-family: 'Playfair Display', serif; font-size: 1.15rem; font-style: italic;
+      color: var(--terra); letter-spacing: .04em; font-weight: 400;
+    }
+    .nav-logo-text .nl2 {
+      font-family: 'Inter', sans-serif; font-size: .55rem; letter-spacing: .22em;
+      color: var(--gris2); font-weight: 500; text-transform: uppercase; margin-top: .1rem;
+    }
     .nav-links { display: flex; gap: 2rem; align-items: center; }
-    .nav-links a { font-size: .85rem; color: var(--gris); transition: color .3s; letter-spacing: .04em; font-weight: 500; }
+    .nav-links a {
+      font-family: 'Inter', sans-serif; font-size: .82rem; color: var(--gris);
+      transition: color .3s; letter-spacing: .04em; font-weight: 500; position: relative;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -.2rem; left: 0; right: 0; height: 1px;
+      background: var(--terra); transform: scaleX(0); transform-origin: left;
+      transition: transform .3s ease;
+    }
     .nav-links a:hover { color: var(--terra); }
-    .nav-cta { background: var(--terra) !important; color: #fff !important; padding: .55rem 1.4rem !important; border-radius: 50px; font-weight: 600 !important; }
-    .nav-cta:hover { background: var(--terra2) !important; }
+    .nav-links a:hover::after { transform: scaleX(1); }
+    .nav-cta {
+      background: var(--terra) !important; color: #fff !important;
+      padding: .55rem 1.4rem !important; border-radius: 50px; font-weight: 600 !important;
+      box-shadow: 0 4px 16px rgba(193,122,90,.3) !important; transition: all .3s !important;
+    }
+    .nav-cta::after { display: none !important; }
+    .nav-cta:hover { background: var(--terra2) !important; box-shadow: 0 8px 24px rgba(193,122,90,.4) !important; transform: translateY(-1px) !important; }
     .burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
     .burger span { width: 22px; height: 2px; background: var(--oscuro); border-radius: 2px; transition: .3s; }
     .mobile-menu {
@@ -80,12 +116,12 @@
     }
     .hero-bg {
       position: absolute; inset: 0;
-      background: url('https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg') center/cover no-repeat;
+      background: url('https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg') center 65%/cover no-repeat;
       transform: scale(1.05); transition: transform .1s linear;
     }
     .hero-overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(105deg, rgba(253,248,242,.96) 0%, rgba(253,248,242,.92) 40%, rgba(253,248,242,.4) 100%);
+      background: linear-gradient(105deg, rgba(253,248,242,.94) 0%, rgba(253,248,242,.88) 45%, rgba(253,248,242,.25) 100%);
     }
     .hero-content {
       position: relative; z-index: 2; padding: 8rem 5% 5rem;
@@ -189,12 +225,30 @@
     .paso-t h4 { font-size: .95rem; margin-bottom: .25rem; }
     .paso-t p { font-size: .83rem; color: var(--gris); }
 
-    /* ── NÚMEROS ── */
-    .numeros { background: var(--terra); padding: 4rem 5%; }
-    .numeros-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; text-align: center; }
-    .numero { }
-    .numero .n { font-family: 'Playfair Display', serif; font-size: 3rem; color: #fff; font-weight: 600; display: block; }
-    .numero .l { font-size: .8rem; color: rgba(255,255,255,.8); letter-spacing: .1em; margin-top: .25rem; }
+    /* ── RETRO SPARKLES ── */
+    .retro-star {
+      position: absolute; pointer-events: none; z-index: 0;
+      animation: retroTwinkle 4s ease-in-out infinite;
+    }
+    .retro-star svg { width: 100%; height: 100%; }
+    @keyframes retroTwinkle {
+      0%,100%{opacity:.5;transform:scale(1) rotate(0deg)}
+      50%{opacity:1;transform:scale(1.15) rotate(15deg)}
+    }
+    .rs1{width:28px;height:28px;top:12%;right:8%;animation-delay:0s}
+    .rs2{width:18px;height:18px;top:30%;right:15%;animation-delay:1.2s}
+    .rs3{width:22px;height:22px;bottom:20%;left:8%;animation-delay:2s}
+    .rs4{width:14px;height:14px;top:60%;right:6%;animation-delay:.6s}
+
+    /* Ornamento de sección */
+    .s-ornament { display: flex; align-items: center; gap: .75rem; justify-content: center; margin-bottom: .5rem; }
+    .s-ornament svg { flex-shrink: 0; }
+    .s-ornament-line { height: 1px; width: 40px; background: linear-gradient(90deg, transparent, var(--terra)); }
+    .s-ornament-line.r { background: linear-gradient(90deg, var(--terra), transparent); }
+
+    /* Retro contact icons */
+    .retro-ico { width: 46px; height: 46px; border-radius: 12px; background: var(--crema2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--crema3); }
+    .retro-ico svg { width: 22px; height: 22px; }
 
     /* ── TALLERES ── */
     #talleres { background: #fff; }
@@ -236,7 +290,8 @@
     .contacto-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
     .c-items { display: flex; flex-direction: column; gap: 1.5rem; }
     .c-item { display: flex; gap: 1rem; align-items: flex-start; }
-    .c-ico { width: 46px; height: 46px; border-radius: 14px; background: var(--crema2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .c-ico { width: 46px; height: 46px; border-radius: 14px; background: var(--crema2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--crema3); }
+    .c-ico svg { width: 22px; height: 22px; }
     .c-item h4 { font-size: .78rem; color: var(--terra); letter-spacing: .1em; font-weight: 600; margin-bottom: .25rem; }
     .c-item p, .c-item a { font-size: .95rem; color: var(--oscuro); }
     .socials { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .5rem; }
@@ -315,14 +370,18 @@
 
 <!-- ── NAVBAR ── -->
 <nav id="nav">
-  <div class="nav-logo">
-    <img src="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png" alt="Citrino">
-    <span>CITRINO</span>
-  </div>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-img-wrap">
+      <img src="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png" alt="Citrino">
+    </div>
+    <div class="nav-logo-text">
+      <span class="nl1">Citrino</span>
+      <span class="nl2">Bienestar · Ciudad Vieja</span>
+    </div>
+  </a>
   <div class="nav-links">
     <a href="#servicios">Servicios</a>
     <a href="#metodo">Método Citrino</a>
-    <a href="#talleres">Talleres</a>
     <a href="empresas.html">Empresas</a>
     <a href="#nosotros">Nosotros</a>
     <a href="#contacto">Contacto</a>
@@ -337,7 +396,6 @@
   <span class="mobile-close" id="menuClose">✕</span>
   <a href="#servicios" class="mm-link">Servicios</a>
   <a href="#metodo" class="mm-link">Método Citrino</a>
-  <a href="#talleres" class="mm-link">Talleres</a>
   <a href="empresas.html" class="mm-link">Empresas</a>
   <a href="#nosotros" class="mm-link">Nosotros</a>
   <a href="#contacto" class="mm-link">Contacto</a>
@@ -348,9 +406,28 @@
 <section class="hero" id="inicio">
   <div class="hero-bg" id="heroBg"></div>
   <div class="hero-overlay"></div>
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
+  <!-- Destellos retro -->
+  <div class="retro-star rs1">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L13.5 9.5L21 8L15 13L18 20L12 16L6 20L9 13L3 8L10.5 9.5L12 2Z" stroke="#C17A5A" stroke-width="1.2" fill="rgba(193,122,90,.15)"/>
+    </svg>
+  </div>
+  <div class="retro-star rs2">
+    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 1L9 6.5L14.5 5.5L10.5 9L13 14L8 11L3 14L5.5 9L1.5 5.5L7 6.5L8 1Z" stroke="#C17A5A" stroke-width="1" fill="rgba(193,122,90,.1)"/>
+    </svg>
+  </div>
+  <div class="retro-star rs3">
+    <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="8" stroke="#C17A5A" stroke-width=".8" stroke-dasharray="2 3"/>
+      <path d="M10 3L11 8.5L16 8L12 11L14 17L10 14L6 17L8 11L4 8L9 8.5L10 3Z" stroke="#C17A5A" stroke-width=".8" fill="none"/>
+    </svg>
+  </div>
+  <div class="retro-star rs4">
+    <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 0.5L6.8 4.5L10.5 3.5L8 6L10.5 8.5L6.8 7.5L6 11.5L5.2 7.5L1.5 8.5L4 6L1.5 3.5L5.2 4.5L6 0.5Z" stroke="#A05E40" stroke-width=".8" fill="rgba(160,94,64,.12)"/>
+    </svg>
+  </div>
   <div class="hero-content">
     <div class="hero-tag reveal">CIUDAD VIEJA · MONTEVIDEO</div>
     <h1 class="reveal delay-1">Tu espacio de<br><em>bienestar integral</em><br>en el corazón<br>de la ciudad</h1>
@@ -361,11 +438,6 @@
         Agendá tu sesión
       </a>
       <a href="#servicios" class="btn btn-outline">Ver servicios</a>
-    </div>
-    <div class="hero-stats reveal delay-4">
-      <div class="hero-stat"><span class="num" data-count="344">0</span><span class="lbl">CLIENTAS ACTIVAS</span></div>
-      <div class="hero-stat"><span class="num" data-count="8">0</span><span class="lbl">AÑOS DE EXPERIENCIA</span></div>
-      <div class="hero-stat"><span class="num" data-count="50">0</span><span class="lbl">MIN DEDICADOS A VOS</span></div>
     </div>
   </div>
 </section>
@@ -387,7 +459,7 @@
     <div class="scard reveal" onclick="openModal('metodo-citrino')">
       <div class="scard-img">
         <img src="https://static.wixstatic.com/media/aebbd1_bffe18536a8a420cac3a47128602279f~mv2.jpg" alt="Método Citrino" loading="lazy">
-        <span class="estrella-ribbon">⭐ ESTRELLA</span>
+        <span class="estrella-ribbon">✦ ESTRELLA</span>
       </div>
       <div class="scard-body">
         <h3>Método Citrino</h3>
@@ -465,7 +537,7 @@
     </div>
     <!-- Reflexología -->
     <div class="scard reveal delay-1">
-      <div class="scard-img"><div class="scard-img-placeholder">🦶</div></div>
+      <div class="scard-img"><img src="https://static.wixstatic.com/media/aebbd1_eafc54f30be7401489ef15a9dcffd249~mv2.png" alt="Reflexología" loading="lazy"></div>
       <div class="scard-body">
         <h3>Reflexología</h3>
         <p>Puntos reflejos en los pies para equilibrar cuerpo y mente de forma natural.</p>
@@ -477,7 +549,7 @@
     </div>
     <!-- Reiki -->
     <div class="scard reveal delay-2">
-      <div class="scard-img"><div class="scard-img-placeholder">🙏</div></div>
+      <div class="scard-img"><img src="https://static.wixstatic.com/media/aebbd1_526574b250314bb59b8fe8c79f29153e~mv2.png" alt="Reiki" loading="lazy"></div>
       <div class="scard-body">
         <h3>Reiki</h3>
         <p>Terapia energética para equilibrar el campo energético y promover la sanación interior.</p>
@@ -524,32 +596,6 @@
   </div>
 </section>
 
-<!-- ── NÚMEROS ── -->
-<div class="numeros">
-  <div class="numeros-grid">
-    <div class="numero reveal"><span class="n counter" data-target="344">0</span><span class="l">CLIENTAS ACTIVAS</span></div>
-    <div class="numero reveal delay-1"><span class="n counter" data-target="8">0</span><span class="l">AÑOS DE EXPERIENCIA</span></div>
-    <div class="numero reveal delay-2"><span class="n counter" data-target="50">0</span><span class="l">MIN POR SESIÓN</span></div>
-    <div class="numero reveal delay-3"><span class="n counter" data-target="6">0</span><span class="l">TÉCNICAS INTEGRADAS</span></div>
-  </div>
-</div>
-
-<!-- ── TALLERES ── -->
-<section id="talleres">
-  <div class="tc reveal">
-    <span class="tag">CURSOS Y TALLERES</span>
-    <h2 class="section-h">Expandí tu bienestar</h2>
-    <p class="section-p">Talleres vivenciales para conectar con tu mundo interior y el de las energías naturales.</p>
-  </div>
-  <div class="talleres-grid">
-    <div class="tcard reveal"><div class="tcard-top">💎</div><div class="tcard-body"><h3>Gemoterapia</h3><p>Descubrí el poder sanador de las piedras y cristales. Aprendé a usarlos para equilibrar tu energía y mejorar tu bienestar cotidiano.</p><span class="tcard-tag">TALLER VIVENCIAL</span></div></div>
-    <div class="tcard reveal delay-1"><div class="tcard-top">🌸</div><div class="tcard-body"><h3>Flores de Bach</h3><p>Conocé las esencias florales y cómo utilizarlas para gestionar emociones, encontrar el equilibrio y mejorar tu calidad de vida.</p><span class="tcard-tag">TALLER VIVENCIAL</span></div></div>
-    <div class="tcard reveal delay-2"><div class="tcard-top">✨</div><div class="tcard-body"><h3>Arcángeles y Más</h3><p>Conectá con la energía de los arcángeles. Espiritualidad práctica para tu vida cotidiana con herramientas concretas.</p><span class="tcard-tag">TALLER VIVENCIAL</span></div></div>
-  </div>
-  <div class="tc" style="margin-top:3rem">
-    <a href="https://wa.me/59891998151?text=Hola!%20Quiero%20saber%20sobre%20los%20talleres" target="_blank" class="btn btn-outline">Consultá fechas y precios</a>
-  </div>
-</section>
 
 <!-- ── SOBRE NOSOTROS ── -->
 <section id="nosotros">
@@ -564,10 +610,10 @@
       <p style="color:var(--gris);line-height:1.8;margin-bottom:1rem">Buscamos el bienestar bio-psico-emocional de cada persona que nos visita.</p>
       <blockquote>"Tratamos de ayudarte en lo que necesites."</blockquote>
       <div class="valores">
-        <div class="valor"><div class="valor-ico">🌿</div><h4>Enfoque integral</h4><p>Cuerpo, mente y emociones en equilibrio.</p></div>
-        <div class="valor"><div class="valor-ico">💛</div><h4>Calidez humana</h4><p>Atención personalizada para cada persona.</p></div>
-        <div class="valor"><div class="valor-ico">✅</div><h4>Profesionalismo</h4><p>Terapeutas certificados con años de experiencia.</p></div>
-        <div class="valor"><div class="valor-ico">🏙️</div><h4>En el corazón de Mvd</h4><p>Frente a Plaza Matriz, Ciudad Vieja.</p></div>
+        <div class="valor"><div class="valor-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M12 2C12 2 5 7 5 13a7 7 0 0014 0C19 7 12 2 12 2z"/><path d="M12 10v4M10 12h4" stroke-linecap="round"/></svg></div><h4>Enfoque integral</h4><p>Cuerpo, mente y emociones en equilibrio.</p></div>
+        <div class="valor"><div class="valor-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><h4>Calidez humana</h4><p>Atención personalizada para cada persona.</p></div>
+        <div class="valor"><div class="valor-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h4>Profesionalismo</h4><p>Terapeutas certificados con experiencia.</p></div>
+        <div class="valor"><div class="valor-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M3 21h18M5 21V10l7-7 7 7v11"/><path d="M9 21v-6h6v6"/></svg></div><h4>En el corazón de Mvd</h4><p>Frente a Plaza Matriz, Ciudad Vieja.</p></div>
       </div>
     </div>
   </div>
@@ -596,10 +642,22 @@
   </div>
   <div class="contacto-wrap">
     <div class="c-items reveal-left">
-      <div class="c-item"><div class="c-ico">📍</div><div><h4>DIRECCIÓN</h4><p>Sarandí 554 apto. 1 · Frente a Plaza Matriz<br>Ciudad Vieja, Montevideo</p></div></div>
-      <div class="c-item"><div class="c-ico">🕐</div><div><h4>HORARIOS</h4><p>Lunes a viernes: 8:00 – 19:00 hs<br>Sábados: por la mañana</p></div></div>
-      <div class="c-item"><div class="c-ico">📱</div><div><h4>WHATSAPP</h4><a href="https://wa.me/59891998151" target="_blank" style="color:var(--terra);font-size:.95rem;font-weight:500">+598 91 998 151</a></div></div>
-      <div class="c-item"><div class="c-ico">💳</div><div><h4>MEDIOS DE PAGO</h4><p>Débito y crédito hasta 3 cuotas sin recargo</p></div></div>
+      <div class="c-item">
+        <div class="c-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+        <div><h4>DIRECCIÓN</h4><p>Sarandí 554 apto. 1 · Frente a Plaza Matriz<br>Ciudad Vieja, Montevideo</p></div>
+      </div>
+      <div class="c-item">
+        <div class="c-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14" stroke-linecap="round"/></svg></div>
+        <div><h4>HORARIOS</h4><p>Lunes a viernes: 8:00 – 19:00 hs<br>Sábados: por la mañana</p></div>
+      </div>
+      <div class="c-item">
+        <div class="c-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        <div><h4>WHATSAPP</h4><a href="https://wa.me/59891998151" target="_blank" style="color:var(--terra);font-size:.95rem;font-weight:500">+598 91 998 151</a></div>
+      </div>
+      <div class="c-item">
+        <div class="c-ico"><svg viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <div><h4>MEDIOS DE PAGO</h4><p>Débito y crédito hasta 3 cuotas sin recargo</p></div>
+      </div>
       <div>
         <div class="socials">
           <a href="https://www.instagram.com/citrino.cv/" target="_blank" class="soc">
@@ -640,7 +698,6 @@
       <a href="#servicios">Masajes Terapéuticos</a>
       <a href="#servicios">Estética</a>
       <a href="#metodo">Método Citrino</a>
-      <a href="#talleres">Talleres</a>
       <a href="empresas.html">Para Empresas</a>
     </div>
     <div class="footer-links">
