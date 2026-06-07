@@ -209,72 +209,100 @@
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 5%; transition: all .4s cubic-bezier(.16,1,.3,1);
+      padding: 1.4rem 5%; transition: all .4s cubic-bezier(.16,1,.3,1);
       animation: navEntrance .8s ease both;
-      background: rgba(253,248,242,.92);
-      backdrop-filter: blur(16px) saturate(1.4);
-      border-bottom: 1px solid rgba(193,122,90,.12);
-      box-shadow: 0 1px 0 rgba(193,122,90,.08), 0 2px 20px rgba(30,22,18,.05);
+      background: rgba(253,248,242,.88);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border-bottom: 1px solid rgba(193,122,90,.1);
     }
     @keyframes navEntrance { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:translateY(0)} }
     nav.scrolled {
-      background: rgba(253,248,242,.98);
-      backdrop-filter: blur(24px) saturate(1.6);
-      box-shadow: 0 1px 0 rgba(193,122,90,.14), 0 4px 32px rgba(30,22,18,.08);
-      padding: .75rem 5%;
+      padding: 1rem 5%;
+      background: rgba(253,248,242,.97);
+      backdrop-filter: blur(28px) saturate(1.8);
+      border-bottom: 1px solid rgba(193,122,90,.16);
+      box-shadow: 0 4px 40px rgba(30,22,18,.08);
     }
+
+    /* Logo */
     .nav-logo {
-      display: flex; align-items: center; gap: .75rem;
-      text-decoration: none; position: relative;
+      display: flex; align-items: center; gap: 1rem;
+      text-decoration: none;
     }
     .nav-logo-img-wrap {
-      width: 40px; height: 40px; border-radius: 50%;
-      border: 1.5px solid rgba(193,122,90,.25);
+      width: 50px; height: 50px; border-radius: 50%;
+      border: 2px solid rgba(193,122,90,.2);
       display: flex; align-items: center; justify-content: center;
-      background: rgba(193,122,90,.06); transition: all .3s;
-      overflow: hidden;
+      background: rgba(193,122,90,.05); transition: all .35s;
+      overflow: hidden; flex-shrink: 0;
     }
-    .nav-logo:hover .nav-logo-img-wrap { border-color: var(--terra); background: rgba(193,122,90,.12); }
-    .nav-logo img { width: 28px; height: 28px; object-fit: contain; }
+    .nav-logo:hover .nav-logo-img-wrap { border-color: var(--terra); background: rgba(193,122,90,.1); transform: scale(1.05); }
+    .nav-logo img { width: 34px; height: 34px; object-fit: contain; }
     .nav-logo-text { display: flex; flex-direction: column; line-height: 1; }
     .nav-logo-text .nl1 {
-      font-family: 'Playfair Display', serif; font-size: 1.2rem; font-style: italic;
-      color: var(--terra2); letter-spacing: .03em; font-weight: 600;
+      font-family: 'Playfair Display', serif; font-size: 1.45rem; font-style: italic;
+      color: var(--terra2); letter-spacing: .02em; font-weight: 600;
     }
     .nav-logo-text .nl2 {
-      font-family: 'Inter', sans-serif; font-size: .56rem; letter-spacing: .2em;
-      color: var(--gris); font-weight: 500; text-transform: uppercase; margin-top: .12rem;
+      font-family: 'Inter', sans-serif; font-size: .6rem; letter-spacing: .22em;
+      color: var(--gris2); font-weight: 500; text-transform: uppercase; margin-top: .18rem;
     }
-    .nav-links { display: flex; gap: 2rem; align-items: center; }
+
+    /* Links — Cult UI Direction Aware sliding pill */
+    .nav-links {
+      display: flex; gap: .2rem; align-items: center;
+      position: relative;
+    }
+    .nav-pill {
+      position: absolute; top: 0; left: 0; height: 100%;
+      background: rgba(193,122,90,.1); border-radius: 50px;
+      pointer-events: none; opacity: 0;
+      transition: left .28s cubic-bezier(.16,1,.3,1),
+                  width .28s cubic-bezier(.16,1,.3,1),
+                  opacity .2s;
+    }
     .nav-links a {
-      font-family: 'Inter', sans-serif; font-size: .83rem; color: var(--oscuro);
-      transition: color .3s; letter-spacing: .04em; font-weight: 500; position: relative;
+      font-family: 'Inter', sans-serif; font-size: .9rem; color: var(--oscuro);
+      transition: color .25s; letter-spacing: .03em; font-weight: 500;
+      padding: .55rem 1.05rem; border-radius: 50px; position: relative; z-index: 1;
+      white-space: nowrap;
     }
-    .nav-links a::after {
-      content: ''; position: absolute; bottom: -.2rem; left: 0; right: 0; height: 1px;
-      background: var(--terra); transform: scaleX(0); transform-origin: left;
-      transition: transform .3s ease;
-    }
+    .nav-links a::after { display: none; }
     .nav-links a:hover { color: var(--terra); }
-    .nav-links a:hover::after { transform: scaleX(1); }
     .nav-cta {
       background: var(--terra) !important; color: #fff !important;
-      padding: .55rem 1.4rem !important; border-radius: 50px; font-weight: 600 !important;
-      box-shadow: 0 4px 16px rgba(193,122,90,.3) !important; transition: all .3s !important;
+      padding: .7rem 1.8rem !important; border-radius: 50px;
+      font-size: .9rem !important; font-weight: 600 !important;
+      box-shadow: 0 4px 20px rgba(193,122,90,.35) !important;
+      transition: all .3s cubic-bezier(.16,1,.3,1) !important;
+      margin-left: .5rem;
     }
-    .nav-cta::after { display: none !important; }
-    .nav-cta:hover { background: var(--terra2) !important; box-shadow: 0 8px 24px rgba(193,122,90,.4) !important; transform: translateY(-1px) !important; }
-    .burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
-    .burger span { width: 22px; height: 2px; background: var(--oscuro); border-radius: 2px; transition: .3s; }
+    .nav-cta:hover {
+      background: var(--terra2) !important;
+      box-shadow: 0 8px 28px rgba(193,122,90,.45) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    /* Burger mobile */
+    .burger { display: none; flex-direction: column; gap: 6px; cursor: pointer; padding: 4px; }
+    .burger span { width: 24px; height: 2px; background: var(--oscuro); border-radius: 2px; transition: all .3s; }
     .mobile-menu {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: var(--crema); z-index: 999; flex-direction: column;
-      align-items: center; justify-content: center; gap: 2rem;
+      align-items: center; justify-content: center; gap: 2.5rem;
     }
-    .mobile-menu.open { display: flex; }
-    .mobile-menu a { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--oscuro); }
+    .mobile-menu.open { display: flex; animation: mobileIn .3s ease both; }
+    @keyframes mobileIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:none} }
+    .mobile-menu a {
+      font-family: 'Playfair Display', serif; font-size: 2.2rem;
+      color: var(--oscuro); font-style: italic; transition: color .3s;
+    }
     .mobile-menu a:hover { color: var(--terra); }
-    .mobile-close { position: absolute; top: 1.5rem; right: 5%; font-size: 2rem; cursor: pointer; color: var(--gris); }
+    .mobile-close {
+      position: absolute; top: 1.5rem; right: 5%;
+      font-size: 2rem; cursor: pointer; color: var(--gris2);
+      width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    }
 
     /* ── HERO ── */
     .hero {
@@ -1717,6 +1745,29 @@ const counterObs = new IntersectionObserver(entries => {
   });
 }, { threshold: 0.5 });
 document.querySelectorAll('.counter').forEach(el => counterObs.observe(el));
+
+// ── CULT UI: DIRECTION AWARE NAV PILL ──
+(function() {
+  const navLinks = document.querySelector('.nav-links');
+  if (!navLinks) return;
+  const pill = document.createElement('span');
+  pill.className = 'nav-pill';
+  navLinks.prepend(pill);
+
+  const links = navLinks.querySelectorAll('a:not(.nav-cta)');
+  links.forEach(link => {
+    link.addEventListener('mouseenter', () => {
+      const parentRect = navLinks.getBoundingClientRect();
+      const rect = link.getBoundingClientRect();
+      pill.style.left  = (rect.left - parentRect.left) + 'px';
+      pill.style.width = rect.width + 'px';
+      pill.style.opacity = '1';
+    });
+  });
+  navLinks.addEventListener('mouseleave', () => {
+    pill.style.opacity = '0';
+  });
+})();
 
 // ── ANIMATED NUMBER — hero stats ──
 const heroCountObs = new IntersectionObserver(entries => {
