@@ -330,6 +330,43 @@
     .footer-links a { display: block; font-size: .85rem; color: rgba(255,255,255,.65); margin-bottom: .6rem; transition: color .3s; }
     .footer-links a:hover { color: var(--terra); }
     .verde-tag { background:rgba(110,142,106,.15) !important; color:var(--verde2) !important; }
+
+    /* ── RETRO VINTAGE DETALLES ── */
+    /* Grain/textura sobre el hero */
+    .hero::after { content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity:.5; mix-blend-mode:multiply;
+    }
+    /* Sello vintage */
+    .retro-seal {
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 1.5px solid rgba(193,122,90,.4); position: relative;
+      animation: sealSpin 20s linear infinite;
+    }
+    .retro-seal::before { content:''; position:absolute; inset:5px; border-radius:50%; border: 1px dashed rgba(193,122,90,.25); }
+    @keyframes sealSpin { to{transform:rotate(360deg)} }
+    .retro-seal-inner { animation: sealSpinReverse 20s linear infinite; text-align:center; }
+    @keyframes sealSpinReverse { to{transform:rotate(-360deg)} }
+    .retro-seal .est { font-family:'Cormorant Garamond',serif; font-size:.55rem; letter-spacing:.18em; color:var(--terra); display:block; }
+    .retro-seal .yr { font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:600; color:var(--terra); display:block; line-height:1; }
+    /* Stamp retro tag */
+    .stamp-tag {
+      display: inline-block; border: 1.5px solid var(--terra); color: var(--terra);
+      padding: .25rem .8rem; font-size: .65rem; letter-spacing: .2em; font-weight: 700;
+      font-family: 'Inter', sans-serif; border-radius: 3px; position: relative;
+      opacity: .75; transform: rotate(-1.5deg);
+    }
+    .stamp-tag::before { content:''; position:absolute; inset:-3px; border:1px solid rgba(193,122,90,.2); border-radius:4px; }
+    /* Ornamento de línea vintage mejorado */
+    .vintage-divider { display:flex; align-items:center; gap:1rem; margin: 1rem 0; }
+    .vintage-divider-line { flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(193,122,90,.3),transparent); }
+    .vintage-divider svg { flex-shrink:0; }
+    /* Retro card art — ilustraciones SVG para tab Cuidado */
+    .retro-card-art { width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--crema2) 0%,var(--crema3) 100%);position:relative;overflow:hidden; }
+    .retro-card-art::before { content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 20%, rgba(184,105,74,.06) 0%, transparent 50%),radial-gradient(circle at 80% 80%, rgba(110,142,106,.05) 0%, transparent 50%); }
+    .retro-card-art svg { position:relative;z-index:1;filter:drop-shadow(0 2px 10px rgba(184,105,74,.12)); transition: transform .4s ease; }
+    .scard:hover .retro-card-art svg { transform: scale(1.08) rotate(2deg); }
     footer .copy { font-size: .75rem; color: rgba(255,255,255,.3); text-align: center; padding-top: 1.5rem; }
 
     /* ── WA FLOAT ── */
@@ -450,7 +487,17 @@
     </svg>
   </div>
   <div class="hero-content">
-    <div class="hero-tag reveal">CIUDAD VIEJA · MONTEVIDEO</div>
+    <!-- Sello vintage retro -->
+    <div style="margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem" class="reveal">
+      <div class="retro-seal">
+        <div class="retro-seal-inner">
+          <span class="est">DESDE</span>
+          <span class="yr">2016</span>
+          <span class="est">MVDEO</span>
+        </div>
+      </div>
+      <div class="hero-tag" style="margin-bottom:0">CIUDAD VIEJA · MONTEVIDEO</div>
+    </div>
     <h1 class="reveal delay-1">Tu espacio de<br><em>bienestar integral</em><br>en el corazón<br>de la ciudad</h1>
     <p class="hero-sub reveal delay-2">Masajes terapéuticos, estética y terapias complementarias para tu bienestar bio-psico-emocional.</p>
     <div class="hero-btns reveal delay-3">
@@ -487,7 +534,7 @@
   </div>
   <div class="tabs">
     <button class="tab on" onclick="showTab('masajes',this)">Masajes Terapéuticos</button>
-    <button class="tab" onclick="showTab('estetica',this)">Estética</button>
+    <button class="tab" onclick="showTab('estetica',this)">Cuidado & Belleza</button>
   </div>
 
   <div class="tab-panel on" id="tp-masajes">
@@ -598,12 +645,128 @@
   </div>
 
   <div class="tab-panel" id="tp-estetica">
-    <div class="scard reveal"><div class="scard-img"><div class="scard-img-placeholder">✨</div></div><div class="scard-body"><h3>Limpieza de Cutis</h3><p>Tratamiento facial profundo para purificar, renovar e iluminar tu piel.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Limpieza%20de%20cutis" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
-    <div class="scard reveal delay-1"><div class="scard-img"><div class="scard-img-placeholder">💅</div></div><div class="scard-body"><h3>Manicuría</h3><p>Cuidado profesional de manos y uñas con los mejores productos.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Manicur%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
-    <div class="scard reveal delay-2"><div class="scard-img"><div class="scard-img-placeholder">🪒</div></div><div class="scard-body"><h3>Depilación</h3><p>Técnicas suaves y eficaces para piel suave y cuidada.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Depilaci%C3%B3n" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
-    <div class="scard reveal"><div class="scard-img"><div class="scard-img-placeholder">🦷</div></div><div class="scard-body"><h3>Podología</h3><p>Cuidado integral de pies para tu salud desde la base.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Podolog%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
-    <div class="scard reveal delay-1"><div class="scard-img"><div class="scard-img-placeholder">💄</div></div><div class="scard-body"><h3>Taller Automaquillaje</h3><p>Aprendé técnicas profesionales adaptadas a tu estilo.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Taller%20de%20maquillaje" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
-    <div class="scard reveal delay-2"><div class="scard-img"><div class="scard-img-placeholder">👑</div></div><div class="scard-body"><h3>Maquillaje Novias y Quinceañeras</h3><p>Tu día especial merece lo mejor. Maquillaje profesional para brillar.</p><div class="scard-footer"><div class="precio">$2.700</div><a href="https://wa.me/59891998151?text=Maquillaje%20novia" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div></div>
+
+    <div class="scard reveal">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Limpieza de Cutis: rostro vintage con flores -->
+        <circle cx="45" cy="40" r="22" stroke="#B8694A" stroke-width="1.5"/>
+        <ellipse cx="38" cy="36" rx="3" ry="4" stroke="#B8694A" stroke-width="1.2"/>
+        <ellipse cx="52" cy="36" rx="3" ry="4" stroke="#B8694A" stroke-width="1.2"/>
+        <path d="M39 47 Q45 53 51 47" stroke="#B8694A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <path d="M29 30 Q45 18 61 30" stroke="#6E8E6A" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+        <circle cx="45" cy="62" r="1.5" fill="#B8694A"/>
+        <path d="M38 62 Q45 70 52 62" stroke="#B8694A" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <!-- gotitas -->
+        <ellipse cx="20" cy="35" rx="3" ry="5" stroke="#6E8E6A" stroke-width="1" transform="rotate(-15 20 35)"/>
+        <ellipse cx="70" cy="35" rx="3" ry="5" stroke="#6E8E6A" stroke-width="1" transform="rotate(15 70 35)"/>
+        <!-- pequeñas flores -->
+        <circle cx="25" cy="55" r="3" stroke="#B8694A" stroke-width=".8"/>
+        <circle cx="65" cy="55" r="3" stroke="#B8694A" stroke-width=".8"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Limpieza de Cutis</h3><p>Tratamiento facial profundo para purificar, renovar e iluminar tu piel.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Limpieza%20de%20cutis" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
+
+    <div class="scard reveal delay-1">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Manicuría: mano vintage con flor -->
+        <path d="M35 70 L35 45 Q35 40 40 40 Q45 40 45 45 L45 35 Q45 30 50 30 Q55 30 55 35 L55 40 Q55 35 60 35 Q65 35 65 40 L65 55 Q65 65 55 68 L50 70 Z" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+        <!-- uñas -->
+        <ellipse cx="40" cy="41" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
+        <ellipse cx="50" cy="31" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
+        <ellipse cx="60" cy="36" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
+        <!-- flor decorativa -->
+        <circle cx="25" cy="35" r="5" stroke="#B8694A" stroke-width="1"/>
+        <circle cx="25" cy="35" r="2" fill="rgba(184,105,74,.2)" stroke="#B8694A" stroke-width=".8"/>
+        <path d="M25 28 Q28 25 31 28" stroke="#B8694A" stroke-width=".8" fill="none"/>
+        <path d="M25 42 Q22 45 19 42" stroke="#B8694A" stroke-width=".8" fill="none"/>
+        <path d="M18 35 Q15 32 18 29" stroke="#B8694A" stroke-width=".8" fill="none"/>
+        <path d="M32 35 Q35 38 32 41" stroke="#B8694A" stroke-width=".8" fill="none"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Manicuría</h3><p>Cuidado profesional de manos y uñas con los mejores productos.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Manicur%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
+
+    <div class="scard reveal delay-2">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Depilación: hoja de cera vintage con flor -->
+        <rect x="25" y="30" width="40" height="28" rx="4" stroke="#B8694A" stroke-width="1.5"/>
+        <path d="M25 42 L65 42" stroke="#B8694A" stroke-width="1" stroke-dasharray="3 3"/>
+        <path d="M32 36 Q45 28 58 36" stroke="#6E8E6A" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+        <!-- pequeñas líneas de suavidad -->
+        <path d="M32 50 L40 50" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
+        <path d="M32 54 L50 54" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
+        <path d="M32 46 L55 46" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
+        <!-- flor decorativa esquina -->
+        <circle cx="20" cy="22" r="4" stroke="#6E8E6A" stroke-width="1"/>
+        <circle cx="20" cy="22" r="1.5" fill="rgba(110,142,106,.3)"/>
+        <path d="M70 68 C68 63 72 58 75 63 C78 68 74 73 70 68Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.1)"/>
+        <!-- estrella retro -->
+        <path d="M68 20 L69.2 24 L73 24 L70.2 26.5 L71.5 30 L68 27.5 L64.5 30 L65.8 26.5 L63 24 L66.8 24Z" stroke="#B8694A" stroke-width=".8" fill="rgba(184,105,74,.15)"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Depilación</h3><p>Técnicas suaves y eficaces para piel suave y cuidada.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Depilaci%C3%B3n" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
+
+    <div class="scard reveal">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Podología: pie vintage botánico -->
+        <path d="M30 65 Q28 50 30 40 Q32 30 45 28 Q52 27 55 32 Q58 37 54 40 Q50 42 48 40 Q50 38 50 35 Q50 32 46 31 Q38 31 36 40 Q34 50 36 65 Z" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+        <path d="M36 65 Q40 70 45 68 Q52 66 55 60 Q57 55 55 50" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- dedos -->
+        <ellipse cx="40" cy="29" rx="3" ry="4" stroke="#6E8E6A" stroke-width="1"/>
+        <ellipse cx="48" cy="27" rx="3" ry="4" stroke="#6E8E6A" stroke-width="1"/>
+        <ellipse cx="55" cy="31" rx="2.5" ry="3.5" stroke="#6E8E6A" stroke-width="1"/>
+        <!-- flor lateral -->
+        <circle cx="20" cy="50" r="5" stroke="#B8694A" stroke-width=".8"/>
+        <circle cx="20" cy="50" r="2" fill="rgba(184,105,74,.2)"/>
+        <path d="M20 43 L20 38" stroke="#6E8E6A" stroke-width="1" stroke-linecap="round"/>
+        <path d="M17 40 Q20 37 23 40" stroke="#6E8E6A" stroke-width=".8" fill="none"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Podología</h3><p>Cuidado integral de pies para tu salud desde la base.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Podolog%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
+
+    <div class="scard reveal delay-1">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Taller Maquillaje: espejo vintage con flores -->
+        <ellipse cx="45" cy="38" rx="18" ry="22" stroke="#B8694A" stroke-width="1.5"/>
+        <ellipse cx="45" cy="38" rx="14" ry="18" stroke="#B8694A" stroke-width=".8" stroke-dasharray="2 3"/>
+        <path d="M38 60 L42 70 L48 70 L52 60" stroke="#B8694A" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M35 70 L55 70" stroke="#B8694A" stroke-width="2" stroke-linecap="round"/>
+        <!-- brillo espejo -->
+        <path d="M38 28 Q40 24 44 26" stroke="rgba(184,105,74,.5)" stroke-width=".8" fill="none" stroke-linecap="round"/>
+        <!-- flores decorativas -->
+        <circle cx="20" cy="25" r="4" stroke="#6E8E6A" stroke-width=".8"/>
+        <circle cx="20" cy="25" r="1.5" fill="rgba(110,142,106,.3)"/>
+        <circle cx="70" cy="60" r="4" stroke="#B8694A" stroke-width=".8"/>
+        <circle cx="70" cy="60" r="1.5" fill="rgba(184,105,74,.2)"/>
+        <!-- pincel -->
+        <path d="M65 20 L70 35" stroke="#B8694A" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="67.5" cy="17" rx="2.5" ry="4" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.15)"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Taller Automaquillaje</h3><p>Aprendé técnicas profesionales adaptadas a tu estilo y rutina diaria.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Taller%20de%20maquillaje" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
+
+    <div class="scard reveal delay-2">
+      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Novias: rosa vintage con diamante -->
+        <!-- rosa -->
+        <path d="M45 65 C45 65 28 55 28 42 C28 32 36 26 45 26 C54 26 62 32 62 42 C62 55 45 65 45 65Z" stroke="#B8694A" stroke-width="1.5" fill="none"/>
+        <path d="M45 26 C45 26 38 33 38 40 C38 47 45 52 45 52 C45 52 52 47 52 40 C52 33 45 26 45 26Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.08)"/>
+        <path d="M45 52 L45 65" stroke="#B8694A" stroke-width="1" stroke-linecap="round"/>
+        <!-- pétalos exteriores -->
+        <path d="M32 35 Q26 32 28 42" stroke="#6E8E6A" stroke-width="1" fill="none"/>
+        <path d="M58 35 Q64 32 62 42" stroke="#6E8E6A" stroke-width="1" fill="none"/>
+        <path d="M36 28 Q33 22 40 20" stroke="#6E8E6A" stroke-width="1" fill="none"/>
+        <path d="M54 28 Q57 22 50 20" stroke="#6E8E6A" stroke-width="1" fill="none"/>
+        <!-- diamante pequeño -->
+        <path d="M40 15 L45 10 L50 15 L45 22 Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.15)"/>
+        <path d="M40 15 L50 15" stroke="#B8694A" stroke-width=".8"/>
+        <!-- estrellas retro -->
+        <circle cx="20" cy="35" r="2" stroke="#B8694A" stroke-width=".8"/>
+        <path d="M20 31 L20 33 M17 34 L19 34 M20 37 L20 39 M21 34 L23 34" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
+        <circle cx="70" cy="55" r="2" stroke="#6E8E6A" stroke-width=".8"/>
+        <path d="M70 51 L70 53 M67 54 L69 54 M70 57 L70 59 M71 54 L73 54" stroke="#6E8E6A" stroke-width=".8" stroke-linecap="round"/>
+      </svg></div></div>
+      <div class="scard-body"><h3>Maquillaje Novias y Quinceañeras</h3><p>Tu día especial merece lo mejor. Maquillaje profesional para brillar.</p><div class="scard-footer"><div class="precio">$2.700</div><a href="https://wa.me/59891998151?text=Maquillaje%20novia" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+    </div>
   </div>
 </section>
 
@@ -768,6 +931,14 @@
       <a href="#">Lun–Vie 8:00–19:00</a>
       <a href="#">Sáb por la mañana</a>
     </div>
+  </div>
+  <div style="text-align:center;margin-bottom:1rem">
+    <div class="vintage-divider" style="max-width:400px;margin:0 auto">
+      <span class="vintage-divider-line"></span>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1l1.5 6L17 8l-6 3.5 1.5 6.5L9 15l-3.5 3L7 11.5 1 8l6.5-1z" stroke="rgba(193,122,90,.4)" stroke-width="1" fill="rgba(193,122,90,.08)"/></svg>
+      <span class="vintage-divider-line"></span>
+    </div>
+    <span class="stamp-tag" style="margin-top:.75rem;display:inline-block">BIENESTAR INTEGRAL · EST. 2016</span>
   </div>
   <p class="copy">© 2026 Citrino · Centro Integral de Bienestar · Ciudad Vieja, Montevideo</p>
 </footer>
