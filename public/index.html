@@ -2,14 +2,71 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Citrino | Centro Integral de Bienestar | Ciudad Vieja, Montevideo</title>
-  <meta name="description" content="Masajes terapéuticos y estéticos en Ciudad Vieja, Montevideo. Método Citrino, drenaje linfático, descontracturante, piedras calientes y más. Agendá por WhatsApp.">
-  <meta property="og:title" content="Citrino | Centro Integral de Bienestar">
-  <meta property="og:image" content="https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg">
-  <link rel="icon" href="https://static.wixstatic.com/media/aebbd1_a97a022b32274785bfc16c3cc8d71646~mv2.png">
+  <meta name="description" content="Masajes terapéuticos y estéticos en Ciudad Vieja, Montevideo. Método Citrino, drenaje linfático, descontracturante, piedras calientes y más. Agendá por WhatsApp. Sarandí 554.">
+  <meta name="keywords" content="masajes Montevideo, drenaje linfático, masaje modelador, reflexología, reiki, limpieza facial, Ciudad Vieja, bienestar, Citrino">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Citrino Centro Integral de Bienestar">
+  <!-- Open Graph / redes sociales -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://citrinobienestar.uy">
+  <meta property="og:title" content="Citrino | Centro Integral de Bienestar · Ciudad Vieja, Montevideo">
+  <meta property="og:description" content="Masajes terapéuticos, drenaje linfático, maderoterapia y más. Sarandí 554, Ciudad Vieja. Agendá por WhatsApp.">
+  <meta property="og:image" content="https://citrinobienestar.uy/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg">
+  <meta property="og:locale" content="es_UY">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Citrino | Centro Integral de Bienestar">
+  <meta name="twitter:description" content="Masajes, drenaje linfático y terapias complementarias en Ciudad Vieja, Montevideo.">
+  <meta name="twitter:image" content="https://citrinobienestar.uy/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg">
+  <!-- Canonical -->
+  <link rel="canonical" href="https://citrinobienestar.uy">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/imagnes/logo-citrino.png">
+  <link rel="apple-touch-icon" href="/imagnes/logo-citrino.png">
+  <!-- Preconnect para performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- JSON-LD: negocio local para Google -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HealthAndBeautyBusiness",
+    "name": "Citrino Centro Integral de Bienestar",
+    "description": "Centro de masajes terapéuticos, drenaje linfático, maderoterapia y terapias complementarias en Ciudad Vieja, Montevideo.",
+    "url": "https://citrinobienestar.uy",
+    "telephone": "+59891998151",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Sarandí 554 apto. 1",
+      "addressLocality": "Ciudad Vieja",
+      "addressRegion": "Montevideo",
+      "addressCountry": "UY"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -34.9063,
+      "longitude": -56.2000
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "08:00",
+        "closes": "19:00"
+      }
+    ],
+    "sameAs": [
+      "https://www.instagram.com/citrino.cv",
+      "https://wa.me/59891998151"
+    ],
+    "priceRange": "$$",
+    "image": "https://citrinobienestar.uy/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg"
+  }
+  </script>
   <style>
     :root {
       --crema:    #FDF7EF;
@@ -50,29 +107,34 @@
     img { max-width: 100%; display: block; }
     a { text-decoration: none; color: inherit; }
 
-    /* ── SCROLL ANIMATIONS ── */
-    .reveal { opacity: 0; transform: translateY(40px); transition: opacity .7s ease, transform .7s ease; }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-left { opacity: 0; transform: translateX(-50px); transition: opacity .7s ease, transform .7s ease; }
-    .reveal-left.visible { opacity: 1; transform: translateX(0); }
-    .reveal-right { opacity: 0; transform: translateX(50px); transition: opacity .7s ease, transform .7s ease; }
-    .reveal-right.visible { opacity: 1; transform: translateX(0); }
-    .delay-1 { transition-delay: .1s; }
-    .delay-2 { transition-delay: .2s; }
-    .delay-3 { transition-delay: .3s; }
-    .delay-4 { transition-delay: .4s; }
+    /* ── SCROLL ANIMATIONS — suavizadas ── */
+    .reveal { opacity: 0; transform: translateY(32px); filter: blur(3px); transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .6s ease; will-change: transform,opacity,filter; }
+    .reveal.visible { opacity: 1; transform: translateY(0); filter: blur(0); }
+    .reveal-left { opacity: 0; transform: translateX(-40px); filter: blur(3px); transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .6s ease; will-change: transform,opacity,filter; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); filter: blur(0); }
+    .reveal-right { opacity: 0; transform: translateX(40px); filter: blur(3px); transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1), filter .6s ease; will-change: transform,opacity,filter; }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); filter: blur(0); }
+    .delay-1 { transition-delay: .12s; }
+    .delay-2 { transition-delay: .24s; }
+    .delay-3 { transition-delay: .36s; }
+    .delay-4 { transition-delay: .48s; }
 
     /* ── NAVBAR ── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1.1rem 5%; transition: all .45s cubic-bezier(.16,1,.3,1);
+      padding: 1rem 5%; transition: all .4s cubic-bezier(.16,1,.3,1);
       animation: navEntrance .8s ease both;
+      background: rgba(253,248,242,.92);
+      backdrop-filter: blur(16px) saturate(1.4);
+      border-bottom: 1px solid rgba(193,122,90,.12);
+      box-shadow: 0 1px 0 rgba(193,122,90,.08), 0 2px 20px rgba(30,22,18,.05);
     }
     @keyframes navEntrance { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:translateY(0)} }
     nav.scrolled {
-      background: rgba(253,248,242,.97); backdrop-filter: blur(20px) saturate(1.5);
-      box-shadow: 0 1px 0 rgba(193,122,90,.12), 0 4px 32px rgba(30,22,18,.06);
+      background: rgba(253,248,242,.98);
+      backdrop-filter: blur(24px) saturate(1.6);
+      box-shadow: 0 1px 0 rgba(193,122,90,.14), 0 4px 32px rgba(30,22,18,.08);
       padding: .75rem 5%;
     }
     .nav-logo {
@@ -90,16 +152,16 @@
     .nav-logo img { width: 28px; height: 28px; object-fit: contain; }
     .nav-logo-text { display: flex; flex-direction: column; line-height: 1; }
     .nav-logo-text .nl1 {
-      font-family: 'Playfair Display', serif; font-size: 1.15rem; font-style: italic;
-      color: var(--terra); letter-spacing: .04em; font-weight: 400;
+      font-family: 'Playfair Display', serif; font-size: 1.2rem; font-style: italic;
+      color: var(--terra2); letter-spacing: .03em; font-weight: 600;
     }
     .nav-logo-text .nl2 {
-      font-family: 'Inter', sans-serif; font-size: .55rem; letter-spacing: .22em;
-      color: var(--gris2); font-weight: 500; text-transform: uppercase; margin-top: .1rem;
+      font-family: 'Inter', sans-serif; font-size: .56rem; letter-spacing: .2em;
+      color: var(--gris); font-weight: 500; text-transform: uppercase; margin-top: .12rem;
     }
     .nav-links { display: flex; gap: 2rem; align-items: center; }
     .nav-links a {
-      font-family: 'Inter', sans-serif; font-size: .82rem; color: var(--gris);
+      font-family: 'Inter', sans-serif; font-size: .83rem; color: var(--oscuro);
       transition: color .3s; letter-spacing: .04em; font-weight: 500; position: relative;
     }
     .nav-links a::after {
@@ -135,12 +197,12 @@
     }
     .hero-bg {
       position: absolute; inset: 0;
-      background: url('https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg') center 65%/cover no-repeat;
+      background: none; overflow: hidden;
       transform: scale(1.05); transition: transform .1s linear;
     }
     .hero-overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(105deg, rgba(253,248,242,.94) 0%, rgba(253,248,242,.88) 45%, rgba(253,248,242,.25) 100%);
+      background: linear-gradient(105deg, rgba(253,248,242,.97) 0%, rgba(253,248,242,.93) 42%, rgba(253,248,242,.7) 65%, rgba(253,248,242,.35) 100%);
     }
     .hero-content {
       position: relative; z-index: 2; padding: 8rem 5% 5rem;
@@ -204,7 +266,7 @@
       position: relative;
     }
     .scard:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(30,22,18,.12); }
-    .scard-img { height: 200px; overflow: hidden; position: relative; }
+    .scard-img { height: 180px; overflow: hidden; position: relative; }
     .scard-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; }
     .scard:hover .scard-img img { transform: scale(1.06); }
     .scard-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; background: var(--crema2); }
@@ -229,7 +291,7 @@
     #metodo { background: var(--crema2); }
     .metodo-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
     .metodo-img-wrap { position: relative; }
-    .metodo-img-wrap img { width: 100%; height: 480px; object-fit: cover; border-radius: 30px; }
+    .metodo-img-wrap img { width: 100%; height: 360px; object-fit: cover; border-radius: 20px; object-position: center 58%; }
     .metodo-badge {
       position: absolute; bottom: -1.5rem; right: -1.5rem;
       background: var(--terra); color: #fff; padding: 1.5rem;
@@ -283,7 +345,7 @@
     /* ── SOBRE NOSOTROS ── */
     #nosotros { background: var(--crema2); }
     .nos-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-    .nos-img img { width: 100%; height: 460px; object-fit: cover; border-radius: 30px; }
+    .nos-img img { width: 100%; height: 420px; object-fit: cover; border-radius: 20px; object-position: center 72%; }
     .nos-txt blockquote { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-style: italic; color: var(--verde2); border-left: 3px solid var(--verde2); padding-left: 1.25rem; margin: 1.5rem 0; line-height: 1.5; }
     .valores { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
     .valor { background: #fff; border-radius: 14px; padding: 1.2rem; transition: all .3s; }
@@ -400,27 +462,330 @@
     .modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.9); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; }
     .modal-wrap { position: relative; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 900px) {
-      .metodo-wrap, .nos-wrap, .contacto-wrap, .empresas-cta { grid-template-columns: 1fr; }
-      .metodo-img-wrap img, .nos-img img { height: 300px; }
-      .metodo-badge { right: 1rem; bottom: -1rem; }
-      .numeros-grid { grid-template-columns: repeat(2,1fr); }
-      .e-stats { grid-template-columns: 1fr 1fr 1fr; }
+    /* ════════ MEJORAS VISUALES ════════ */
+
+    /* Overflow global */
+    html, body { overflow-x: hidden; }
+
+    /* Hero mejorado */
+    .hero-content { max-width: 640px; }
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      letter-spacing: -.02em; line-height: 1.1;
     }
+    .hero h1 em { font-style: italic; color: var(--terra); }
+    .hero-sub { font-size: 1.05rem; max-width: 440px; }
+    .btn { transition: all .3s cubic-bezier(.16,1,.3,1); }
+    .btn-wa { box-shadow: 0 4px 20px rgba(37,211,102,.3); }
+    .btn-wa:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(37,211,102,.4); }
+    .btn-outline:hover { transform: translateY(-2px); }
+
+    /* Hero stats */
+    .hero-stats {
+      display: inline-flex; gap: 0; flex-wrap: wrap;
+      margin-top: 2rem;
+      background: rgba(255,255,255,.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(193,122,90,.18);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 16px rgba(30,22,18,.06);
+    }
+    .hero-stat {
+      padding: 1rem 1.6rem;
+      border-right: 1px solid rgba(193,122,90,.14);
+    }
+    .hero-stat:last-child { border-right: none; }
+    .hero-stat .num { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; color: var(--terra2); font-weight: 600; line-height: 1; }
+    .hero-stat .lbl { font-size: .68rem; color: var(--gris); letter-spacing: .05em; margin-top: .2rem; white-space: nowrap; }
+
+    /* Trust strip */
+    .trust-strip {
+      background: #fff; border-top: 1px solid var(--crema2); border-bottom: 1px solid var(--crema2);
+      padding: 1.4rem 5%; display: flex; align-items: center; justify-content: center;
+      gap: 2.5rem; flex-wrap: wrap; position: relative; z-index: 1;
+    }
+    .trust-item {
+      display: flex; align-items: center; gap: .6rem;
+      font-size: .8rem; color: var(--gris); font-weight: 500; white-space: nowrap;
+    }
+    .trust-item svg { flex-shrink: 0; }
+    .trust-sep { width: 1px; height: 20px; background: var(--crema2); }
+
+    /* Cards de servicio mejoradas */
+    .scard {
+      box-shadow: 0 1px 3px rgba(30,22,18,.04), 0 4px 12px rgba(30,22,18,.06);
+      border-radius: 18px !important;
+    }
+    .scard:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 2px 6px rgba(30,22,18,.06), 0 12px 32px rgba(30,22,18,.1), 0 24px 56px rgba(30,22,18,.08);
+    }
+    .scard-img img { transition: transform .6s cubic-bezier(.16,1,.3,1), filter .4s; }
+    .scard:hover .scard-img img { transform: scale(1.07); filter: brightness(1.04) saturate(1.08); }
+    .scard-body h3 { color: var(--oscuro); letter-spacing: -.01em; }
+    .scard-wa { transition: transform .3s, background .3s; }
+    .scard-wa:hover { transform: scale(1.15) !important; }
+    .chip { transition: background .25s, color .25s; }
+    .chip:hover { background: var(--crema3); color: var(--terra); }
+    .estrella-ribbon { letter-spacing: .1em; font-size: .68rem; }
+
+    /* Tabs mejoradas */
+    .tab {
+      border-radius: 50px; font-size: .84rem; letter-spacing: .02em;
+      transition: all .25s cubic-bezier(.16,1,.3,1);
+    }
+    .tab.on { box-shadow: 0 4px 16px rgba(184,105,74,.28); }
+
+    /* Método Citrino mejorado */
+    .metodo-img-wrap img {
+      box-shadow: 0 8px 32px rgba(30,22,18,.15), 0 24px 64px rgba(30,22,18,.1);
+    }
+    .paso-n { transition: transform .3s, box-shadow .3s; }
+    .paso:hover .paso-n { transform: scale(1.08); box-shadow: 0 6px 24px rgba(184,105,74,.4); }
+    .paso { border-radius: 14px; transition: background .3s; }
+
+    /* Nosotros mejorado */
+    .nos-img img {
+      box-shadow: 0 8px 32px rgba(30,22,18,.12), 0 24px 60px rgba(30,22,18,.08);
+    }
+    .valor {
+      border: 1px solid var(--crema2);
+      box-shadow: 0 1px 4px rgba(30,22,18,.04), 0 4px 12px rgba(30,22,18,.05);
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+    }
+    .valor:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(30,22,18,.08), 0 12px 32px rgba(30,22,18,.08);
+      border-color: rgba(184,105,74,.25);
+    }
+    .valor-ico svg { transition: transform .3s; }
+    .valor:hover .valor-ico svg { transform: scale(1.15); }
+
+    /* Empresas CTA mejorado */
+    .empresas-cta {
+      background: linear-gradient(135deg, #1C3518 0%, #2A4826 50%, #1A2E18 100%) !important;
+      padding: 6rem 5% !important;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .empresas-cta h2 { letter-spacing: -.02em; line-height: 1.15; }
+    .e-stat { border-radius: 18px; transition: all .3s; }
+    .e-stat:hover { background: rgba(255,255,255,.1); transform: translateY(-3px); }
+    .e-stat .en { font-size: 2.2rem; }
+
+    /* Contacto mejorado */
+    .c-ico { border-radius: 14px; transition: all .3s; }
+    .c-item:hover .c-ico { background: rgba(184,105,74,.12); border-color: rgba(184,105,74,.3); }
+    .soc { border-radius: 50px; transition: all .25s cubic-bezier(.16,1,.3,1); }
+    .soc:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(184,105,74,.2); }
+    .mapa { border-radius: 18px; overflow: hidden; box-shadow: 0 4px 24px rgba(30,22,18,.1); }
+
+    /* Footer mejorado */
+    footer { padding: 4rem 5% 1.5rem; }
+    .footer-links a { transition: color .25s, transform .25s; }
+    .footer-links a:hover { transform: translateX(4px); }
+
+    /* Animaciones refinadas */
+    .reveal, .reveal-left, .reveal-right {
+      will-change: transform, opacity;
+      transition: opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal { transform: translateY(36px); }
+    .reveal-left { transform: translateX(-44px); }
+    .reveal-right { transform: translateX(44px); }
+    .reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity: 1; transform: none; }
+
+    /* Gradiente hero mejorado */
+    .hero-bg { transition: transform .1s linear; }
+    .hero-overlay { backdrop-filter: blur(0px); }
+
+    /* Gradient nosotros — más suave */
+    #nosotros {
+      background: linear-gradient(145deg, #d4e8d0 0%, var(--crema2) 45%, var(--crema) 100%) !important;
+    }
+
+    /* Servicios background — cálido */
+    #servicios { background: linear-gradient(160deg, #fff 0%, var(--crema) 100%) !important; }
+
+    /* Quote strip hover */
+    .quote-strip img { transition: transform 8s ease; }
+    .quote-strip:hover img { transform: scale(1.04); }
+
+    /* Trust strip gradient */
+    .trust-strip {
+      background: linear-gradient(90deg, #fff 0%, var(--crema) 50%, #fff 100%);
+    }
+
+    /* Método Citrino badge mejorado */
+    .metodo-badge {
+      background: linear-gradient(135deg, var(--terra) 0%, var(--terra2) 100%) !important;
+      box-shadow: 0 12px 40px rgba(193,122,90,.45) !important;
+      border-radius: 18px !important;
+    }
+
+    /* Nosotros blockquote mejorado */
+    .nos-txt blockquote {
+      background: rgba(255,255,255,.6);
+      border-radius: 0 14px 14px 0;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 2px 12px rgba(30,22,18,.06);
+    }
+
+    /* Footer gradiente */
+    footer {
+      background: linear-gradient(145deg, #120e08 0%, var(--oscuro) 55%, #0d1a0b 100%) !important;
+    }
+
+    /* Orbs — más suaves */
+    .orb { opacity: .08 !important; }
+
+    /* ══ PULIDO FINAL — microinteracciones y detalles ══ */
+
+    /* Scroll suave global */
+    html { scroll-padding-top: 80px; }
+
+    /* Botones — mejor feedback táctil */
+    .btn { transition: all .3s cubic-bezier(.16,1,.3,1); -webkit-tap-highlight-color: transparent; }
+    .btn:active { transform: scale(.97) translateY(1px) !important; }
+    .nav-cta { transition: all .3s cubic-bezier(.16,1,.3,1) !important; }
+
+    /* Links nav — subrayado más suave */
+    .nav-links a { transition: color .25s ease; }
+    .nav-links a::after { transition: transform .35s cubic-bezier(.16,1,.3,1); }
+
+    /* Cards — sombra más expresiva en hover */
+    .scard { transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s cubic-bezier(.16,1,.3,1); }
+    .scard:hover { transform: translateY(-7px) scale(1.01); }
+
+    /* Paso hover — más suave */
+    .paso { transition: background .25s ease, transform .25s ease; }
+    .paso:hover { background: var(--crema3); transform: translateX(4px); }
+
+    /* WhatsApp float — pulso más suave */
+    .wa-float::before { animation: pulse 2.8s cubic-bezier(.4,0,.2,1) infinite; }
+
+    /* Imagen hover en método — más suave */
+    .metodo-img-wrap img { transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .4s ease; }
+    .metodo-img-wrap:hover img { transform: scale(1.02); }
+
+    /* Valor cards — transición más expresiva */
+    .valor { transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s ease, border-color .3s; }
+
+    /* Social links — efecto más suave */
+    .soc { transition: all .3s cubic-bezier(.16,1,.3,1); }
+
+    /* Footer links — slide suave */
+    .footer-links a { transition: color .25s, transform .3s cubic-bezier(.16,1,.3,1); display: inline-block; }
+    .footer-links a:hover { transform: translateX(5px); }
+
+    /* Imagen scard — transición más suave */
+    .scard-img img { transition: transform .6s cubic-bezier(.16,1,.3,1), filter .5s ease; }
+    .scard:hover .scard-img img { transform: scale(1.06); filter: brightness(1.03) saturate(1.06); }
+
+    /* Mobile — deshabilitar hover effects que dan problemas táctiles */
+    @media (hover: none) {
+      .scard:hover { transform: none; box-shadow: 0 1px 3px rgba(30,22,18,.04), 0 4px 12px rgba(30,22,18,.06); }
+      .btn:hover { transform: none; box-shadow: none; }
+      .btn-terra:hover { background: var(--terra); }
+      .btn-wa:hover { background: #25D366; }
+      .valor:hover { transform: none; }
+      .paso:hover { background: transparent; transform: none; }
+      .soc:hover { background: var(--crema2); color: var(--oscuro); transform: none; }
+    }
+
+    /* Skeleton loader para imágenes — evita flash blanco */
+    .scard-img img, .metodo-img-wrap img, .nos-img img {
+      background: var(--crema2);
+    }
+
+    /* Contenedor hero — overflow para parallax */
+    .hero { overflow: hidden; }
+    .hero-bg img { will-change: transform; }
+
+    /* ══ RESPONSIVE MOBILE — REVISIÓN FINAL ══ */
+
+    /* Tablet grande 900px */
+    @media (max-width: 900px) {
+      section { padding: 4.5rem 5%; }
+      .metodo-wrap, .nos-wrap { grid-template-columns: 1fr; gap: 2.5rem; }
+      .contacto-wrap { grid-template-columns: 1fr; gap: 2.5rem; }
+      .empresas-cta { grid-template-columns: 1fr !important; gap: 2.5rem; padding: 4rem 5% !important; }
+      .metodo-img-wrap img { height: 280px; border-radius: 16px; }
+      .nos-img img { height: 300px; border-radius: 16px; }
+      .e-stats { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+      .tab-panel.on { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+      .section-h { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+    }
+
+    /* Tablet 768px */
     @media (max-width: 768px) {
-      nav { padding: 1rem 5%; }
+      html { font-size: 15px; }
+      nav { padding: .85rem 5%; }
       .nav-links { display: none; }
       .burger { display: flex; }
-      .hero-content { padding: 7rem 5% 4rem; }
-      .hero h1 { font-size: 2.4rem; }
-      .orb1 { width: 200px; height: 200px; }
+      section { padding: 4rem 5%; }
+      .hero-content { padding: 5.5rem 5% 3rem; max-width: 100%; }
+      .hero h1 { font-size: clamp(1.9rem, 6.5vw, 2.4rem); line-height: 1.15; }
+      .hero-sub { font-size: .9rem; max-width: 100%; }
+      .hero-btns { gap: .75rem; flex-direction: column; align-items: flex-start; }
+      .btn { min-height: 48px; padding: .85rem 1.6rem; font-size: .88rem; }
+      .btn-wa, .btn-terra { width: auto; min-width: 200px; justify-content: center; }
+      .hero-stats { display: none; }
+      .trust-strip { gap: .75rem; padding: 1rem 5%; flex-wrap: wrap; justify-content: center; }
+      .trust-sep { display: none; }
+      .trust-item { font-size: .75rem; }
+      .orb1 { width: 180px; height: 180px; }
       .orb2, .orb3 { display: none; }
-      .tab-panel.on { grid-template-columns: 1fr; }
-      .numeros-grid { grid-template-columns: 1fr 1fr; }
+      .tab-panel.on { grid-template-columns: 1fr; gap: 1rem; }
+      .tabs { gap: .5rem; flex-wrap: wrap; justify-content: center; }
+      .tab { font-size: .79rem; padding: .55rem 1.1rem; min-height: 40px; }
+      .scard { border-radius: 14px !important; }
+      .scard-img { height: 170px; }
+      .section-h { font-size: 1.9rem; }
+      .tag { font-size: .68rem; }
+      .valores { grid-template-columns: 1fr 1fr; gap: .75rem; }
+      .valor { padding: 1rem; }
+      .e-stats { grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+      .e-stat { padding: 1rem; }
+      .e-stat .en { font-size: 1.6rem; }
+      .mapa iframe { height: 250px; }
+      .footer-top { flex-direction: column; gap: 2rem; flex-wrap: wrap; }
+      .footer-links { min-width: 140px; }
+      .socials { gap: .5rem; }
+    }
+
+    /* Mobile 480px */
+    @media (max-width: 480px) {
+      html { font-size: 14px; }
+      section { padding: 3.5rem 5%; }
+      .hero-content { padding: 5rem 5% 2.5rem; }
+      .hero h1 { font-size: 1.85rem; letter-spacing: -.01em; }
+      .hero-sub { font-size: .88rem; }
+      .hero-btns { flex-direction: column; align-items: stretch; gap: .65rem; }
+      .btn { width: 100%; max-width: 100%; justify-content: center; }
+      .section-h { font-size: 1.65rem; line-height: 1.2; }
+      .tabs { gap: .4rem; }
+      .tab { font-size: .72rem; padding: .5rem .9rem; }
+      .scard-img { height: 155px; }
+      .valores { grid-template-columns: 1fr 1fr; }
       .e-stats { grid-template-columns: 1fr; }
-      .valores { grid-template-columns: 1fr; }
+      .trust-strip { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; padding: 1rem 5%; }
+      .trust-item { font-size: .72rem; white-space: normal; }
       .footer-top { flex-direction: column; }
+      .footer-links { width: 100%; }
+      .socials { flex-direction: column; gap: .5rem; }
+      .soc { justify-content: center; }
+      .nos-img img { height: 240px; }
+      .metodo-img-wrap img { height: 230px; }
+      .c-items { gap: 1.25rem; }
+      .pasos { gap: 1rem; }
+      .paso { padding: .75rem; }
+    }
+
+    /* Mobile pequeño 360px */
+    @media (max-width: 360px) {
+      .hero h1 { font-size: 1.65rem; }
+      .section-h { font-size: 1.5rem; }
+      .btn { font-size: .82rem; padding: .8rem 1.2rem; }
     }
   </style>
 </head>
@@ -462,7 +827,11 @@
 
 <!-- ── HERO ── -->
 <section class="hero" id="inicio">
-  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-bg" id="heroBg">
+    <img src="/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg"
+         alt="" aria-hidden="true"
+         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:35% center;transform:scaleX(-1);transition:transform .1s linear">
+  </div>
   <div class="hero-overlay"></div>
   <!-- Destellos retro -->
   <div class="retro-star rs1">
@@ -492,7 +861,7 @@
       <div class="retro-seal">
         <div class="retro-seal-inner">
           <span class="est">DESDE</span>
-          <span class="yr">2016</span>
+          <span class="yr">2020</span>
           <span class="est">MVDEO</span>
         </div>
       </div>
@@ -507,6 +876,13 @@
       </a>
       <a href="#servicios" class="btn btn-outline">Ver servicios</a>
     </div>
+    <!-- Stats del hero -->
+    <div class="hero-stats reveal delay-4" style="display:inline-flex;margin-top:1.8rem">
+      <div class="hero-stat" style="border-right:none;padding:.85rem 1.4rem">
+        <div class="num">2020</div>
+        <div class="lbl">Citrino · Ciudad Vieja, Mvdeo</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -515,6 +891,29 @@
   <svg viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="height:60px">
     <path d="M0,30 C240,60 480,0 720,30 C960,60 1200,0 1440,30 L1440,60 L0,60 Z" fill="#ffffff"/>
   </svg>
+</div>
+
+<!-- Trust strip -->
+<div class="trust-strip">
+  <div class="trust-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8"><path d="M12 2C12 2 5 7 5 13a7 7 0 0014 0C19 7 12 2 12 2z"/></svg>
+    Bienestar integral — cuerpo, mente y emociones
+  </div>
+  <div class="trust-sep"></div>
+  <div class="trust-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14" stroke-linecap="round"/></svg>
+    50 minutos reales · sin apuros
+  </div>
+  <div class="trust-sep"></div>
+  <div class="trust-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    Sarandí 554 · Ciudad Vieja · Frente a Plaza Matriz
+  </div>
+  <div class="trust-sep"></div>
+  <div class="trust-item">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    Terapeutas certificados · Desde 2020
+  </div>
 </div>
 
 <!-- ── SERVICIOS ── -->
@@ -541,7 +940,7 @@
     <!-- Método Citrino -->
     <div class="scard reveal" onclick="openModal('metodo-citrino')">
       <div class="scard-img">
-        <img src="https://static.wixstatic.com/media/aebbd1_be4b8f45132d426f9b26f35170d9d407~mv2.jpg" alt="Método Citrino" loading="lazy">
+        <img src="/imagnes/04e19f74-de37-4f79-9456-6d2592c927ed.jpg" alt="Método Citrino" loading="lazy" style="object-position:center 82%">
         <span class="estrella-ribbon">✦ ESTRELLA</span>
       </div>
       <div class="scard-body">
@@ -572,7 +971,7 @@
     </div>
     <!-- Descontracturante -->
     <div class="scard reveal delay-2" onclick="openModal('descon')">
-      <div class="scard-img"><img src="https://static.wixstatic.com/media/aebbd1_b0d4cac97dfd4703b3859fd376be0e9b~mv2.png" alt="Descontracturante" loading="lazy"></div>
+      <div class="scard-img"><img src="/imagnes/9f7a6c60-638b-47c6-a044-30a0873b40c5.jpg" alt="Masaje Descontracturante" loading="lazy" style="object-position:top center"></div>
       <div class="scard-body">
         <h3>Masaje Descontracturante</h3>
         <p>Presión focalizada en zonas de tensión profunda. Ideal para contracturas y dolor de espalda.</p>
@@ -584,7 +983,7 @@
     </div>
     <!-- Relax -->
     <div class="scard reveal delay-1">
-      <div class="scard-img"><img src="https://static.wixstatic.com/media/aebbd1_3acf5cc98fd946909e3c1a105989fe4b~mv2.png" alt="Masaje Relax" loading="lazy"></div>
+      <div class="scard-img"><img src="/imagnes/3ee04b05-9ed4-45a7-b7f9-149b8291f150.jpg" alt="Masaje Relax" loading="lazy" style="object-position:top center"></div>
       <div class="scard-body">
         <h3>Masaje Relax</h3>
         <p>Movimientos suaves y envolventes para liberar el estrés y llevarte a calma profunda.</p>
@@ -646,127 +1045,51 @@
 
   <div class="tab-panel" id="tp-estetica">
 
+    <!-- Limpieza de Cutis -->
     <div class="scard reveal">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Limpieza de Cutis: rostro vintage con flores -->
-        <circle cx="45" cy="40" r="22" stroke="#B8694A" stroke-width="1.5"/>
-        <ellipse cx="38" cy="36" rx="3" ry="4" stroke="#B8694A" stroke-width="1.2"/>
-        <ellipse cx="52" cy="36" rx="3" ry="4" stroke="#B8694A" stroke-width="1.2"/>
-        <path d="M39 47 Q45 53 51 47" stroke="#B8694A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-        <path d="M29 30 Q45 18 61 30" stroke="#6E8E6A" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-        <circle cx="45" cy="62" r="1.5" fill="#B8694A"/>
-        <path d="M38 62 Q45 70 52 62" stroke="#B8694A" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <!-- gotitas -->
-        <ellipse cx="20" cy="35" rx="3" ry="5" stroke="#6E8E6A" stroke-width="1" transform="rotate(-15 20 35)"/>
-        <ellipse cx="70" cy="35" rx="3" ry="5" stroke="#6E8E6A" stroke-width="1" transform="rotate(15 70 35)"/>
-        <!-- pequeñas flores -->
-        <circle cx="25" cy="55" r="3" stroke="#B8694A" stroke-width=".8"/>
-        <circle cx="65" cy="55" r="3" stroke="#B8694A" stroke-width=".8"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Limpieza de Cutis</h3><p>Tratamiento facial profundo para purificar, renovar e iluminar tu piel.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Limpieza%20de%20cutis" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+      <div class="scard-img">
+        <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=360&fit=crop&auto=format" alt="Limpieza de Cutis" loading="lazy" style="object-position:center 40%">
+      </div>
+      <div class="scard-body">
+        <h3>Limpieza de Cutis</h3>
+        <p>Tratamiento facial profundo para purificar, renovar e iluminar tu piel.</p>
+        <div class="scard-footer">
+          <div class="precio">$1.500</div>
+          <a href="https://wa.me/59891998151?text=Limpieza%20de%20cutis" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        </div>
+      </div>
     </div>
 
+    <!-- Depilación -->
     <div class="scard reveal delay-1">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Manicuría: mano vintage con flor -->
-        <path d="M35 70 L35 45 Q35 40 40 40 Q45 40 45 45 L45 35 Q45 30 50 30 Q55 30 55 35 L55 40 Q55 35 60 35 Q65 35 65 40 L65 55 Q65 65 55 68 L50 70 Z" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-        <!-- uñas -->
-        <ellipse cx="40" cy="41" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
-        <ellipse cx="50" cy="31" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
-        <ellipse cx="60" cy="36" rx="4" ry="2.5" stroke="#6E8E6A" stroke-width="1" fill="rgba(110,142,106,.15)"/>
-        <!-- flor decorativa -->
-        <circle cx="25" cy="35" r="5" stroke="#B8694A" stroke-width="1"/>
-        <circle cx="25" cy="35" r="2" fill="rgba(184,105,74,.2)" stroke="#B8694A" stroke-width=".8"/>
-        <path d="M25 28 Q28 25 31 28" stroke="#B8694A" stroke-width=".8" fill="none"/>
-        <path d="M25 42 Q22 45 19 42" stroke="#B8694A" stroke-width=".8" fill="none"/>
-        <path d="M18 35 Q15 32 18 29" stroke="#B8694A" stroke-width=".8" fill="none"/>
-        <path d="M32 35 Q35 38 32 41" stroke="#B8694A" stroke-width=".8" fill="none"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Manicuría</h3><p>Cuidado profesional de manos y uñas con los mejores productos.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Manicur%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+      <div class="scard-img">
+        <img src="https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=600&h=360&fit=crop&auto=format" alt="Depilación" loading="lazy" style="object-position:center 50%">
+      </div>
+      <div class="scard-body">
+        <h3>Depilación</h3>
+        <p>Técnicas suaves y eficaces para piel suave y cuidada.</p>
+        <div class="scard-footer">
+          <div class="precio">$1.300</div>
+          <a href="https://wa.me/59891998151?text=Depilaci%C3%B3n" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        </div>
+      </div>
     </div>
 
+    <!-- Podología -->
     <div class="scard reveal delay-2">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Depilación: hoja de cera vintage con flor -->
-        <rect x="25" y="30" width="40" height="28" rx="4" stroke="#B8694A" stroke-width="1.5"/>
-        <path d="M25 42 L65 42" stroke="#B8694A" stroke-width="1" stroke-dasharray="3 3"/>
-        <path d="M32 36 Q45 28 58 36" stroke="#6E8E6A" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-        <!-- pequeñas líneas de suavidad -->
-        <path d="M32 50 L40 50" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
-        <path d="M32 54 L50 54" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
-        <path d="M32 46 L55 46" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
-        <!-- flor decorativa esquina -->
-        <circle cx="20" cy="22" r="4" stroke="#6E8E6A" stroke-width="1"/>
-        <circle cx="20" cy="22" r="1.5" fill="rgba(110,142,106,.3)"/>
-        <path d="M70 68 C68 63 72 58 75 63 C78 68 74 73 70 68Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.1)"/>
-        <!-- estrella retro -->
-        <path d="M68 20 L69.2 24 L73 24 L70.2 26.5 L71.5 30 L68 27.5 L64.5 30 L65.8 26.5 L63 24 L66.8 24Z" stroke="#B8694A" stroke-width=".8" fill="rgba(184,105,74,.15)"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Depilación</h3><p>Técnicas suaves y eficaces para piel suave y cuidada.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Depilaci%C3%B3n" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
+      <div class="scard-img">
+        <img src="https://images.unsplash.com/photo-1519415943484-9fa1873496d4?w=600&h=360&fit=crop&auto=format" alt="Podología" loading="lazy" style="object-position:center 40%">
+      </div>
+      <div class="scard-body">
+        <h3>Podología</h3>
+        <p>Cuidado integral de pies para tu salud desde la base.</p>
+        <div class="scard-footer">
+          <div class="precio">$1.300</div>
+          <a href="https://wa.me/59891998151?text=Podolog%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        </div>
+      </div>
     </div>
 
-    <div class="scard reveal">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Podología: pie vintage botánico -->
-        <path d="M30 65 Q28 50 30 40 Q32 30 45 28 Q52 27 55 32 Q58 37 54 40 Q50 42 48 40 Q50 38 50 35 Q50 32 46 31 Q38 31 36 40 Q34 50 36 65 Z" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-        <path d="M36 65 Q40 70 45 68 Q52 66 55 60 Q57 55 55 50" stroke="#B8694A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-        <!-- dedos -->
-        <ellipse cx="40" cy="29" rx="3" ry="4" stroke="#6E8E6A" stroke-width="1"/>
-        <ellipse cx="48" cy="27" rx="3" ry="4" stroke="#6E8E6A" stroke-width="1"/>
-        <ellipse cx="55" cy="31" rx="2.5" ry="3.5" stroke="#6E8E6A" stroke-width="1"/>
-        <!-- flor lateral -->
-        <circle cx="20" cy="50" r="5" stroke="#B8694A" stroke-width=".8"/>
-        <circle cx="20" cy="50" r="2" fill="rgba(184,105,74,.2)"/>
-        <path d="M20 43 L20 38" stroke="#6E8E6A" stroke-width="1" stroke-linecap="round"/>
-        <path d="M17 40 Q20 37 23 40" stroke="#6E8E6A" stroke-width=".8" fill="none"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Podología</h3><p>Cuidado integral de pies para tu salud desde la base.</p><div class="scard-footer"><div class="precio">$1.300</div><a href="https://wa.me/59891998151?text=Podolog%C3%ADa" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
-    </div>
-
-    <div class="scard reveal delay-1">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Taller Maquillaje: espejo vintage con flores -->
-        <ellipse cx="45" cy="38" rx="18" ry="22" stroke="#B8694A" stroke-width="1.5"/>
-        <ellipse cx="45" cy="38" rx="14" ry="18" stroke="#B8694A" stroke-width=".8" stroke-dasharray="2 3"/>
-        <path d="M38 60 L42 70 L48 70 L52 60" stroke="#B8694A" stroke-width="1.5" stroke-linejoin="round"/>
-        <path d="M35 70 L55 70" stroke="#B8694A" stroke-width="2" stroke-linecap="round"/>
-        <!-- brillo espejo -->
-        <path d="M38 28 Q40 24 44 26" stroke="rgba(184,105,74,.5)" stroke-width=".8" fill="none" stroke-linecap="round"/>
-        <!-- flores decorativas -->
-        <circle cx="20" cy="25" r="4" stroke="#6E8E6A" stroke-width=".8"/>
-        <circle cx="20" cy="25" r="1.5" fill="rgba(110,142,106,.3)"/>
-        <circle cx="70" cy="60" r="4" stroke="#B8694A" stroke-width=".8"/>
-        <circle cx="70" cy="60" r="1.5" fill="rgba(184,105,74,.2)"/>
-        <!-- pincel -->
-        <path d="M65 20 L70 35" stroke="#B8694A" stroke-width="1.5" stroke-linecap="round"/>
-        <ellipse cx="67.5" cy="17" rx="2.5" ry="4" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.15)"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Taller Automaquillaje</h3><p>Aprendé técnicas profesionales adaptadas a tu estilo y rutina diaria.</p><div class="scard-footer"><div class="precio">$1.500</div><a href="https://wa.me/59891998151?text=Taller%20de%20maquillaje" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
-    </div>
-
-    <div class="scard reveal delay-2">
-      <div class="scard-img"><div class="retro-card-art"><svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Novias: rosa vintage con diamante -->
-        <!-- rosa -->
-        <path d="M45 65 C45 65 28 55 28 42 C28 32 36 26 45 26 C54 26 62 32 62 42 C62 55 45 65 45 65Z" stroke="#B8694A" stroke-width="1.5" fill="none"/>
-        <path d="M45 26 C45 26 38 33 38 40 C38 47 45 52 45 52 C45 52 52 47 52 40 C52 33 45 26 45 26Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.08)"/>
-        <path d="M45 52 L45 65" stroke="#B8694A" stroke-width="1" stroke-linecap="round"/>
-        <!-- pétalos exteriores -->
-        <path d="M32 35 Q26 32 28 42" stroke="#6E8E6A" stroke-width="1" fill="none"/>
-        <path d="M58 35 Q64 32 62 42" stroke="#6E8E6A" stroke-width="1" fill="none"/>
-        <path d="M36 28 Q33 22 40 20" stroke="#6E8E6A" stroke-width="1" fill="none"/>
-        <path d="M54 28 Q57 22 50 20" stroke="#6E8E6A" stroke-width="1" fill="none"/>
-        <!-- diamante pequeño -->
-        <path d="M40 15 L45 10 L50 15 L45 22 Z" stroke="#B8694A" stroke-width="1" fill="rgba(184,105,74,.15)"/>
-        <path d="M40 15 L50 15" stroke="#B8694A" stroke-width=".8"/>
-        <!-- estrellas retro -->
-        <circle cx="20" cy="35" r="2" stroke="#B8694A" stroke-width=".8"/>
-        <path d="M20 31 L20 33 M17 34 L19 34 M20 37 L20 39 M21 34 L23 34" stroke="#B8694A" stroke-width=".8" stroke-linecap="round"/>
-        <circle cx="70" cy="55" r="2" stroke="#6E8E6A" stroke-width=".8"/>
-        <path d="M70 51 L70 53 M67 54 L69 54 M70 57 L70 59 M71 54 L73 54" stroke="#6E8E6A" stroke-width=".8" stroke-linecap="round"/>
-      </svg></div></div>
-      <div class="scard-body"><h3>Maquillaje Novias y Quinceañeras</h3><p>Tu día especial merece lo mejor. Maquillaje profesional para brillar.</p><div class="scard-footer"><div class="precio">$2.700</div><a href="https://wa.me/59891998151?text=Maquillaje%20novia" target="_blank" class="scard-wa"><svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a></div></div>
-    </div>
   </div>
 </section>
 
@@ -774,11 +1097,7 @@
 <section id="metodo">
   <div class="metodo-wrap">
     <div class="metodo-img-wrap reveal-left">
-      <img src="https://static.wixstatic.com/media/a35aecb9d76b4ae39f68a92c19ffe590.jpg" alt="Método Citrino" loading="lazy">
-      <div class="metodo-badge">
-        <span class="big">50'</span>
-        <span class="sm">MINUTOS REALES<br>DEDICADOS A VOS</span>
-      </div>
+      <img src="/imagnes/04e19f74-de37-4f79-9456-6d2592c927ed.jpg" alt="Método Citrino" loading="lazy" style="object-position:center 82%">
     </div>
     <div class="reveal-right">
       <span class="tag">NUESTRO SELLO</span>
@@ -796,13 +1115,28 @@
 </section>
 
 
+<!-- ── QUOTE STRIP ── -->
+<div style="position:relative;height:clamp(200px,26vw,340px);overflow:hidden;z-index:1">
+  <img src="/imagnes/fbc04f58-38cf-4f26-92b5-811424d59e43.jpg"
+       style="width:100%;height:100%;object-fit:cover;object-position:center 40%;filter:brightness(.72) saturate(1.1)"
+       alt="Citrino — contacto consciente" loading="lazy">
+  <div style="position:absolute;inset:0;background:linear-gradient(100deg,rgba(30,22,18,.65) 0%,rgba(30,22,18,.3) 60%,transparent 100%);display:flex;align-items:center;padding:0 8%">
+    <div style="max-width:520px">
+      <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3.5vw,2.6rem);color:#fff;line-height:1.3;font-style:italic;margin-bottom:.8rem">
+        "Es contacto consciente,<br>es escucha a través de las manos."
+      </p>
+      <span style="font-size:.75rem;letter-spacing:.16em;color:rgba(255,255,255,.55);text-transform:uppercase;font-family:'Inter',sans-serif">Citrino · Centro Integral de Bienestar</span>
+    </div>
+  </div>
+</div>
+
 <!-- ── SOBRE NOSOTROS ── -->
 <section id="nosotros" style="background:linear-gradient(135deg,var(--verde-l) 0%,var(--crema2) 60%,var(--crema) 100%);position:relative;overflow:hidden">
   <!-- Blob verde orgánico -->
   <div class="blob-deco" style="width:500px;height:500px;background:rgba(110,142,106,.12);top:-150px;left:-150px;z-index:0;animation-delay:6s"></div>
   <div class="nos-wrap" style="position:relative;z-index:1">
     <div class="nos-img reveal-left">
-      <img src="https://static.wixstatic.com/media/352540af0345423b8d447b3b337f557a.jpg" alt="Equipo Citrino" loading="lazy">
+      <img src="/imagnes/18a3a0d1-ae47-47f0-8cdd-7950df8bdc0c.jpg" alt="Equipo Citrino" loading="lazy" style="object-position:center 58%">
     </div>
     <div class="reveal-right">
       <div class="s-ornament" style="justify-content:flex-start"><span class="s-ornament-line" style="background:linear-gradient(90deg,transparent,var(--verde2))"></span><svg width="16" height="16" viewBox="0 0 20 26" fill="var(--verde2)"><path d="M10 1C5 6 2 12 2 17a8 8 0 0016 0C18 12 15 6 10 1z"/></svg><span class="s-ornament-line r" style="background:linear-gradient(90deg,var(--verde2),transparent)"></span></div>
@@ -835,15 +1169,26 @@
     <svg width="120" height="180" viewBox="0 0 80 120" fill="none"><path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="white"/></svg>
   </div>
   <div class="reveal-left" style="position:relative;z-index:1">
-    <span class="tag" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2)">PARA EMPRESAS</span>
-    <h2>Llevamos el bienestar<br>a tu oficina</h2>
-    <p>Terapeutas certificados que van hasta tu empresa. Masajes express de 10 minutos — rápidos, efectivos y con factura empresa incluida.</p>
-    <a href="empresas.html" class="btn" style="background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,105,74,.4)">Ver propuesta completa →</a>
+    <span class="tag" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.18)">PARA EMPRESAS</span>
+    <h2>Bienestar<br>en la empresa</h2>
+    <p>Un terapeuta va hasta la oficina y da masajes de 10 minutos a cada colaborador — sin instalaciones, sin interrumpir el trabajo. Factura empresa incluida.</p>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem">
+      <a href="empresas.html" class="btn" style="background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,105,74,.35);border-radius:50px">Ver propuesta completa →</a>
+    </div>
   </div>
   <div class="e-stats reveal-right" style="position:relative;z-index:1">
-    <div class="e-stat"><span class="en">10'</span><span class="el">min por persona</span></div>
-    <div class="e-stat"><span class="en">6</span><span class="el">personas / hora</span></div>
-    <div class="e-stat"><span class="en">$2K</span><span class="el">UYU / hora</span></div>
+    <div class="e-stat">
+      <span class="en">10'</span>
+      <span class="el">min por persona</span>
+    </div>
+    <div class="e-stat">
+      <span class="en">6</span>
+      <span class="el">personas / hora</span>
+    </div>
+    <div class="e-stat">
+      <span class="en">$2K</span>
+      <span class="el">UYU / hora</span>
+    </div>
   </div>
 </div>
 
@@ -938,7 +1283,7 @@
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1l1.5 6L17 8l-6 3.5 1.5 6.5L9 15l-3.5 3L7 11.5 1 8l6.5-1z" stroke="rgba(193,122,90,.4)" stroke-width="1" fill="rgba(193,122,90,.08)"/></svg>
       <span class="vintage-divider-line"></span>
     </div>
-    <span class="stamp-tag" style="margin-top:.75rem;display:inline-block">BIENESTAR INTEGRAL · EST. 2016</span>
+    <span class="stamp-tag" style="margin-top:.75rem;display:inline-block">BIENESTAR INTEGRAL · EST. 2020</span>
   </div>
   <p class="copy">© 2026 Citrino · Centro Integral de Bienestar · Ciudad Vieja, Montevideo</p>
 </footer>
@@ -967,6 +1312,24 @@
 </div>
 
 <script>
+// ── HERO BG FALLBACK ──
+(function() {
+  var bg = document.getElementById('heroBg');
+  if (!bg) return;
+  var local = '/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg';
+  var server = '/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg';
+  var wix = 'https://static.wixstatic.com/media/aebbd1_cdaa55bce9894d69ad3c3a40ca47a2c5~mv2.jpg';
+  var test = new Image();
+  test.onload = function() { bg.style.backgroundImage = "url('" + local + "')"; bg.style.backgroundPosition = '20% 30%'; };
+  test.onerror = function() {
+    var t2 = new Image();
+    t2.onload = function() { bg.style.backgroundImage = "url('" + server + "')"; bg.style.backgroundPosition = '20% 30%'; };
+    t2.onerror = function() { bg.style.backgroundImage = "url('" + wix + "')"; bg.style.backgroundPosition = 'center 65%'; };
+    t2.src = server;
+  };
+  test.src = local;
+})();
+
 // ── NAV SCROLL ──
 window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', scrollY > 60);
@@ -977,16 +1340,45 @@ document.getElementById('burger').onclick = () => document.getElementById('mobil
 document.getElementById('menuClose').onclick = () => document.getElementById('mobileMenu').classList.remove('open');
 document.querySelectorAll('.mm-link').forEach(l => l.onclick = () => document.getElementById('mobileMenu').classList.remove('open'));
 
-// ── PARALLAX HERO ──
-window.addEventListener('scroll', () => {
-  document.getElementById('heroBg').style.transform = `scale(1.05) translateY(${scrollY * .3}px)`;
-});
+// ── PARALLAX HERO — suavizado con requestAnimationFrame ──
+(function() {
+  var heroImg = document.querySelector('#heroBg img');
+  if (!heroImg) return;
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var offset = window.scrollY * 0.14;
+        heroImg.style.transform = 'scaleX(-1) translateY(' + offset + 'px)';
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
 
-// ── SCROLL REVEAL ──
+// ── SCROLL REVEAL — umbral más sensible ──
 const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
-}, { threshold: 0.12 });
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+
+// ── NAVBAR — ocultar/mostrar al hacer scroll en mobile ──
+(function() {
+  var nav = document.getElementById('nav');
+  var lastY = 0;
+  window.addEventListener('scroll', function() {
+    var y = window.scrollY;
+    if (y > 80) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+    lastY = y;
+  }, { passive: true });
+})();
 
 // ── COUNTER ANIMATION ──
 const counterObs = new IntersectionObserver(entries => {
