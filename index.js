@@ -53,6 +53,17 @@ async function procesarBatch(userId) {
 
 const app = express();
 app.use(express.json());
+
+// 301 redirects — dominios viejos al nuevo
+app.use((req, res, next) => {
+  const h = req.hostname;
+  if (h === 'citrinocv.com'       || h === 'www.citrinocv.com' ||
+      h === 'esteticacitrino.com' || h === 'www.esteticacitrino.com') {
+    return res.redirect(301, 'https://citrinobienestar.uy' + req.originalUrl);
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 // Health check para Railway
