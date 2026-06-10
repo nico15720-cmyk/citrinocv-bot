@@ -26,6 +26,14 @@
   <meta name="twitter:title" content="Citrino · Bienestar Corporativo en Montevideo">
   <meta name="twitter:description" content="Masajes en silla en tu empresa. 10 min · 6 personas/hora · Factura empresa.">
   <meta name="twitter:image" content="https://citrinobienestar.uy/imagnes/Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png">
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MSPP26KXVK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-MSPP26KXVK');
+  </script>
   <!-- Canonical -->
   <link rel="canonical" href="https://citrinobienestar.uy/empresas.html">
   <link rel="icon" href="/imagnes/favicon-citrino.png">
@@ -2179,6 +2187,17 @@
     updateViz(p);
   }
   calc();
+
+  // ── GA4 EVENTOS ──
+  document.querySelectorAll('a[href*="wa.me"]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      if (typeof gtag === 'undefined') return;
+      gtag('event', 'whatsapp_click', {
+        event_category: 'conversion',
+        event_label: 'empresas'
+      });
+    });
+  });
 </script>
 </body>
 </html>

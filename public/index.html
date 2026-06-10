@@ -32,6 +32,14 @@
   <meta name="twitter:title" content="Citrino · Masajes en Ciudad Vieja, Montevideo">
   <meta name="twitter:description" content="Masajes terapéuticos, drenaje linfático y terapias complementarias. Sarandí 554, Ciudad Vieja.">
   <meta name="twitter:image" content="https://citrinobienestar.uy/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg">
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MSPP26KXVK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-MSPP26KXVK');
+  </script>
   <!-- Canonical -->
   <link rel="canonical" href="https://citrinobienestar.uy">
   <!-- Favicon -->
@@ -2210,6 +2218,17 @@ function openModal(id) {
 }
 function closeModal(e) { if (e.target === document.getElementById('modalBg')) document.getElementById('modalBg').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modalBg').classList.remove('open'); });
+
+// ── GA4 EVENTOS ──
+document.querySelectorAll('a[href*="wa.me"]').forEach(function(el) {
+  el.addEventListener('click', function() {
+    if (typeof gtag === 'undefined') return;
+    gtag('event', 'whatsapp_click', {
+      event_category: 'conversion',
+      event_label: (el.textContent.trim() || el.getAttribute('aria-label') || 'WhatsApp').substring(0, 60)
+    });
+  });
+});
 </script>
 </body>
 </html>
