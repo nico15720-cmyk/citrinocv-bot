@@ -293,11 +293,17 @@
     }
     .mobile-menu.open { display: flex; animation: mobileIn .3s ease both; }
     @keyframes mobileIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:none} }
-    .mobile-menu a {
-      font-family: 'Playfair Display', serif; font-size: 2.2rem;
-      color: var(--oscuro); font-style: italic; transition: color .3s;
+    .mobile-menu .mm-link {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.9rem;
+      font-weight: 400; font-style: normal; letter-spacing: 0.06em;
+      color: var(--oscuro); transition: color .3s; text-decoration: none;
     }
-    .mobile-menu a:hover { color: var(--terra); }
+    .mobile-menu .mm-link:hover { color: var(--terra); }
+    .mobile-menu .btn-wa {
+      font-family: 'Inter', sans-serif !important; font-style: normal !important;
+      font-size: .95rem !important; font-weight: 500; letter-spacing: 0.03em;
+      display: inline-flex; align-items: center; gap: .5rem;
+    }
     .mobile-close {
       position: absolute; top: 1.5rem; right: 5%;
       font-size: 2rem; cursor: pointer; color: var(--gris2);
@@ -1098,7 +1104,7 @@
   <a href="empresas.html" class="mm-link">Empresas</a>
   <a href="#nosotros" class="mm-link">Nosotros</a>
   <a href="#contacto" class="mm-link">Contacto</a>
-  <a href="https://wa.me/59891998151?text=Hola!" target="_blank" class="btn btn-wa" style="margin-top:1rem">📱 Agendá por WhatsApp</a>
+  <a href="https://wa.me/59891998151?text=Hola!" target="_blank" class="btn btn-wa" style="margin-top:1rem"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.094.541 4.064 1.489 5.779L0 24l6.389-1.467A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.003-1.37l-.36-.213-3.714.853.882-3.62-.234-.372A9.818 9.818 0 1112 21.818z"/></svg>Agendá por WhatsApp</a>
 </div>
 
 <!-- ── HERO ── -->
