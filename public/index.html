@@ -1070,6 +1070,103 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1' fill='rgba(184,105,74,.06)'/%3E%3C/svg%3E");
       background-size: 60px 60px;
     }
+
+    /* ══ POLISH FINAL — MOBILE + ANIMACIONES ══ */
+
+    /* WA float — entrada con spring */
+    .wa-float { animation: waSpring .65s cubic-bezier(.16,1,.3,1) 1s both; }
+    @keyframes waSpring {
+      0%   { transform: scale(0) rotate(-25deg); opacity: 0; }
+      70%  { transform: scale(1.12) rotate(4deg); }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    /* Trust strip — stagger sutil */
+    .trust-item { animation: trustSlide .5s cubic-bezier(.16,1,.3,1) both; }
+    .trust-item:nth-child(1) { animation-delay: .05s; }
+    .trust-item:nth-child(3) { animation-delay: .15s; }
+    .trust-item:nth-child(5) { animation-delay: .25s; }
+    .trust-item:nth-child(7) { animation-delay: .35s; }
+    @keyframes trustSlide { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+    /* Precio — mejor legibilidad */
+    .precio { letter-spacing: -.015em; }
+    .section-h { letter-spacing: -.025em; }
+
+    /* Focus accesible */
+    .btn:focus-visible, .tab:focus-visible, button:focus-visible {
+      outline: 2px solid var(--terra); outline-offset: 3px;
+    }
+
+    /* ──── MOBILE IMPROVEMENTS ──── */
+    @media (max-width: 768px) {
+      /* Sin blur en animaciones (GPU móvil) */
+      .reveal, .reveal-left, .reveal-right {
+        filter: none !important;
+        transition: opacity .55s cubic-bezier(.16,1,.3,1), transform .55s cubic-bezier(.16,1,.3,1) !important;
+      }
+      /* Hero overlay más sólido para legibilidad */
+      .hero-overlay {
+        background: linear-gradient(105deg,
+          rgba(253,248,242,.98) 0%,
+          rgba(253,248,242,.96) 45%,
+          rgba(253,248,242,.80) 68%,
+          rgba(253,248,242,.42) 100%) !important;
+      }
+      /* Ocultar todos los orbs */
+      .orb { display: none !important; }
+      /* Menú mobile más compacto */
+      .mobile-menu { gap: 1.6rem; }
+      /* Sello retro más pequeño */
+      .retro-seal { width: 56px; height: 56px; }
+      .retro-seal .yr { font-size: .9rem; }
+      .retro-seal .est { font-size: .46rem; }
+      /* Marquee más rápido en mobile */
+      .marquee-track { animation-duration: 22s !important; }
+    }
+
+    @media (max-width: 480px) {
+      /* Hero: h1 más ajustado, menos padding */
+      .hero-content { padding: 4.5rem 5% 2rem !important; }
+      .hero h1 { font-size: clamp(2rem, 9vw, 2.7rem) !important; line-height: 1.1; }
+      .hero-sub { font-size: .95rem !important; margin-bottom: 1.5rem; }
+      .hero-tag { font-size: .7rem; padding: .32rem .85rem; margin-bottom: 1.1rem; }
+      .hero-btns { gap: .55rem; }
+      /* Trust strip — columna en pantallas muy chicas */
+      .trust-strip {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: .45rem !important;
+        padding: .85rem 5% !important;
+      }
+      .trust-sep { display: none !important; }
+      .trust-item { font-size: .78rem; white-space: normal !important; }
+      /* Cards servicios — imagen un poco más alta */
+      .scard-img { height: 200px !important; }
+      .scard-body h3 { font-size: 1.05rem; }
+      /* Tabs — scroll horizontal si hay muchos */
+      .tabs { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: .25rem; scrollbar-width: none; }
+      .tabs::-webkit-scrollbar { display: none; }
+      /* Footer más compacto */
+      footer { padding: 2.5rem 5% 1rem !important; }
+      .footer-top { gap: 1.25rem; }
+      /* FAQ padding interno */
+      .faq-q { padding: 1rem !important; font-size: .9rem; }
+      .faq-a.open { padding-bottom: 1rem; }
+    }
+
+    /* Prefers-reduced-motion — accesibilidad */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-left, .reveal-right {
+        opacity: 1 !important; transform: none !important;
+        filter: none !important; transition: none !important;
+      }
+      .marquee-track, .retro-seal, .retro-seal-inner,
+      .blob-deco, .leaf-deco, .retro-star, .wa-float::before,
+      .btn-beam::before, .grad-heading, .wa-float,
+      .trust-item { animation: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -1697,8 +1794,9 @@ document.getElementById('burger').onclick = () => document.getElementById('mobil
 document.getElementById('menuClose').onclick = () => document.getElementById('mobileMenu').classList.remove('open');
 document.querySelectorAll('.mm-link').forEach(l => l.onclick = () => document.getElementById('mobileMenu').classList.remove('open'));
 
-// ── PARALLAX HERO — suavizado con requestAnimationFrame ──
+// ── PARALLAX HERO — solo desktop (performance mobile) ──
 (function() {
+  if (window.innerWidth <= 768) return;
   var heroImg = document.querySelector('#heroBg img');
   if (!heroImg) return;
   var ticking = false;
