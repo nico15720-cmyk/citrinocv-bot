@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1128px; height:191px; overflow:hidden; }
+  .banner {
+    width:1128px; height:191px; position:relative;
+    background:#FDF7EF;
+    background-image:
+      radial-gradient(ellipse 60% 120% at 88% 50%, rgba(193,122,90,.16) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 100% at 8% 100%, rgba(193,122,90,.07) 0%, transparent 60%);
+    display:flex; align-items:center;
+    font-family:'Inter',sans-serif;
+  }
+  .content { padding-left:300px; position:relative; z-index:2; }
+  .title {
+    font-family:'Cormorant Garamond',serif; font-size:42px; font-weight:600;
+    color:#1E1612; line-height:1.08; letter-spacing:-.01em;
+  }
+  .title em { font-style:italic; font-weight:400; color:#B8694A; }
+  .sub {
+    margin-top:10px; font-size:14px; font-weight:400; color:#6B5D52;
+    letter-spacing:.04em;
+  }
+  .sub b { color:#B8694A; font-weight:500; }
+  .tags { margin-top:12px; display:flex; gap:8px; }
+  .tag {
+    font-size:10.5px; letter-spacing:.14em; font-weight:500; color:#8B5A3E;
+    border:1px solid rgba(193,122,90,.35); border-radius:50px;
+    padding:4px 13px; background:rgba(255,255,255,.5);
+  }
+  /* Decoración derecha: hojas orgánicas */
+  .deco { position:absolute; right:0; top:0; height:191px; width:420px; z-index:1; }
+  .leaf { position:absolute; opacity:.85; }
+  .rule {
+    position:absolute; left:300px; bottom:24px;
+  }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="content">
+    <div class="title">Bienestar que llega<br>a <em>tu empresa</em></div>
+    <div class="sub">Masajes en silla en la oficina · 10 min por persona · <b>Factura empresa</b> · Montevideo</div>
+    <div class="tags">
+      <span class="tag">SIN CONTRATO MÍNIMO</span>
+      <span class="tag">TERAPEUTAS CERTIFICADAS</span>
+      <span class="tag">DESDE 2020</span>
+    </div>
+  </div>
+  <div class="deco">
+    <svg class="leaf" style="right:60px;top:18px" width="150" height="155" viewBox="0 0 80 120" fill="none">
+      <path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="rgba(193,122,90,.14)"/>
+      <path d="M40 18 L40 108 M40 40 C32 44 26 50 24 58 M40 40 C48 44 54 50 56 58 M40 62 C33 66 28 71 26 78 M40 62 C47 66 52 71 54 78" stroke="rgba(155,90,62,.4)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    </svg>
+    <svg class="leaf" style="right:215px;top:95px" width="85" height="88" viewBox="0 0 80 120" fill="none">
+      <path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="rgba(193,122,90,.1)"/>
+    </svg>
+    <svg class="leaf" style="right:8px;top:120px" width="62" height="64" viewBox="0 0 80 120" fill="none">
+      <path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="rgba(193,122,90,.18)"/>
+    </svg>
+    <svg class="leaf" style="right:330px;top:30px" width="50" height="52" viewBox="0 0 80 120" fill="none">
+      <path d="M40 5 C20 20 5 50 10 80 C15 110 40 115 40 115 C40 115 65 110 70 80 C75 50 60 20 40 5Z" fill="rgba(193,122,90,.08)"/>
+    </svg>
+  </div>
+</div>
+</body>
+</html>
