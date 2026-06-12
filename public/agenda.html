@@ -386,7 +386,7 @@ ${ser?`<div class="te-servicio">💆 ${ser}</div>`:''}
 </div>
 <div class="te-actions">
   <button class="te-act te-act-vino" onclick="event.stopPropagation();marcarVino('${ev.id}','${ev.clienteTelefono||''}','${nom.replace(/'/g,"\\'")}')">✅</button>
-  <button class="te-act te-act-no" onclick="event.stopPropagation();marcarNoVino('${ev.id}','${nom.replace(/'/g,"\\'")}')">❌</button>
+  <button class="te-act te-act-no" onclick="event.stopPropagation();marcarNoVino('${ev.id}','${(ev.clienteTelefono||'').replace(/'/g,"\\'")}','${nom.replace(/'/g,"\\'")}')">❌</button>
   ${ev.clienteTelefono?`<button class="te-act te-act-wa" onclick="event.stopPropagation();abrirWA('${ev.clienteTelefono}')">📱</button>`:''}
 </div>`;
         slotCol.appendChild(card);
@@ -408,10 +408,13 @@ ${ser?`<div class="te-servicio">💆 ${ser}</div>`:''}
 
 // ── ACCIONES ──
 async function marcarVino(id,tel,nom){
-  if(tel)await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vino:true})}).catch(()=>{});
-  toast(`✅ ${nom} marcada como asistida`);await cargarEventos();renderDia();
+  if(tel)await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vino:true,eventId:id})}).catch(()=>{});
+  toast(`✅ ${nom} asistió`);await cargarEventos();renderDia();
 }
-async function marcarNoVino(id,nom){toast(`❌ ${nom} — sin asistencia`);}
+async function marcarNoVino(id,tel,nom){
+  if(tel)await fetch(`/api/clientes/${encodeURIComponent(tel)}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vino:false,eventId:id})}).catch(()=>{});
+  toast(`❌ ${nom} — no vino`);await cargarEventos();renderDia();
+}
 function abrirWA(tel){const n=tel.replace(/\D/g,'');window.open(`https://wa.me/${n}`,'_blank');}
 
 // ── NUEVO TURNO ──

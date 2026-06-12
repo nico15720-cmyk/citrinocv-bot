@@ -1,242 +1,212 @@
 // ============================================================
-// CITRINO BOT — Google Calendar Integration
-// Fase 1: disponibilidad, agendamiento, cancelación
+// CITRINO BOT — Calendar vía Google Sheets (hoja "Sesiones")
+// Reemplaza Google Calendar API — toda la agenda vive en Sheets
 // ============================================================
 
-const { calendar: googleCalendar } = require("@googleapis/calendar");
+const { sheets: googleSheets } = require("@googleapis/sheets");
 const { GoogleAuth } = require("google-auth-library");
 const { conRetry } = require("./utils");
 
-// ============================================================
-// CONFIGURACIÓN DE HORARIOS DE LA TERAPEUTA
-// Ajustá estos horarios según los de Citrino
-// ============================================================
-// Horarios de Citrino: lunes a viernes 8:00-19:00, sábados hasta el mediodía
-// "fin" = hora máxima de inicio de slot (fin: 18 → último slot a las 16:30, termina 18:00)
-// Para incluir el slot de 18:00 (termina 19:30 = última clienta), cambiá a fin: 19.5
-const HORARIOS = {
+const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
+const SHEET_SESIONES = "Sesiones";
+const TIMEZONE = "America/Montevideo";
+const DURACION_MIN = 90;    // duración de cada sesión en minutos
+const DIAS_A_MOSTRAR = 7;  // ventana de disponibilidad (días)
+
+// ─── Columnas de la hoja Sesiones (0-based) ──────────────────
+const COL = {
+  ID_SESION:       0,  // A — UUID único
+  FECHA:           1,  // B — ISO datetime inicio  (2026-06-15T10:00:00-03:00)
+  CLIENTE:         2,  // C — Nombre
+  TRATAMIENTO:     3,  // D
+  TERAPEUTA:       4,  // E — nombre de la terapeuta
+  ID_CLIENTE:      5,  // F — teléfono / userId
+  MONTO_TERAPEUTA: 6,  // G
+  OBSERVACIONES:   7,  // H
+  FECHA_FIN:       8,  // I — ISO datetime fin (inicio + 90 min)
+  ESTADO:          9,  // J — pendiente | confirmado | cancelado | vino | no_vino
+};
+
+// ─── Horarios por defecto (se sobreescriben con hoja Terapeutas) ───
+const HORARIOS_DEFAULT = {
   1: { dia: "Lunes",     franjas: [{ inicio: 8, fin: 18 }] },
   2: { dia: "Martes",    franjas: [{ inicio: 8, fin: 18 }] },
   3: { dia: "Miércoles", franjas: [{ inicio: 8, fin: 18 }] },
   4: { dia: "Jueves",    franjas: [{ inicio: 8, fin: 18 }] },
   5: { dia: "Viernes",   franjas: [{ inicio: 8, fin: 18 }] },
   6: { dia: "Sábado",    franjas: [{ inicio: 8, fin: 12 }] },
-  // 0 = domingo: sin horario
 };
 
-const DURACION_SESION_MIN = 90;          // 90 minutos (sesión + limpieza)
-const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || "primary";
-const TIMEZONE = "America/Montevideo";
-const DIAS_A_MOSTRAR = 7;               // cuántos días hacia adelante buscar
-
-// ============================================================
-// CONFIGURACIÓN DE TERAPEUTAS
-// Expandible: agregar más terapeutas con su calendar y horarios
-// ============================================================
-const TERAPEUTAS = [
-  {
-    id: "default",
-    nombre: process.env.TERAPEUTA_NOMBRE || "Citrino",
-    color: "#5a7a5a",
-    colorBadge: "verde",
-    calendarId: CALENDAR_ID,
-    horarios: HORARIOS,
-  },
-  // Ejemplo para agregar una segunda terapeuta:
-  // {
-  //   id: "ana",
-  //   nombre: "Ana",
-  //   color: "#2980b9",
-  //   colorBadge: "azul",
-  //   calendarId: process.env.GOOGLE_CALENDAR_ID_ANA || CALENDAR_ID,
-  //   horarios: { 1: { dia: "Lunes", franjas: [{ inicio: 14, fin: 19 }] }, ... }
-  // },
-];
-
-// ============================================================
-// AUTH — Service Account
-// ============================================================
+// ─── Auth ─────────────────────────────────────────────────────
 function getAuth() {
   const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
   return new GoogleAuth({
     credentials,
-    scopes: ["https://www.googleapis.com/auth/calendar"],
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 }
 
-function getCalendar() {
+async function getSheets() {
   const auth = getAuth();
-  return googleCalendar({ version: "v3", auth });
+  return googleSheets({ version: "v4", auth });
 }
 
-// ============================================================
-// HELPERS DE TIEMPO
-// ============================================================
-function toMontevideoDate(date) {
+// ─── Helpers de tiempo ────────────────────────────────────────
+function toMVD(date) {
+  // Convierte a hora de Montevideo
   return new Date(date.toLocaleString("en-US", { timeZone: TIMEZONE }));
 }
 
-function slotToISO(dateStr, hora) {
-  // dateStr: "2024-12-30", hora: 9.5 → 9:30
-  const hh = Math.floor(hora);
-  const mm = (hora % 1) * 60;
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${dateStr}T${pad(hh)}:${pad(mm)}:00`;
+function horaToFloat(hhmm) {
+  // "10:30" → 10.5
+  const [h, m] = hhmm.split(":").map(Number);
+  return h + (m || 0) / 60;
 }
 
-function isoToLocalTime(isoStr) {
-  const d = new Date(isoStr);
-  return d.toLocaleTimeString("es-UY", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: TIMEZONE,
-  });
+function floatToHHMM(h) {
+  const hh = Math.floor(h);
+  const mm = Math.round((h % 1) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function buildISO(fechaStr, horaFloat) {
+  // "2026-06-15" + 10.5 → "2026-06-15T10:30:00-03:00"
+  return `${fechaStr}T${floatToHHMM(horaFloat)}:00-03:00`;
 }
 
 function formatFecha(dateStr) {
-  const d = new Date(dateStr + "T12:00:00");
+  const d = new Date(dateStr + "T12:00:00-03:00");
   return d.toLocaleDateString("es-UY", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: TIMEZONE,
+    weekday: "long", day: "numeric", month: "long", timeZone: TIMEZONE,
   });
 }
 
-// ============================================================
-// OBTENER EVENTOS OCUPADOS — por calendar ID específico
-// ============================================================
-async function getEventosOcupados(desde, hasta, calendarId = CALENDAR_ID) {
-  const calendar = getCalendar();
-  const res = await conRetry(
-    () => calendar.events.list({
-      calendarId,
-      timeMin: desde.toISOString(),
-      timeMax: hasta.toISOString(),
-      singleEvents: true,
-      orderBy: "startTime",
-    }),
-    { nombre: "Google Calendar - listar eventos", intentos: 3 }
-  );
-  return res.data.items || [];
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-// ============================================================
-// GENERAR SLOTS PARA UN TERAPEUTA ESPECÍFICO
-// Verifica solo el calendario de ESE terapeuta
-// ============================================================
-async function getSlotsParaTerapeuta(terapeutaConfig, ahora, desde, hasta) {
-  const calendarId = terapeutaConfig.calendarId || CALENDAR_ID;
-  const horariosTer = terapeutaConfig.horarios || HORARIOS;
+// ─── Leer todas las filas de Sesiones ─────────────────────────
+let _cache = null;
+let _cacheTs = 0;
+const TTL = 5 * 60 * 1000; // 5 min
 
-  const eventosOcupados = await getEventosOcupados(desde, hasta, calendarId);
+async function _leerSesiones(forzar = false) {
+  const ahora = Date.now();
+  if (!forzar && _cache && (ahora - _cacheTs) < TTL) return _cache;
+
+  const api = await getSheets();
+  const res = await conRetry(
+    () => api.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_SESIONES}!A:J`,
+    }),
+    { nombre: "Sheets - leer Sesiones", intentos: 3 }
+  );
+  const filas = (res.data.values || []).slice(1); // saltar header
+  _cache = filas;
+  _cacheTs = ahora;
+  return filas;
+}
+
+function _invalidarCache() {
+  _cache = null;
+  _cacheTs = 0;
+}
+
+// ─── Leer terapeutas desde hoja Terapeutas ────────────────────
+async function _leerTerapeutas() {
+  try {
+    const { leerTerapeutas } = require("./terapeutas");
+    const terapeutas = await leerTerapeutas();
+    if (terapeutas?.length) return terapeutas;
+  } catch {}
+  return [{
+    id: "default", nombre: "Citrino", color: "#5a7a5a",
+    horarios: HORARIOS_DEFAULT, activa: true,
+  }];
+}
+
+// ─── DISPONIBILIDAD ───────────────────────────────────────────
+// Genera slots libres para los próximos DIAS_A_MOSTRAR días
+// Cada terapeuta puede atender simultáneamente (columnas paralelas)
+async function getDisponibilidad(diasDesdeHoy = 0) {
+  const ahora = Date.now();
+  if (diasDesdeHoy === 0 && _slotsCache && (ahora - _slotsCacheTs) < TTL) {
+    return _slotsCache;
+  }
+
+  const [sesiones, terapeutas] = await Promise.all([
+    _leerSesiones(),
+    _leerTerapeutas(),
+  ]);
+
+  // Sesiones ocupadas (estado != cancelado)
+  const ocupadas = sesiones
+    .filter(f => f[COL.ESTADO] !== "cancelado" && f[COL.FECHA])
+    .map(f => ({
+      inicio: new Date(f[COL.FECHA]),
+      fin:    f[COL.FECHA_FIN] ? new Date(f[COL.FECHA_FIN]) : new Date(new Date(f[COL.FECHA]).getTime() + DURACION_MIN * 60000),
+      terapeuta: (f[COL.TERAPEUTA] || "").toLowerCase(),
+    }));
+
+  const ahoraMVD = toMVD(new Date());
   const slots = [];
 
-  for (let d = 0; d < DIAS_A_MOSTRAR; d++) {
-    const fecha = new Date(desde);
-    fecha.setDate(fecha.getDate() + d);
-    const diaSemana = fecha.getDay();
-    const horario = horariosTer[diaSemana];
-    if (!horario) continue;
+  for (const ter of terapeutas.filter(t => t.activa !== false && t.activa !== "no")) {
+    const horarios = ter.horarios || HORARIOS_DEFAULT;
 
-    const fechaStr = fecha.toISOString().split("T")[0];
+    for (let d = diasDesdeHoy; d < diasDesdeHoy + DIAS_A_MOSTRAR; d++) {
+      const fecha = new Date(ahoraMVD);
+      fecha.setDate(fecha.getDate() + d);
+      const diaSemana = fecha.getDay();
+      const horario = typeof horarios === "object" && !Array.isArray(horarios)
+        ? horarios[diaSemana]
+        : null;
+      if (!horario) continue;
 
-    for (const franja of horario.franjas) {
-      let hora = franja.inicio;
-      while (hora + DURACION_SESION_MIN / 60 <= franja.fin) {
-        const inicioISO = slotToISO(fechaStr, hora);
-        const finISO = slotToISO(fechaStr, hora + DURACION_SESION_MIN / 60);
-        const inicioDate = new Date(inicioISO + ":00-03:00");
-        const finDate = new Date(finISO + ":00-03:00");
+      const fechaStr = fecha.toLocaleDateString("en-CA", { timeZone: TIMEZONE }); // YYYY-MM-DD
 
-        if (inicioDate <= ahora) { hora += DURACION_SESION_MIN / 60; continue; }
+      for (const franja of (horario.franjas || [])) {
+        let h = franja.inicio;
+        while (h + DURACION_MIN / 60 <= franja.fin) {
+          const inicioISO = buildISO(fechaStr, h);
+          const finISO   = buildISO(fechaStr, h + DURACION_MIN / 60);
+          const inicioDate = new Date(inicioISO);
+          const finDate    = new Date(finISO);
 
-        // Verificar solapamiento SOLO con eventos de ESTE terapeuta
-        const ocupado = eventosOcupados.some((ev) => {
-          const evI = new Date(ev.start.dateTime || ev.start.date);
-          const evF = new Date(ev.end.dateTime || ev.end.date);
-          // Buffer de 0 min — dos terapeutas pueden empezar a la misma hora
-          return inicioDate < evF && finDate > evI;
-        });
+          // No mostrar slots pasados
+          if (inicioDate <= new Date()) { h += DURACION_MIN / 60; continue; }
 
-        if (!ocupado) {
-          const pad = (n) => String(n).padStart(2, "0");
-          const hh = Math.floor(hora);
-          const mm = (hora % 1) * 60;
-          const hhFin = Math.floor(hora + DURACION_SESION_MIN / 60);
-          const mmFin = ((hora + DURACION_SESION_MIN / 60) % 1) * 60;
-          slots.push({
-            fecha: fechaStr,
-            fechaLabel: formatFecha(fechaStr),
-            horaInicio: `${pad(hh)}:${pad(mm)}`,
-            horaFin: `${pad(hhFin)}:${pad(mmFin)}`,
-            label: `${formatFecha(fechaStr)} a las ${pad(hh)}:${pad(mm)} con ${terapeutaConfig.nombre}`,
-            inicioISO: inicioISO + ":00-03:00",
-            finISO: finISO + ":00-03:00",
-            terapeutaId: terapeutaConfig.id,
-            terapeutaNombre: terapeutaConfig.nombre,
-            terapeutaColor: terapeutaConfig.color || "#5a7a5a",
+          // Chequear si está ocupado para ESTE terapeuta
+          const ocupado = ocupadas.some(o => {
+            const mismoTer = !o.terapeuta || o.terapeuta === ter.nombre.toLowerCase();
+            return mismoTer && inicioDate < o.fin && finDate > o.inicio;
           });
-        }
 
-        hora += DURACION_SESION_MIN / 60;
+          if (!ocupado) {
+            slots.push({
+              fecha: fechaStr,
+              fechaLabel: formatFecha(fechaStr),
+              horaInicio: floatToHHMM(h),
+              horaFin:    floatToHHMM(h + DURACION_MIN / 60),
+              label: `${formatFecha(fechaStr)} a las ${floatToHHMM(h)} con ${ter.nombre}`,
+              inicioISO,
+              finISO,
+              terapeutaId:     ter.id,
+              terapeutaNombre: ter.nombre,
+              terapeutaColor:  ter.color || "#5a7a5a",
+            });
+          }
+
+          h += DURACION_MIN / 60;
+        }
       }
     }
   }
-  return slots;
-}
 
-// ============================================================
-// DISPONIBILIDAD — para todos los terapeutas en paralelo
-// Cada terapeuta puede tener alguien al mismo tiempo
-// ============================================================
-async function getDisponibilidadTodos(diasDesdeHoy = 0) {
-  let terapeutasConfig = [];
-  try {
-    const { leerTerapeutas } = require("./terapeutas");
-    terapeutasConfig = await leerTerapeutas();
-  } catch {
-    terapeutasConfig = TERAPEUTAS;
-  }
-  if (!terapeutasConfig.length) terapeutasConfig = TERAPEUTAS;
+  // Ordenar por fecha/hora
+  slots.sort((a, b) => a.inicioISO.localeCompare(b.inicioISO));
 
-  const ahora = toMontevideoDate(new Date());
-  const desde = new Date(ahora);
-  desde.setDate(desde.getDate() + diasDesdeHoy);
-  desde.setHours(0, 0, 0, 0);
-  const hasta = new Date(desde);
-  hasta.setDate(hasta.getDate() + DIAS_A_MOSTRAR);
-
-  // Obtener slots de todos los terapeutas en paralelo
-  const resultados = await Promise.all(
-    terapeutasConfig.map(ter => getSlotsParaTerapeuta(ter, ahora, desde, hasta))
-  );
-
-  // Combinar y ordenar por fecha+hora
-  const todos = resultados.flat().sort((a, b) => a.inicioISO.localeCompare(b.inicioISO));
-  return todos;
-}
-
-// ============================================================
-// CACHÉ DE SLOTS — se refresca cada 20 minutos
-// Evita llamar a Google Calendar en cada mensaje
-// ============================================================
-let _slotsCache = null;
-let _slotsCacheTs = 0;
-const SLOTS_TTL = 20 * 60 * 1000; // 20 min
-
-function invalidarCacheSlots() {
-  _slotsCache = null;
-  _slotsCacheTs = 0;
-}
-
-// Backward-compatible: getDisponibilidad retorna slots de todos los terapeutas
-async function getDisponibilidad(diasDesdeHoy = 0) {
-  const ahora = Date.now();
-  if (diasDesdeHoy === 0 && _slotsCache && (ahora - _slotsCacheTs) < SLOTS_TTL) {
-    return _slotsCache;
-  }
-  const slots = await getDisponibilidadTodos(diasDesdeHoy);
   if (diasDesdeHoy === 0) {
     _slotsCache = slots;
     _slotsCacheTs = ahora;
@@ -244,201 +214,263 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
   return slots;
 }
 
-// ============================================================
-// FORMATEAR DISPONIBILIDAD PARA MOSTRAR AL CLIENTE
-// Agrupa por fecha y terapeuta
-// ============================================================
+// Cache de slots independiente
+let _slotsCache = null;
+let _slotsCacheTs = 0;
+
+function invalidarCacheSlots() {
+  _slotsCache = null;
+  _slotsCacheTs = 0;
+  _invalidarCache();
+}
+
+// ─── FORMATEAR DISPONIBILIDAD para el cliente ─────────────────
 function formatearDisponibilidad(slots) {
-  if (!slots.length) {
-    return "No tengo turnos disponibles en los próximos 7 días. ¿Querés que miremos para más adelante?";
+  if (!slots?.length) {
+    return "No tengo turnos disponibles en los próximos 7 días 😔\n¿Querés que busquemos para más adelante?";
   }
 
-  // Verificar si hay múltiples terapeutas
   const terapeutasUnicos = [...new Set(slots.map(s => s.terapeutaNombre).filter(Boolean))];
   const hayMultiples = terapeutasUnicos.length > 1;
 
-  // Agrupar por fecha y terapeuta
+  // Agrupar por fecha
   const porFecha = {};
   for (const slot of slots) {
     if (!porFecha[slot.fecha]) {
       porFecha[slot.fecha] = { label: slot.fechaLabel, terapeutas: {} };
     }
-    const terNombre = slot.terapeutaNombre || "Citrino";
-    if (!porFecha[slot.fecha].terapeutas[terNombre]) {
-      porFecha[slot.fecha].terapeutas[terNombre] = [];
-    }
-    // Evitar duplicar la misma hora si ya está (puede pasar en casos edge)
-    if (!porFecha[slot.fecha].terapeutas[terNombre].includes(slot.horaInicio)) {
-      porFecha[slot.fecha].terapeutas[terNombre].push(slot.horaInicio);
+    const t = slot.terapeutaNombre || "Citrino";
+    if (!porFecha[slot.fecha].terapeutas[t]) porFecha[slot.fecha].terapeutas[t] = [];
+    if (!porFecha[slot.fecha].terapeutas[t].includes(slot.horaInicio)) {
+      porFecha[slot.fecha].terapeutas[t].push(slot.horaInicio);
     }
   }
 
   let texto = "📅 *Turnos disponibles:*\n\n";
   for (const [, info] of Object.entries(porFecha)) {
-    texto += `*${info.label.charAt(0).toUpperCase() + info.label.slice(1)}*\n`;
+    const cap = info.label.charAt(0).toUpperCase() + info.label.slice(1);
+    texto += `*${cap}*\n`;
     if (hayMultiples) {
       for (const [terNombre, horarios] of Object.entries(info.terapeutas)) {
         texto += `_${terNombre}_: ${horarios.map(h => `${h}hs`).join(", ")}\n`;
       }
     } else {
       const horarios = Object.values(info.terapeutas).flat();
-      texto += horarios.map((h) => `• ${h} hs`).join("\n");
+      texto += horarios.map(h => `• ${h} hs`).join("\n");
     }
     texto += "\n\n";
   }
-  texto += "¿Cuál te queda mejor?";
-  return texto.trim();
+  return (texto + "¿Cuál te queda mejor?").trim();
 }
 
-// ============================================================
-// CREAR EVENTO EN GOOGLE CALENDAR
-// terapeutaId: opcional — si se pasa, usa el calendar de ese terapeuta
-// ============================================================
+// ─── CREAR TURNO ──────────────────────────────────────────────
 async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terapeutaId = null }) {
-  const calendar = getCalendar();
+  const api = await getSheets();
+  const id  = generateId();
 
-  // Resolver calendar ID del terapeuta
-  let calendarId = slot?.terapeutaId ? null : CALENDAR_ID;
-  const terIdFinal = terapeutaId || slot?.terapeutaId || null;
+  const terNombre = slot?.terapeutaNombre || terapeutaId || "Citrino";
 
-  if (terIdFinal) {
-    try {
-      const { leerTerapeutas } = require("./terapeutas");
-      const terapeutas = await leerTerapeutas();
-      const ter = terapeutas.find(t => t.id === terIdFinal);
-      if (ter?.calendarId) calendarId = ter.calendarId;
-    } catch {}
-  }
-  if (!calendarId) calendarId = CALENDAR_ID;
+  const fila = [
+    id,                          // A: ID_Sesion
+    slot.inicioISO,              // B: Fecha (ISO)
+    nombre || "",                // C: Cliente
+    servicio || "",              // D: Tratamiento
+    terNombre,                   // E: Terapeuta
+    telefono || "",              // F: ID_Cliente
+    500,                         // G: Monto_Terapeuta (default)
+    notas || "",                 // H: Observaciones
+    slot.finISO,                 // I: Fecha_Fin (ISO)
+    "pendiente",                 // J: Estado
+  ];
 
-  const terapeutaNombre = slot?.terapeutaNombre || "";
+  await conRetry(
+    () => api.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_SESIONES}!A:J`,
+      valueInputOption: "USER_ENTERED",
+      resource: { values: [fila] },
+    }),
+    { nombre: "Sheets - crearTurno", intentos: 3 }
+  );
 
-  const event = {
-    summary: `${nombre} — ${servicio}${terapeutaNombre ? ` (${terapeutaNombre})` : ""}`,
-    description: `Cliente: ${nombre}\nTeléfono: ${telefono}\nServicio: ${servicio}${terapeutaNombre ? `\nTerapeuta: ${terapeutaNombre}` : ""}${notas ? "\nNotas: " + notas : ""}`,
-    start: { dateTime: slot.inicioISO, timeZone: TIMEZONE },
-    end:   { dateTime: slot.finISO,   timeZone: TIMEZONE },
-    colorId: "2",
-    reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 60 }] },
+  invalidarCacheSlots();
+
+  // Devuelve objeto compatible con el que devolvía Google Calendar
+  return {
+    id,
+    terapeutaId: slot?.terapeutaId || terapeutaId || "default",
+    terapeutaNombre: terNombre,
+    inicio: slot.inicioISO,
+    fin:    slot.finISO,
   };
-
-  const res = await calendar.events.insert({ calendarId, resource: event });
-  invalidarCacheSlots(); // forzar refresh en el próximo pedido de disponibilidad
-  return { ...res.data, terapeutaId: terIdFinal, calendarId };
 }
 
-// ============================================================
-// CANCELAR EVENTO
-// ============================================================
+// ─── CANCELAR TURNO ───────────────────────────────────────────
 async function cancelarTurno(eventId) {
-  const calendar = getCalendar();
-  await calendar.events.delete({
-    calendarId: CALENDAR_ID,
-    eventId,
-  });
+  const sesiones = await _leerSesiones();
+  const idx = sesiones.findIndex(f => f[COL.ID_SESION] === eventId);
+  if (idx === -1) return false;
+
+  const api = await getSheets();
+  const row = idx + 2; // +1 header, +1 1-based
+
+  await conRetry(
+    () => api.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_SESIONES}!J${row}`,
+      valueInputOption: "RAW",
+      resource: { values: [["cancelado"]] },
+    }),
+    { nombre: "Sheets - cancelarTurno", intentos: 3 }
+  );
+
+  invalidarCacheSlots();
+  return true;
 }
 
-// ============================================================
-// BUSCAR TURNO DE UN CLIENTE (por teléfono en la descripción)
-// ============================================================
+// ─── MARCAR ASISTENCIA ────────────────────────────────────────
+async function marcarAsistencia(eventId, estado = "vino") {
+  const sesiones = await _leerSesiones();
+  const idx = sesiones.findIndex(f => f[COL.ID_SESION] === eventId);
+  if (idx === -1) return false;
+
+  const api = await getSheets();
+  const row = idx + 2;
+
+  await conRetry(
+    () => api.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${SHEET_SESIONES}!J${row}`,
+      valueInputOption: "RAW",
+      resource: { values: [[estado]] },
+    }),
+    { nombre: "Sheets - marcarAsistencia", intentos: 3 }
+  );
+
+  _invalidarCache();
+  return true;
+}
+
+// ─── BUSCAR TURNO DE UN CLIENTE ───────────────────────────────
 async function buscarTurnoCliente(telefono) {
+  const sesiones = await _leerSesiones();
   const ahora = new Date();
-  const hasta = new Date(ahora);
-  hasta.setDate(hasta.getDate() + 60);
 
-  const calendar = getCalendar();
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin: ahora.toISOString(),
-    timeMax: hasta.toISOString(),
-    q: telefono,
-    singleEvents: true,
-    orderBy: "startTime",
-  });
+  const futuros = sesiones
+    .filter(f => {
+      const telOk = f[COL.ID_CLIENTE] === telefono || f[COL.TELEFONO] === telefono;
+      const noCanc = f[COL.ESTADO] !== "cancelado";
+      const futuro = f[COL.FECHA] && new Date(f[COL.FECHA]) > ahora;
+      return telOk && noCanc && futuro;
+    })
+    .sort((a, b) => new Date(a[COL.FECHA]) - new Date(b[COL.FECHA]));
 
-  return res.data.items?.[0] || null;
+  if (!futuros.length) return null;
+  const f = futuros[0];
+  return {
+    id:        f[COL.ID_SESION],
+    inicio:    f[COL.FECHA],
+    fin:       f[COL.FECHA_FIN],
+    terapeuta: f[COL.TERAPEUTA],
+    servicio:  f[COL.TRATAMIENTO],
+    estado:    f[COL.ESTADO],
+  };
 }
 
-// ============================================================
-// BUSCAR SLOT POR TEXTO (ej: "lunes a las 10")
-// Devuelve el slot de disponibilidad que coincide
-// ============================================================
+// ─── RESOLVER SLOT POR TEXTO ("lunes a las 10") ───────────────
 async function resolverSlot(textoFecha, textoHora) {
   const slots = await getDisponibilidad();
-
-  // Intentar matchear por día de semana o fecha
   const diasNombres = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
-  const textoLower = (textoFecha + " " + textoHora).toLowerCase();
+  const texto = (textoFecha + " " + textoHora).toLowerCase();
 
-  // Extraer hora del texto (ej: "10", "10:30", "10hs")
-  const horaMatch = textoLower.match(/(\d{1,2})(?::(\d{2}))?/);
+  const horaMatch = texto.match(/(\d{1,2})(?::(\d{2}))?/);
   if (!horaMatch) return null;
-  const hora = String(horaMatch[1]).padStart(2, "0");
-  const minutos = horaMatch[2] || "00";
-  const horaStr = `${hora}:${minutos}`;
+  const horaStr = `${String(horaMatch[1]).padStart(2, "0")}:${horaMatch[2] || "00"}`;
 
   for (const slot of slots) {
-    const diaSlot = diasNombres[new Date(slot.fecha + "T12:00:00").getDay()];
-    const matchDia = textoLower.includes(diaSlot) || textoLower.includes(slot.fecha);
+    const diaSlot = diasNombres[new Date(slot.fecha + "T12:00:00-03:00").getDay()];
+    const matchDia  = texto.includes(diaSlot) || texto.includes(slot.fecha);
     const matchHora = slot.horaInicio === horaStr;
     if (matchDia && matchHora) return slot;
   }
-
   return null;
 }
 
-// ============================================================
-// OBTENER EVENTOS PARA EL DASHBOARD DE AGENDA
-// Devuelve eventos reales del calendario con formato limpio
-// ============================================================
+// ─── OBTENER EVENTOS PARA EL FRONTEND DE AGENDA ───────────────
+// Devuelve todas las sesiones en el rango, con formato limpio
 async function getEventosAgenda(desde, hasta) {
-  const calendar = getCalendar();
-  const res = await conRetry(
-    () => calendar.events.list({
-      calendarId: CALENDAR_ID,
-      timeMin: (desde || new Date()).toISOString(),
-      timeMax: (hasta || new Date(Date.now() + 14 * 86400000)).toISOString(),
-      singleEvents: true,
-      orderBy: "startTime",
-      maxResults: 200,
-    }),
-    { nombre: "Google Calendar - getEventosAgenda", intentos: 3 }
-  );
+  const sesiones = await _leerSesiones(true); // siempre fresco para la agenda
+  const desdeDate = desde ? new Date(desde) : new Date(Date.now() - 86400000);
+  const hastaDate = hasta ? new Date(hasta) : new Date(Date.now() + 14 * 86400000);
 
-  return (res.data.items || []).map((ev) => {
-    // Extraer datos del cliente de la descripción del evento
-    const desc = ev.description || "";
-    const nombreMatch = desc.match(/Cliente:\s*([^\n]+)/);
-    const telMatch = desc.match(/Teléfono:\s*([^\n]+)/);
-    const servicioMatch = desc.match(/Servicio:\s*([^\n]+)/);
-
-    return {
-      id: ev.id,
-      titulo: ev.summary || "Turno",
-      descripcion: desc,
-      inicio: ev.start.dateTime || ev.start.date,
-      fin: ev.end.dateTime || ev.end.date,
-      colorId: ev.colorId,
-      link: ev.htmlLink,
-      // Datos extraídos
-      clienteNombre: nombreMatch?.[1]?.trim() || "",
-      clienteTelefono: telMatch?.[1]?.trim() || "",
-      clienteServicio: servicioMatch?.[1]?.trim() || "",
-    };
-  });
+  return sesiones
+    .filter(f => {
+      if (!f[COL.FECHA]) return false;
+      const d = new Date(f[COL.FECHA]);
+      return d >= desdeDate && d <= hastaDate;
+    })
+    .map(f => ({
+      id:              f[COL.ID_SESION]       || "",
+      titulo:          `${f[COL.CLIENTE] || "?"} — ${f[COL.TRATAMIENTO] || ""}`,
+      inicio:          f[COL.FECHA]           || "",
+      fin:             f[COL.FECHA_FIN]       || "",
+      terapeuta:       f[COL.TERAPEUTA]       || "",
+      clienteNombre:   f[COL.CLIENTE]         || "",
+      clienteTelefono: f[COL.ID_CLIENTE]      || "",  // alias para compatibilidad
+      clienteServicio: f[COL.TRATAMIENTO]     || "",  // alias para compatibilidad
+      clienteId:       f[COL.ID_CLIENTE]      || "",
+      servicio:        f[COL.TRATAMIENTO]     || "",
+      monto:           f[COL.MONTO_TERAPEUTA] || 500,
+      notas:           f[COL.OBSERVACIONES]   || "",
+      estado:          f[COL.ESTADO]          || "confirmado",
+    }))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
 }
+
+// ─── TURNOS DEL DÍA (para resumen diario del scheduler) ───────
+async function getTurnosDelDia(fecha) {
+  const sesiones = await _leerSesiones();
+  const diaStr = fecha
+    ? new Date(fecha).toLocaleDateString("en-CA", { timeZone: TIMEZONE })
+    : new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+
+  return sesiones
+    .filter(f => f[COL.FECHA]?.startsWith(diaStr) && f[COL.ESTADO] !== "cancelado")
+    .map(f => ({
+      id:        f[COL.ID_SESION],
+      cliente:   f[COL.CLIENTE],
+      clienteId: f[COL.ID_CLIENTE],
+      hora:      f[COL.FECHA] ? new Date(f[COL.FECHA]).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: TIMEZONE }) : "?",
+      servicio:  f[COL.TRATAMIENTO],
+      terapeuta: f[COL.TERAPEUTA],
+      estado:    f[COL.ESTADO],
+    }))
+    .sort((a, b) => a.hora.localeCompare(b.hora));
+}
+
+// ─── DISPONIBILIDAD TODOS (alias para compatibilidad) ─────────
+async function getDisponibilidadTodos(diasDesdeHoy = 0) {
+  return getDisponibilidad(diasDesdeHoy);
+}
+
+// ─── COMPATIBILIDAD — ya no se usa Google Calendar ────────────
+const HORARIOS = HORARIOS_DEFAULT;
+const TERAPEUTAS = [
+  { id: "default", nombre: "Citrino", color: "#5a7a5a", horarios: HORARIOS_DEFAULT },
+];
 
 module.exports = {
   getDisponibilidad,
   getDisponibilidadTodos,
-  getSlotsParaTerapeuta,
   formatearDisponibilidad,
   crearTurno,
   cancelarTurno,
+  marcarAsistencia,
   buscarTurnoCliente,
   resolverSlot,
   getEventosAgenda,
+  getTurnosDelDia,
   invalidarCacheSlots,
-  TERAPEUTAS,
   HORARIOS,
+  TERAPEUTAS,
 };

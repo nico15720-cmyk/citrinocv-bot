@@ -513,8 +513,14 @@ app.get("/api/clientes", async (req, res) => {
 app.post("/api/clientes/:userId/asistencia", async (req, res) => {
   try {
     const { registrarAsistencia } = require("./bot/crm");
+    const { marcarAsistencia } = require("./bot/calendar");
     const vino = req.body.vino !== false; // true por defecto
+    const estado = vino ? "vino" : "no_vino";
     await registrarAsistencia(req.params.userId, vino);
+    // Si viene el eventId (ID_Sesion), actualizar también en hoja Sesiones
+    if (req.body.eventId) {
+      await marcarAsistencia(req.body.eventId, estado).catch(() => {});
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -822,7 +828,7 @@ app.post("/api/agenda/turno", async (req, res) => {
   try {
     const { crearTurno, resolverSlot, getDisponibilidad } = require("./bot/calendar");
     const { registrarTurno, registrarCliente } = require("./bot/crm");
-    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO, terapeutaId } = req.body;
+    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO, terapeutaId, fecha, hora } = req.body;
 
     if (!nombre || !servicio) {
       return res.status(400).json({ error: "nombre y servicio son requeridos" });
@@ -837,6 +843,20 @@ app.post("/api/agenda/turno", async (req, res) => {
         label: slotLabel || inicioISO,
         horaInicio: inicioISO.slice(11, 16),
         horaFin: finISO.slice(11, 16),
+      };
+    } else if (fecha && hora) {
+      // Formato del frontend: fecha="2026-06-15", hora="10:00"
+      const finDate = new Date(`${fecha}T${hora}:00-03:00`);
+      finDate.setMinutes(finDate.getMinutes() + 90);
+      const hFin = `${String(finDate.getHours()).padStart(2,"0")}:${String(finDate.getMinutes()).padStart(2,"0")}`;
+      slot = {
+        inicioISO: `${fecha}T${hora}:00-03:00`,
+        finISO:    `${fecha}T${hFin}:00-03:00`,
+        horaInicio: hora,
+        horaFin:    hFin,
+        fecha,
+        terapeutaId: terapeutaId || null,
+        terapeutaNombre: null,
       };
     } else if (slotLabel) {
       const partes = slotLabel.split(" ");

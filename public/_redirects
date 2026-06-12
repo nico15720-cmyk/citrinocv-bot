@@ -1,0 +1,6 @@
+# Netlify redirects
+# Redirigir www a sin-www
+https://www.citrinobienestar.uy/* https://citrinobienestar.uy/:splat 301!
+
+# Todas las rutas → index.html (SPA fallback)
+/*    /index.html   200

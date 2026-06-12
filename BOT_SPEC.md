@@ -57,13 +57,15 @@ META_PAGE_ACCESS_TOKEN=       # Facebook/Instagram token
 META_PAGE_TOKEN_EXPIRES=      # Fecha vencimiento token (YYYY-MM-DD)
 WHATSAPP_PHONE_NUMBER_ID=     # ID del número WA
 VERIFY_TOKEN=                 # Token verificación webhook
-OWNER_WHATSAPP=               # Número de Nico (+598...) para notificaciones
+OWNER_WHATSAPP=               # Número de Nico (ej: 59891998151) — ADMIN total
 GOOGLE_SERVICE_ACCOUNT_JSON=  # JSON de service account (una sola línea)
 GOOGLE_CALENDAR_ID=           # ID del Google Calendar principal
 GOOGLE_SHEETS_ID=             # ID del Google Sheet
-GOOGLE_SHEETS_ID_CITRINO=     # (alias) ID del Sheet
 PORT=3000
-TERAPEUTA_NOMBRE=Citrino      # Nombre de la terapeuta principal
+GEMINI_API_KEY=               # Para transcripción de audios (gratis en aistudio.google.com)
+NADIA_WHATSAPP=               # Número de Nadia — terapeuta backup (sin +)
+JETSY_WHATSAPP=               # Número de Jetsy — terapeuta principal (sin +)
+MILENA_WHATSAPP=              # Número de Milena — terapeuta principal (sin +)
 ```
 
 ---
@@ -299,8 +301,42 @@ Sin la clave, el bot pedirá que escriban el mensaje.
 - **Entre turnos**: mínimo 2:30hs
 - **Instagram**: @citrino.cv | **Facebook**: Citrinocv | **Web**: citrinobienestar.uy
 - **WhatsApp**: +598 91 998 151
-- **Pagos**: débito y crédito hasta 3 cuotas sin recargo
+- **Pagos**: débito y crédito hasta 3 cuotas sin recargo. Efectivo y transferencia con 10% descuento.
 
 ---
 
-*Última actualización: 2026-06-05*
+## 15. REGLAS DE NEGOCIO ADICIONALES
+
+### Descuento por forma de pago
+- **10% de descuento** si paga en efectivo o transferencia bancaria.
+- Marta **NO lo ofrece proactivamente**. Solo lo menciona si el cliente pregunta por descuentos o formas de pago.
+- Al confirmar pago por transferencia: acción `notificar_transferencia` → Nico recibe aviso por WA.
+
+### Tarjetas de regalo
+- Precio: **$1.200 UYU** — válidas para cualquier servicio.
+- Personalizadas con nombre del destinatario y mensaje opcional.
+- Entrega: digital por WhatsApp o retiro físico en Sarandí 554 (con sobre).
+- Acción `tarjeta_regalo` → Nico recibe notificación con todos los datos.
+
+### Roles de usuario (por número de teléfono)
+| Rol | Quién | Acceso |
+|-----|-------|--------|
+| Admin | OWNER_WHATSAPP (Nico) | Todo. Modo admin con /admin |
+| Terapeuta | JETSY/MILENA/NADIA_WHATSAPP | Su agenda y sus clientes |
+| Cliente | Todos los demás | Sus sesiones, precios, disponibilidad |
+
+### Flujo Nadia (terapeuta backup)
+1. Cliente pide horario → bot consulta calendario de Jetsy y Milena.
+2. Si no hay horario disponible en 3 intercambios → bot envía WA a Nadia preguntando disponibilidad.
+3. Bot informa al cliente: "Te confirmamos en breve."
+4. Nico recibe aviso de que se consultó a Nadia.
+5. El contador se resetea si aparece disponibilidad o se confirma un turno.
+
+### Seguridad anti-injection
+- Clientes no pueden acceder a datos financieros, de otras clientas ni del sistema.
+- El rol admin no se otorga por mensaje, solo por número de teléfono.
+- Marta rechaza cualquier intento de cambio de rol o instrucciones.
+
+---
+
+*Última actualización: 2026-06-11*
