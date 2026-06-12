@@ -12,6 +12,103 @@
   <title>Agenda — Citrino</title>
 
   <style>
+    /* ── LOGIN SCREEN ────────────────────────── */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(160deg, #7C2D12, #B5541A);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px;
+      padding-top: calc(40px + env(safe-area-inset-top, 0px));
+    }
+
+    #login-screen.hidden { display: none; }
+
+    .login-logo {
+      width: 72px; height: 72px;
+      background: rgba(255,255,255,.15);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      margin-bottom: 18px;
+    }
+
+    .login-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .login-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,.7);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 320px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .login-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    #login-pass {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      font-size: 18px;
+      letter-spacing: .12em;
+      outline: none;
+      margin-bottom: 14px;
+      font-family: inherit;
+      color: #1a1a1a;
+    }
+    #login-pass:focus { border-color: #B5541A; }
+
+    #login-err {
+      font-size: 12px;
+      color: #DC2626;
+      margin-bottom: 10px;
+      min-height: 16px;
+      text-align: center;
+    }
+
+    #btn-login {
+      width: 100%;
+      padding: 13px;
+      background: #B5541A;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    #btn-login:active { opacity: .85; }
+    #btn-login:disabled { opacity: .55; }
+
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -618,6 +715,21 @@
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo">📅</div>
+  <div class="login-title">Citrino Agenda</div>
+  <div class="login-sub">Acceso exclusivo para el equipo</div>
+  <div class="login-box">
+    <label class="login-label" for="login-pass">Contraseña</label>
+    <input id="login-pass" type="password" placeholder="••••••••"
+      autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')intentarLogin()">
+    <div id="login-err"></div>
+    <button id="btn-login" onclick="intentarLogin()">Ingresar →</button>
+  </div>
+</div>
+
 <!-- TOP BAR -->
 <div id="topbar">
   <div class="tb-inner">
@@ -729,6 +841,57 @@
 
 <script>
 // ════════════════════════════════════════════════════════
+// AUTH — contraseña en localStorage, Basic Auth en cada fetch
+// ════════════════════════════════════════════════════════
+const AUTH_KEY = 'citrino_auth_v1';
+
+function getAuth() { return localStorage.getItem(AUTH_KEY); }
+function setAuth(token) { localStorage.setItem(AUTH_KEY, token); }
+function clearAuth() { localStorage.removeItem(AUTH_KEY); }
+
+function authHeaders() {
+  const t = getAuth();
+  return t ? { 'Authorization': 'Basic ' + t } : {};
+}
+
+async function intentarLogin() {
+  const pass = document.getElementById('login-pass').value.trim();
+  const err  = document.getElementById('login-err');
+  const btn  = document.getElementById('btn-login');
+
+  if (!pass) { err.textContent = 'Ingresá la contraseña'; return; }
+
+  // Asumimos usuario "nico" (ADMIN_USER en Railway, por defecto "nico")
+  const encoded = btoa('nico:' + pass);
+  btn.textContent = 'Verificando…'; btn.disabled = true; err.textContent = '';
+
+  try {
+    const r = await fetch('/api/agenda/terapeutas', {
+      headers: { 'Authorization': 'Basic ' + encoded }
+    });
+
+    if (r.ok) {
+      setAuth(encoded);
+      document.getElementById('login-screen').classList.add('hidden');
+      btn.textContent = 'Ingresar →'; btn.disabled = false;
+      init();
+    } else if (r.status === 401) {
+      err.textContent = 'Contraseña incorrecta';
+      btn.textContent = 'Ingresar →'; btn.disabled = false;
+    } else {
+      // Sin ADMIN_PASS configurado en Railway → auth desactivada, igual deja pasar
+      setAuth(encoded);
+      document.getElementById('login-screen').classList.add('hidden');
+      btn.textContent = 'Ingresar →'; btn.disabled = false;
+      init();
+    }
+  } catch {
+    err.textContent = 'Sin conexión — intentá de nuevo';
+    btn.textContent = 'Ingresar →'; btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // ESTADO GLOBAL
 // ════════════════════════════════════════════════════════
 const HOY = new Date();
@@ -797,7 +960,17 @@ function toast(msg, ms=2800) {
 // API
 // ════════════════════════════════════════════════════════
 async function apiFetch(url, opts={}) {
-  const r = await fetch(url, opts);
+  const r = await fetch(url, {
+    ...opts,
+    headers: { ...(opts.headers||{}), ...authHeaders() }
+  });
+  if (r.status === 401) {
+    clearAuth();
+    // Mostrar pantalla de login de nuevo
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('login-err').textContent = 'Sesión expirada — ingresá de nuevo';
+    throw new Error('Sin autorización');
+  }
   if (!r.ok) {
     const e = await r.json().catch(()=>({}));
     throw new Error(e.error || `HTTP ${r.status}`);
@@ -1222,7 +1395,7 @@ if ('serviceWorker' in navigator) {
 // ════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════
-(async function init() {
+async function init() {
   calcOffsets();
   window.addEventListener('resize', calcOffsets);
   renderSemana();
@@ -1231,6 +1404,16 @@ if ('serviceWorker' in navigator) {
   await cargarTerapeutas();
   await cargarEventosDia(diaSelec);
   calcOffsets();
+}
+
+// ── Arranque: mostrar login o ir directo ──
+(function arrancar() {
+  if (getAuth()) {
+    // Ya tiene credenciales guardadas — mostrar app directo
+    document.getElementById('login-screen').classList.add('hidden');
+    init();
+  }
+  // Si no tiene auth, el login-screen se muestra por defecto (no tiene clase hidden)
 })();
 </script>
 </body>
