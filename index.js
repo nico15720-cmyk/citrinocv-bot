@@ -1075,6 +1075,152 @@ Si no podés leer el monto, ponés 0. Si no identificás la categoría, ponés "
   } catch (e) { res.status(500).json({ error: e.message, monto: 0, descripcion: "", categoria: "Otros" }); }
 });
 
+// ============================================================
+// API CRM — CRUD para las 4 hojas del React CRM
+// CLIENTES, SESIONES, VENTAS, GASTOS (hojas separadas del bot)
+// ============================================================
+const sheetsCrm = require("./bot/sheets-crm");
+
+// ── CLIENTES ─────────────────────────────────────────────────
+app.get("/api/crm/clientes", async (req, res) => {
+  try { res.json(await sheetsCrm.readSheet("CLIENTES")); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/crm/clientes", async (req, res) => {
+  try {
+    await sheetsCrm.appendRow("CLIENTES", req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/crm/clientes/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.updateRow("CLIENTES", parseInt(req.params.rowIndex), req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/crm/clientes/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.deleteRow("CLIENTES", parseInt(req.params.rowIndex));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── SESIONES ─────────────────────────────────────────────────
+app.get("/api/crm/sesiones", async (req, res) => {
+  try { res.json(await sheetsCrm.readSheet("SESIONES")); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/crm/sesiones", async (req, res) => {
+  try {
+    await sheetsCrm.appendRow("SESIONES", req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/crm/sesiones/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.updateRow("SESIONES", parseInt(req.params.rowIndex), req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/crm/sesiones/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.deleteRow("SESIONES", parseInt(req.params.rowIndex));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── VENTAS ───────────────────────────────────────────────────
+app.get("/api/crm/ventas", async (req, res) => {
+  try { res.json(await sheetsCrm.readSheet("VENTAS")); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/crm/ventas", async (req, res) => {
+  try {
+    await sheetsCrm.appendRow("VENTAS", req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/crm/ventas/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.updateRow("VENTAS", parseInt(req.params.rowIndex), req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/crm/ventas/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.deleteRow("VENTAS", parseInt(req.params.rowIndex));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── GASTOS ───────────────────────────────────────────────────
+app.get("/api/crm/gastos", async (req, res) => {
+  try { res.json(await sheetsCrm.readSheet("GASTOS")); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/crm/gastos", async (req, res) => {
+  try {
+    await sheetsCrm.appendRow("GASTOS", req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/crm/gastos/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.updateRow("GASTOS", parseInt(req.params.rowIndex), req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/crm/gastos/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.deleteRow("GASTOS", parseInt(req.params.rowIndex));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── IMPORTACIÓN MASIVA ────────────────────────────────────────
+// POST /api/crm/import — body: { CLIENTES: [...], SESIONES: [...], VENTAS: [...], GASTOS: [...] }
+app.post("/api/crm/import", async (req, res) => {
+  try {
+    const { CLIENTES, SESIONES, VENTAS, GASTOS } = req.body;
+    const results = {};
+
+    if (CLIENTES?.length) {
+      await sheetsCrm.bulkImport("CLIENTES", CLIENTES);
+      results.clientes = CLIENTES.length;
+    }
+    if (SESIONES?.length) {
+      await sheetsCrm.bulkImport("SESIONES", SESIONES);
+      results.sesiones = SESIONES.length;
+    }
+    if (VENTAS?.length) {
+      await sheetsCrm.bulkImport("VENTAS", VENTAS);
+      results.ventas = VENTAS.length;
+    }
+    if (GASTOS?.length) {
+      await sheetsCrm.bulkImport("GASTOS", GASTOS);
+      results.gastos = GASTOS.length;
+    }
+
+    console.log("✅ Importación CRM completada:", results);
+    res.json({ ok: true, imported: results });
+  } catch (e) {
+    console.error("❌ /api/crm/import:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── STATS AVANZADOS ──────────────────────────────────────────
 app.get("/api/stats/float", async (req, res) => {
   try {

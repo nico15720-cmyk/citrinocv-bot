@@ -1,0 +1,21 @@
+Abrí Git Bash y pegá esto:
+
+cd /c/Users/Lenovo/Claude/citrino-bot
+git add public/app/agenda/ index.js
+git commit -m "Agenda PWA — login screen con contraseña, auth headers en API"
+git push origin HEAD
+
+---
+
+Después del deploy, en Railway Variables agregar:
+  ADMIN_PASS = (la contraseña que quieras, ej: citrino2026)
+
+La app queda en: https://citrinobienestar.uy/app/agenda/
+
+Para instalar en el celular:
+1. Abrí esa URL en Chrome (Android) o Safari (iPhone)
+2. Android: menú ⋮ → "Agregar a pantalla de inicio"
+3. iPhone: compartir □ → "Añadir a pantalla de inicio"
+
+La contraseña que pusiste en ADMIN_PASS es la que se ingresa en la app.
+Una vez ingresada, queda guardada en el teléfono — no la pedirá de nuevo.

@@ -1,0 +1,16 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#991B1B"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#g)"/>
+  <!-- Persona / silueta de cliente -->
+  <circle cx="256" cy="180" r="72" fill="white" fill-opacity="0.9"/>
+  <path d="M120 400 C120 320 160 280 256 280 C352 280 392 320 392 400" fill="white" fill-opacity="0.9"/>
+  <!-- Tres líneas (lista/CRM) -->
+  <rect x="300" y="155" width="80" height="12" rx="6" fill="white" fill-opacity="0.5"/>
+  <rect x="300" y="177" width="60" height="12" rx="6" fill="white" fill-opacity="0.5"/>
+  <rect x="300" y="199" width="70" height="12" rx="6" fill="white" fill-opacity="0.5"/>
+</svg>
