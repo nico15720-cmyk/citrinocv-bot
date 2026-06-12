@@ -67,7 +67,7 @@ app.use((req, res, next) => {
 // ============================================================
 // AUTENTICACIÓN — protege rutas admin (solo Nico)
 // ============================================================
-const RUTAS_PROTEGIDAS = ['/api/', '/agenda', '/dashboard', '/inbox', '/finanzas', '/cliente'];
+const RUTAS_PROTEGIDAS = ['/api/', '/agenda', '/app/', '/dashboard', '/inbox', '/finanzas', '/cliente'];
 
 function adminAuth(req, res, next) {
   // Webhook y health siempre públicos (Meta y Railway los necesitan)
