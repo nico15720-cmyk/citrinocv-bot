@@ -64,6 +64,35 @@ app.use((req, res, next) => {
   next();
 });
 
+// ============================================================
+// AUTENTICACIÓN — protege rutas admin (solo Nico)
+// ============================================================
+const RUTAS_PROTEGIDAS = ['/api/', '/agenda', '/dashboard', '/inbox', '/finanzas', '/cliente'];
+
+function adminAuth(req, res, next) {
+  // Webhook y health siempre públicos (Meta y Railway los necesitan)
+  if (req.path.startsWith('/webhook') || req.path.startsWith('/health')) return next();
+
+  // Solo aplicar auth a rutas admin
+  if (!RUTAS_PROTEGIDAS.some(r => req.path.startsWith(r))) return next();
+
+  const adminUser = process.env.ADMIN_USER || 'nico';
+  const adminPass = process.env.ADMIN_PASS;
+
+  // Si no hay contraseña configurada, deja pasar (evita bloqueo en dev)
+  if (!adminPass) return next();
+
+  const auth = req.headers.authorization;
+  if (auth?.startsWith('Basic ')) {
+    const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
+    if (user === adminUser && pass === adminPass) return next();
+  }
+
+  res.set('WWW-Authenticate', 'Basic realm="Citrino Admin"');
+  return res.status(401).send('Acceso restringido — solo staff Citrino');
+}
+
+app.use(adminAuth);
 app.use(express.static(path.join(__dirname, "public")));
 
 // Health check para Railway
@@ -704,10 +733,6 @@ app.post("/api/clientes/:userId/mensaje", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
-
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
 app.get("/agenda", (req, res) => {
