@@ -142,7 +142,7 @@ Lema: "Tratamos de ayudarte en lo que necesites."
 Si el cliente pregunta por descuentos o formas de pago, podés mencionarle que si paga con transferencia bancaria o en efectivo tiene un 10% de descuento.
 IMPORTANTE: No ofrezcas este descuento proactivamente ni lo menciones en el primer contacto. Solo si el cliente pregunta por descuentos o por formas de pago.
 Si el cliente confirma que va a pagar por transferencia, usá: <accion>{"tipo":"notificar_transferencia","nombre":"nombre","monto":0,"servicio":"servicio"}</accion>
-Luego pasá los datos bancarios: "¡Perfecto! Para transferir, los datos son: [Nico completará esto en las variables de entorno]. Una vez que hagas la transferencia enviame el comprobante por acá 📲"
+Luego pasá los datos bancarios: "Perfecto, para transferir los datos son: Banco Itaú, cuenta 1982755, a nombre de Nicolás Rodríguez. Una vez que haga la transferencia envíeme el comprobante por acá."
 
 === TARJETAS DE REGALO ===
 Citrino ofrece tarjetas de regalo personalizadas por $1.200 UYU.
@@ -170,7 +170,7 @@ Terapia manual suave y rítmica. Activa la circulación, elimina toxinas, reduce
 
 💪 MASAJE DESCONTRACTURANTE
 Trabaja zonas puntuales de tensión muscular profunda. Ideal para contracturas, dolor de espalda, cuello, hombros.
-- Sesión (50 min): $1.200
+- Sesión (50 min): $1.300
 
 💆 MASAJE RELAX
 Masaje suave y relajante para liberar el estrés y reconectar con el cuerpo.
@@ -225,9 +225,10 @@ O si ya expresó interés: "¿Qué días y horarios le quedarían bien?"
 Cargá los slots del sistema internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
 
 PASO 3 — Ofrecer horario específico:
-Cuando el cliente diga su preferencia, buscá en los slots disponibles y ofrecé 1-2 opciones concretas:
-"Para el martes tenemos disponible 14 hs, ¿nose como le quedaría?"
-NO listés todos los horarios — ofrecé el más cercano a lo que pidió.
+Cuando el cliente diga su preferencia de día, incluí la acción ver_disponibilidad en ese mensaje:
+<accion>{"tipo":"ver_disponibilidad"}</accion>
+El sistema mostrará los horarios reales disponibles. En tu texto podés decir brevemente "Para el martes, los horarios disponibles son:" y el sistema agrega la lista real.
+CRÍTICO: NUNCA inventes una hora que no aparezca en el listado del sistema. Si el cliente pide "10:00" pero no existe ese slot, ofrecé el más cercano que SÍ existe: "No tenemos a las 10, pero tenemos a las 9:30, ¿le quedaría bien?"
 
 PASO 4 — Pedir nombre y confirmar:
 Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
@@ -872,11 +873,12 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     respuestaBot = "Uy, tuve un problemita técnico. Intentá de nuevo en un momento 🙏";
   }
 
-  // Agregar respuesta al historial
-  agregarMensaje(userId, "assistant", respuestaBot);
-
-  // Procesar acciones si las hay
+  // Procesar acciones si las hay (ANTES de guardar en historial)
   const respuestaFinal = await extraerYProcesarAccion(respuestaBot, userId, canal, nombreCliente);
+
+  // Guardar en historial lo que el cliente REALMENTE vio — incluye slots reales si hubo ver_disponibilidad
+  // Esto es crítico: en el turno siguiente, Claude sabe qué horarios mostró y no los inventa
+  agregarMensaje(userId, "assistant", respuestaFinal || respuestaBot);
 
   // Enviar respuesta (con splitting natural si es larga)
   if (respuestaFinal) {

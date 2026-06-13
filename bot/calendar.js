@@ -379,22 +379,49 @@ async function buscarTurnoCliente(telefono) {
 }
 
 // ─── RESOLVER SLOT POR TEXTO ("lunes a las 10") ───────────────
+// Primero busca match exacto; si no lo encuentra, devuelve el slot más cercano del mismo día.
+// Esto evita errores cuando el bot ofrece "10:00" pero el slot real es "09:30" o "11:00".
 async function resolverSlot(textoFecha, textoHora) {
   const slots = await getDisponibilidad();
   const diasNombres = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
-  const texto = (textoFecha + " " + textoHora).toLowerCase();
+  const texto = (textoFecha + " " + textoHora).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
   const horaMatch = texto.match(/(\d{1,2})(?::(\d{2}))?/);
-  if (!horaMatch) return null;
-  const horaStr = `${String(horaMatch[1]).padStart(2, "0")}:${horaMatch[2] || "00"}`;
+  const horaStr = horaMatch
+    ? `${String(horaMatch[1]).padStart(2, "0")}:${horaMatch[2] || "00"}`
+    : null;
+  const horaPedida = horaStr
+    ? parseInt(horaMatch[1]) + parseInt(horaMatch[2] || 0) / 60
+    : null;
 
-  for (const slot of slots) {
-    const diaSlot = diasNombres[new Date(slot.fecha + "T12:00:00-03:00").getDay()];
-    const matchDia  = texto.includes(diaSlot) || texto.includes(slot.fecha);
-    const matchHora = slot.horaInicio === horaStr;
-    if (matchDia && matchHora) return slot;
+  // Filtrar slots del día pedido (normaliza acentos para comparar)
+  const slotsDelDia = slots.filter(slot => {
+    const diaSlot = diasNombres[new Date(slot.fecha + "T12:00:00-03:00").getDay()]
+      .normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return texto.includes(diaSlot) || texto.includes(slot.fecha);
+  });
+
+  if (!slotsDelDia.length) return null;
+
+  // 1. Match exacto de hora
+  if (horaStr) {
+    const exacto = slotsDelDia.find(s => s.horaInicio === horaStr);
+    if (exacto) return exacto;
   }
-  return null;
+
+  // 2. Fallback: slot más cercano a la hora pedida en ese día
+  if (horaPedida !== null) {
+    return slotsDelDia.reduce((best, slot) => {
+      const [h, m] = slot.horaInicio.split(":").map(Number);
+      const slotH = h + m / 60;
+      const [bh, bm] = best.horaInicio.split(":").map(Number);
+      const bestH = bh + bm / 60;
+      return Math.abs(slotH - horaPedida) < Math.abs(bestH - horaPedida) ? slot : best;
+    });
+  }
+
+  // 3. Si no hay hora, devolver el primer slot disponible del día
+  return slotsDelDia[0];
 }
 
 // ─── OBTENER EVENTOS PARA EL FRONTEND DE AGENDA ───────────────
