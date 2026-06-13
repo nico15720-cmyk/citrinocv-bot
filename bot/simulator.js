@@ -5,10 +5,43 @@
 // ============================================================
 
 const Anthropic = require("@anthropic-ai/sdk");
+const axios = require("axios");
 const { readSheet } = require("./sheets-crm");
 const { SYSTEM_PROMPT } = require("./conversation");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ── Detección de proveedor ────────────────────────────────────
+const GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"];
+function isGroq(model) { return GROQ_MODELS.includes(model); }
+
+// ── Llamada a Groq API (OpenAI-compatible) ────────────────────
+async function callGroq(model, system, messages) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY no configurada en Railway");
+
+  const res = await axios.post(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      model,
+      max_tokens: 800,
+      messages: [
+        { role: "system", content: system },
+        ...messages,
+      ],
+    },
+    {
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      timeout: 30000,
+    }
+  );
+
+  const usage = res.data.usage;
+  return {
+    text: res.data.choices[0].message.content,
+    usage: { input_tokens: usage.prompt_tokens, output_tokens: usage.completion_tokens },
+  };
+}
 
 // Sesiones de test en memoria (historial por teléfono)
 const sesionesTest = new Map();
@@ -79,9 +112,13 @@ function parsearAcciones(texto) {
   return { acciones, textoLimpio };
 }
 
-// ── Calcular costo estimado Anthropic ───────────────────────
+// ── Calcular costo estimado ──────────────────────────────────
 function calcCosto(usage, model) {
-  // Precios por millón de tokens (Haiku: barato, Sonnet: medio)
+  if (isGroq(model)) {
+    // Groq free tier: $0 (dentro de límites)
+    return { usd: 0, input_tokens: usage?.input_tokens, output_tokens: usage?.output_tokens, gratis: true };
+  }
+  // Anthropic: Haiku barato, Sonnet medio
   const precios = {
     haiku:  { in: 0.25, out: 1.25 },
     sonnet: { in: 3.00, out: 15.0 },
@@ -167,7 +204,7 @@ async function simulateMessage({ phone, text, model = "claude-haiku-4-5-20251001
     ok: true,
   });
 
-  // ─── STEP 5: Anthropic Claude ───────────────────────────────
+  // ─── STEP 5: Llamada a IA (Anthropic o Groq) ────────────────
   const tAi = Date.now();
   let aiResponse = "";
   let aiUsage = {};
@@ -180,28 +217,37 @@ async function simulateMessage({ phone, text, model = "claude-haiku-4-5-20251001
   ];
 
   try {
-    const res = await anthropic.messages.create({
-      model,
-      max_tokens: 800,
-      system: sistemaDinamico,
-      messages: mensajes,
-    });
-    aiResponse = res.content[0].text;
-    aiUsage = res.usage;
-    // Guardar en historial para multi-turno
+    if (isGroq(model)) {
+      // ── Groq (free) ──────────────────────────────────────────
+      const gr = await callGroq(model, sistemaDinamico, mensajes);
+      aiResponse = gr.text;
+      aiUsage    = gr.usage;
+    } else {
+      // ── Anthropic ────────────────────────────────────────────
+      const res = await anthropic.messages.create({
+        model,
+        max_tokens: 800,
+        system: sistemaDinamico,
+        messages: mensajes,
+      });
+      aiResponse = res.content[0].text;
+      aiUsage    = res.usage;
+    }
+    // Guardar en historial para multi-turno (igual para ambos)
     historial.push({ role: "user", content: text });
     historial.push({ role: "assistant", content: aiResponse });
     if (historial.length > 20) historial.splice(0, historial.length - 20);
   } catch (e) {
-    aiError = e.message;
-    aiResponse = `[Error Anthropic: ${e.message}]`;
+    aiError    = e.message;
+    aiResponse = `[Error ${isGroq(model) ? "Groq" : "Anthropic"}: ${e.message}]`;
   }
 
   const aiMs = Date.now() - tAi;
   const costo = calcCosto(aiUsage, model);
+  const proveedorNombre = isGroq(model) ? `Groq / ${model}` : "Anthropic Claude";
 
   steps.push({
-    id: "ai", name: "Anthropic Claude", icon: "🧠", color: "#f97316", ms: aiMs,
+    id: "ai", name: proveedorNombre, icon: isGroq(model) ? "⚡" : "🧠", color: "#f97316", ms: aiMs,
     input: {
       model,
       system_chars: sistemaDinamico.length,

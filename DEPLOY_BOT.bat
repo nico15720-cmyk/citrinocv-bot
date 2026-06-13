@@ -8,7 +8,7 @@ echo.
 
 cd /d "C:\Users\Lenovo\Claude\citrino-bot"
 git add -A
-git commit -m "feat: test panel — simulador dry-run con pipeline visual"
+git commit -m "feat: soporte Groq en simulador — llama 3.3 70B, 8B, mixtral (gratis)"
 git push origin HEAD
 
 if %errorlevel% neq 0 (

@@ -158,13 +158,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sy
     <span class="badge-test">● MODO TEST</span>
     <div class="stats-bar">
       <div class="stat">Tiempo total: <b id="s-total">—</b></div>
-      <div class="stat">Anthropic: <b id="s-ai">—</b></div>
+      <div class="stat">IA: <b id="s-ai">—</b></div>
       <div class="stat">Costo est.: <b id="s-cost">—</b></div>
       <div class="stat">Turno: <b id="s-turn">—</b></div>
     </div>
     <select class="model-selector" id="modelSelect">
-      <option value="claude-haiku-4-5-20251001">Haiku (barato 💚)</option>
-      <option value="claude-sonnet-4-6">Sonnet (mejor 🔶)</option>
+      <optgroup label="── Groq (gratis) ──">
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B ⚡ gratis</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B ⚡ rápido</option>
+        <option value="mixtral-8x7b-32768">Mixtral 8x7B ⚡ gratis</option>
+      </optgroup>
+      <optgroup label="── Anthropic (pago) ──">
+        <option value="claude-haiku-4-5-20251001">Haiku 💚 barato</option>
+        <option value="claude-sonnet-4-6">Sonnet 🔶 mejor</option>
+      </optgroup>
     </select>
     <button class="btn btn-danger" onclick="clearSession()">🗑 Limpiar</button>
   </div>
@@ -331,7 +338,7 @@ async function sendMessage() {
       const aiStep = data.steps?.find(s => s.id === 'ai');
       document.getElementById('s-total').textContent = (data.totalMs || totalMs) + 'ms';
       document.getElementById('s-ai').textContent = aiStep ? aiStep.ms + 'ms' : '—';
-      document.getElementById('s-cost').textContent = data.costo?.usd ? '$' + data.costo.usd : '—';
+      document.getElementById('s-cost').textContent = data.costo?.gratis ? '$0 (gratis)' : (data.costo?.usd ? '$' + data.costo.usd : '—');
       document.getElementById('s-turn').textContent = data.historialTurns || 1;
 
       // Info cliente
@@ -514,8 +521,9 @@ function selectStep(stepId) {
       <div class="final-response-label">💬 Respuesta de Marta:</div>
       <div class="final-response-text">${(d.output.response_full || '').replace(/<accion>[\s\S]*?<\/accion>/g, '').trim().replace(/\n/g,'<br>')}</div>
     </div>`;
-    if (d.output.costo_usd) {
-      html += `<div style="font-size:10px;color:var(--muted);margin:6px 0">Costo est.: $${d.output.costo_usd} USD · ${d.output.tokens?.input_tokens} in / ${d.output.tokens?.output_tokens} out tokens</div>`;
+    if (d.output.costo_usd !== undefined) {
+      const costoStr = d.output.costo_usd === 0 ? '$0 (Groq gratis)' : `$${d.output.costo_usd} USD`;
+      html += `<div style="font-size:10px;color:var(--muted);margin:6px 0">Costo est.: ${costoStr} · ${d.output.tokens?.input_tokens} in / ${d.output.tokens?.output_tokens} out tokens</div>`;
     }
   }
 
