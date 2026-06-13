@@ -114,26 +114,23 @@ async function deleteRow(sheetName, rowIndex) {
 // ─── Crear pestaña si no existe ──────────────────────────────
 async function createSheetIfNotExists(sheetName) {
   const api = await getSheets();
-  // Obtener lista de pestañas actuales
-  const meta = await api.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
-  const exists = meta.data.sheets.some(
-    s => s.properties.title === sheetName
-  );
-  if (!exists) {
+  try {
     await api.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       requestBody: {
         requests: [{ addSheet: { properties: { title: sheetName } } }],
       },
     });
-    // Escribir header
-    const api2 = await getSheets();
-    await api2.spreadsheets.values.update({
+    // Pestaña recién creada → escribir header
+    await api.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!A1`,
       valueInputOption: "RAW",
       requestBody: { values: [HEADERS[sheetName] || []] },
     });
+  } catch (e) {
+    // Si ya existe, ignorar; cualquier otro error sí lo propagamos
+    if (!e.message || !e.message.includes("already exists")) throw e;
   }
 }
 
