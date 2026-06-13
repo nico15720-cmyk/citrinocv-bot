@@ -52,7 +52,8 @@ async function procesarBatch(userId) {
 }
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // 301 redirects — dominios viejos al nuevo
 app.use((req, res, next) => {
