@@ -91,8 +91,11 @@ function adminAuth(req, res, next) {
     if (user === adminUser && pass === adminPass) return next();
   }
 
-  res.set('WWW-Authenticate', 'Basic realm="Citrino Admin"');
-  return res.status(401).send('Acceso restringido — solo staff Citrino');
+  // Solo enviar WWW-Authenticate para rutas no-API (evita popup del navegador en fetch())
+  if (!req.path.startsWith('/api/')) {
+    res.set('WWW-Authenticate', 'Basic realm="Citrino Admin"');
+  }
+  return res.status(401).json({ error: 'Acceso restringido — solo staff Citrino' });
 }
 
 app.use(adminAuth);
