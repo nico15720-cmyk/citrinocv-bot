@@ -1190,6 +1190,33 @@ app.delete("/api/crm/gastos/:rowIndex", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── HORARIOS ─────────────────────────────────────────────────
+app.get("/api/crm/horarios", async (req, res) => {
+  try { res.json(await sheetsCrm.readSheet("HORARIOS")); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/crm/horarios", async (req, res) => {
+  try {
+    await sheetsCrm.appendRow("HORARIOS", req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/crm/horarios/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.updateRow("HORARIOS", parseInt(req.params.rowIndex), req.body);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/crm/horarios/:rowIndex", async (req, res) => {
+  try {
+    await sheetsCrm.deleteRow("HORARIOS", parseInt(req.params.rowIndex));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── IMPORTACIÓN MASIVA ────────────────────────────────────────
 // POST /api/crm/import — body: { CLIENTES: [...], SESIONES: [...], VENTAS: [...], GASTOS: [...] }
 app.post("/api/crm/import", async (req, res) => {

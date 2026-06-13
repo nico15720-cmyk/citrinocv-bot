@@ -28,6 +28,7 @@ const {
 const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
 const { registrarUso } = require("./token-tracker");
+const { upsertCliente, appendRow: crmAppend } = require("./sheets-crm");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -398,12 +399,42 @@ async function procesarAccion(accion, userId, canal, nombre) {
         slot,
       });
 
-      // Actualizar CRM
+      // Actualizar CRM interno del bot
       await registrarTurno(userId, {
         fechaTurno: slot.inicioISO,
         eventId: evento.id,
         servicio,
       });
+
+      // Sincronizar con CRM React (SESIONES + CLIENTES)
+      try {
+        const fechaHoy = new Date().toISOString().split("T")[0];
+        const mesAnio = fechaHoy.slice(5, 7) + "-" + fechaHoy.slice(0, 4);
+        await crmAppend("SESIONES", {
+          ID_Sesion:         evento.id,
+          Fecha_Hora:        slot.inicioISO,
+          Cliente:           nombreCliente,
+          Tratamiento:       servicio,
+          Terapeuta:         slot.terapeutaNombre || "",
+          ID_Cliente_Guardado: userId,
+          Semana_Anio:       "",
+          Mes_Anio:          mesAnio,
+          A_Pagar_Terapeuta: "500",
+          ID_Cliente_Guardado2: userId,
+          Observaciones:     "",
+        });
+        await upsertCliente({
+          ID_Cliente:  userId,
+          Nombre:      nombreCliente,
+          Telefono:    userId,
+          Origen:      canal || "whatsapp",
+          Fecha_Alta:  fechaHoy,
+          NOTAS:       "",
+          Fecha_Nacimiento: "",
+        });
+      } catch (e) {
+        console.error("[sync-crm] agendar:", e.message);
+      }
 
       const confirMsg =
         `✅ ¡Turno confirmado!\n\n` +
@@ -438,6 +469,18 @@ async function procesarAccion(accion, userId, canal, nombre) {
     case "guardar_nombre": {
       if (accion.nombre) {
         await registrarCliente({ userId, nombre: accion.nombre, canal });
+        // Sincronizar con CRM React
+        try {
+          await upsertCliente({
+            ID_Cliente:  userId,
+            Nombre:      accion.nombre,
+            Telefono:    userId,
+            Origen:      canal || "whatsapp",
+            Fecha_Alta:  new Date().toISOString().split("T")[0],
+            NOTAS:       "",
+            Fecha_Nacimiento: "",
+          });
+        } catch {}
       }
       return null; // sin respuesta visible
     }

@@ -15,6 +15,7 @@ const HEADERS = {
   SESIONES: ['ID_Sesion', 'Fecha_Hora', 'Cliente', 'Tratamiento', 'Terapeuta', 'ID_Cliente_Guardado', 'Semana_Anio', 'Mes_Anio', 'A_Pagar_Terapeuta', 'ID_Cliente_Guardado2', 'Observaciones'],
   VENTAS:   ['Fecha', 'ID_Venta', 'Cliente', 'Producto', 'Monto', 'Forma_Pago', 'Notas', 'ID_Cliente_Guardado', 'Cantidad_Calculada', 'Ingreso_Real', 'Fecha_Vencimiento', 'Mes_Anio'],
   GASTOS:   ['Nombre', 'Monto', 'Mes_ID', 'Notas', 'Recurrente', 'Dia_Vencimiento'],
+  HORARIOS: ['Terapeuta', 'Dia_Semana', 'Hora_Inicio', 'Hora_Fin', 'Activo', 'Semana_Inicio'],
 };
 
 // ─── Auth ─────────────────────────────────────────────────────
@@ -170,11 +171,61 @@ function colLetter(n) {
   return s;
 }
 
+// ─── Upsert cliente (crea si no existe, ignora si ya está) ───
+async function upsertCliente(clienteObj) {
+  try {
+    await createSheetIfNotExists("CLIENTES");
+    const api = await getSheets();
+    const resp = await api.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "CLIENTES!A:A",
+    });
+    const ids = (resp.data.values || []).map(r => r[0]);
+    if (ids.includes(clienteObj.ID_Cliente)) return; // ya existe
+    await appendRow("CLIENTES", clienteObj);
+  } catch (e) {
+    console.error("[sheets-crm] upsertCliente error:", e.message);
+  }
+}
+
+// ─── Leer HORARIOS estructurados por terapeuta ────────────────
+// Devuelve objeto compatible con getDisponibilidad() de calendar.js
+async function getHorariosParaCalendar() {
+  try {
+    const filas = await readSheet("HORARIOS");
+    const activas = filas.filter(f => f.Activo !== "no" && f.Activo !== "false");
+    if (!activas.length) return null;
+
+    // Agrupar por terapeuta
+    const mapa = {};
+    for (const f of activas) {
+      const ter = f.Terapeuta;
+      if (!ter) continue;
+      if (!mapa[ter]) mapa[ter] = { nombre: ter, horarios: {}, activa: true };
+
+      const diasMap = { Domingo:0, Lunes:1, Martes:2, Miercoles:3, Miércoles:3, Jueves:4, Viernes:5, Sabado:6, Sábado:6 };
+      const dia = diasMap[f.Dia_Semana];
+      if (dia === undefined) continue;
+
+      if (!mapa[ter].horarios[dia]) mapa[ter].horarios[dia] = { dia: f.Dia_Semana, franjas: [] };
+
+      const inicio = parseFloat(f.Hora_Inicio) || 8;
+      const fin    = parseFloat(f.Hora_Fin)    || 18;
+      mapa[ter].horarios[dia].franjas.push({ inicio, fin });
+    }
+    return Object.values(mapa);
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   readSheet,
   appendRow,
   updateRow,
   deleteRow,
   bulkImport,
+  upsertCliente,
+  getHorariosParaCalendar,
   HEADERS,
 };

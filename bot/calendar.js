@@ -113,13 +113,14 @@ function _invalidarCache() {
   _cacheTs = 0;
 }
 
-// ─── Leer terapeutas desde hoja Terapeutas ────────────────────
+// ─── Leer terapeutas — primero desde HORARIOS (CRM), luego default ──
 async function _leerTerapeutas() {
   try {
-    const { leerTerapeutas } = require("./terapeutas");
-    const terapeutas = await leerTerapeutas();
-    if (terapeutas?.length) return terapeutas;
+    const { getHorariosParaCalendar } = require("./sheets-crm");
+    const fromCrm = await getHorariosParaCalendar();
+    if (fromCrm?.length) return fromCrm;
   } catch {}
+  // Fallback: terapeutas con horario default
   return [{
     id: "default", nombre: "Citrino", color: "#5a7a5a",
     horarios: HORARIOS_DEFAULT, activa: true,
