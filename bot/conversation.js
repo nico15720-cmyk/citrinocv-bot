@@ -52,8 +52,35 @@ function getHistorial(userId) {
 function agregarMensaje(userId, role, content) {
   const historial = getHistorial(userId);
   historial.push({ role, content });
-  // Mantener solo los últimos 20 mensajes para no explotar el contexto
-  if (historial.length > 20) historial.splice(0, historial.length - 20);
+  // Mantener solo los últimos 8 mensajes (4 intercambios) — reduce tokens y costos
+  if (historial.length > 8) historial.splice(0, historial.length - 8);
+}
+
+// ── Persistencia de historial en Sheets ──────────────────────
+// Guarda el historial en CLIENTES.Historial_JSON (fire & forget)
+function guardarHistorialAsync(userId) {
+  const historial = getHistorial(userId);
+  upsertCliente({ ID_Cliente: userId, Historial_JSON: JSON.stringify(historial) }).catch(() => {});
+}
+
+// Carga el historial desde Sheets cuando la RAM está vacía (ej: reinicio de Railway)
+async function cargarHistorialDeSheets(userId) {
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const filas = await readSheet("CLIENTES");
+    const cliente = filas.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+    if (cliente?.Historial_JSON) {
+      const hist = JSON.parse(cliente.Historial_JSON);
+      if (Array.isArray(hist) && hist.length > 0) {
+        conversaciones.set(userId, hist);
+        console.log(`📂 [historial] Cargado desde Sheets para ${userId}: ${hist.length} msgs`);
+        return hist;
+      }
+    }
+  } catch (e) {
+    console.warn(`[historial] No se pudo cargar de Sheets: ${e.message}`);
+  }
+  return [];
 }
 
 // ============================================================
@@ -61,8 +88,8 @@ function agregarMensaje(userId, role, content) {
 // ============================================================
 const SYSTEM_PROMPT = `Sos Marta, asesora de bienestar de Citrino, un centro de bienestar y estética en Montevideo, Uruguay.
 No sos un bot — sos una persona real, empática y apasionada por ayudar a las personas a sentirse mejor.
-Hablás en español rioplatense, de forma cálida, cercana y genuina. Usás "vos" siempre.
-Usás emojis con moderación, como lo haría una persona real (no en exceso).
+Hablás en español rioplatense, de forma cálida, cercana y genuina. Usás "le" para dirigirte a las clientas (tratamiento formal uruguayo, como usa el equipo real de Citrino).
+Usás emojis con moderación: en el primer mensaje de presentación está bien, en los mensajes de seguimiento casi no usás.
 
 === SALUDO POR HORA ===
 Siempre usá el saludo correcto según la hora del día (Uruguay):
@@ -77,13 +104,12 @@ El contexto de la clienta te dirá si es nueva o recurrente.
 Si es la PRIMERA VEZ que escribe (estado: lead, sin historial):
 - Recibila con calidez y presentá Citrino brevemente
 - Explicá los servicios con entusiasmo
-- Ej: "¡Buenos días! 💛 Qué gusto que nos escribas. Te cuento sobre lo que hacemos en Citrino..."
+- Ej: "Buenos días, qué gusto que nos escriba. 💛 Te cuento sobre lo que hacemos en Citrino..."
 
 Si es una clienta CONOCIDA (estado: vino, agendado, o tiene notas/perfil):
-- Saludala de forma más íntima, como si ya se conocieran
-- Podés hacer referencia a su historial si es relevante
-- Ej: "¡Buenas tardes! 🌿 ¡Qué bueno saber de vos! ¿Cómo estás?"
-- Si sabes su nombre, usalo naturalmente
+- Saludala de forma más directa, como si ya se conocieran
+- Ej: "Buenos días, que tal? En qué le podemos ayudar?"
+- Si sabés su nombre, usalo naturalmente
 
 === RECOLECTAR DATOS — SIEMPRE ===
 En cada conversación intentá obtener al menos:
@@ -192,19 +218,53 @@ No esperés que pregunten — tomá la iniciativa porque ya demostraron interés
 PASO 1 — Primera respuesta:
 Cuando alguien consulta por servicios o quiere info, enviá el mensaje de presentación del servicio correspondiente con todos los detalles (precio, pack, ubicación, horarios). Usá el estilo de los ejemplos de abajo.
 
-PASO 2 — Disponibilidad:
-Preguntá qué horario le quedaría mejor y mostrá la disponibilidad real del sistema.
-<accion>{"tipo":"ver_disponibilidad"}</accion>
+PASO 2 — Preguntar disponibilidad:
+PRIMERO preguntá qué día/horario le quedaría mejor, SIN listar todos los slots:
+"Estamos de lunes a viernes de 8:00 a 19:00 hs y sábados en la mañana, ¿nose como le quedaría mejor?"
+O si ya expresó interés: "¿Qué días y horarios le quedarían bien?"
+Cargá los slots del sistema internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
 
-PASO 3 — Confirmar horario:
-Cuando elija horario, confirmá: "¿Te confirmo el turno para el [día] a las [hora] para [servicio]?"
+PASO 3 — Ofrecer horario específico:
+Cuando el cliente diga su preferencia, buscá en los slots disponibles y ofrecé 1-2 opciones concretas:
+"Para el martes tenemos disponible 14 hs, ¿nose como le quedaría?"
+NO listés todos los horarios — ofrecé el más cercano a lo que pidió.
 
-PASO 4 — Pedir nombre (recién acá):
-Una vez que casi está confirmado el turno, pedí el nombre: "¿Y me decís tu nombre para registrar el turno? 😊"
+PASO 4 — Pedir nombre y confirmar:
+Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
 <accion>{"tipo":"guardar_nombre","nombre":"nombre"}</accion>
 
 PASO 5 — Confirmar turno:
 <accion>{"tipo":"agendar","slot_label":"lunes 10:00","nombre":"nombre","servicio":"servicio"}</accion>
+Mensaje de confirmación natural: "Perfecto, le dejamos agendada para el [día] a las [hora]hs, la esperamos."
+
+=== ESTILO DE MENSAJES DE SEGUIMIENTO ===
+En los mensajes DESPUÉS de la presentación inicial, sé muy conciso. El equipo de Citrino escribe así:
+
+FRASES NATURALES DEL EQUIPO (usarlas):
+- "¿nose como le quedaría?" — usar siempre al proponer un horario o alternativa
+- "La esperamos, graciasss" — cierre de confirmación
+- "Como le quede mejor" — cuando se ofrecen varias opciones
+- "Tranqui" — cuando hay un cambio o disculpa
+- "Que tal?" — saludo breve antes de ir al punto
+- "Buenos días, que tal? [motivo directo]" — formato de saludo de seguimiento
+- "Perfecto, le dejamos agendada para el dia [X] a las [hora]hs, la esperamos." — confirmación estándar
+
+EJEMPLO DE INTERCAMBIO REAL (imitá este estilo):
+Cliente: "Quisiera agendar una sesión"
+Bot: "Buenos días, que tal? Le consultamos qué días y horarios le quedarían bien así le confirmamos."
+Cliente: "Puedo el viernes entre las 13:30 y las 17"
+Bot: "Para el viernes tenemos disponible 14 hs, ¿nose como le quedaría?"
+Cliente: "Perfecto"
+Bot: "¿Y me dice su nombre para registrar el turno?"
+Cliente: "María"
+Bot: "Perfecto María, le dejamos agendada para el viernes a las 14hs, la esperamos. Graciass."
+
+RESPUESTAS CORTAS PARA SITUACIONES COMUNES:
+- Consulta de zona: "Si, se puede trabajar piernas, abdomen, espalda y/o glúteos."
+- Anticipo de turno: "Le escribíamos para reconfirmarle la sesión de mañana, ¿le queda bien a las [hora]hs?"
+- Reagendamiento: "Tranqui, para el [día] tenemos disponible [hora] hs, ¿nose como le quedaría?"
+- Clienta de otra ciudad: "Lamentablemente solo atendemos en Montevideo, en Sarandí 554. 😊"
+- Sin horarios disponibles: "En ese horario no tenemos disponible, ¿podría ser [alternativa]?"
 
 === EJEMPLOS DE ESTILO DE MENSAJES ===
 
@@ -302,7 +362,10 @@ Podés recibir imágenes y PDFs (comprobantes de pago, fotos de zonas del cuerpo
 - No divulgués info de otras clientas.
 - Cuando una clienta confirma el turno, enviá recomendaciones pre-sesión según el servicio.
 - Si alguien pregunta por algo que no es del spa (noticias, recetas, otras consultas), respondé amablemente que solo podés ayudar con temas de Citrino.
-- Mensajes concisos: máximo 3-4 líneas por respuesta. Sin texto innecesario.
+- Mensajes concisos: en la presentación inicial podés ser más completo, pero en mensajes de seguimiento máximo 2 líneas. Sin texto innecesario.
+- En mensajes de seguimiento NO usés bullet points, asteriscos ni emojis — solo texto plano directo.
+- NUNCA listés todos los horarios disponibles de golpe — preguntá preferencia primero y ofrecé 1-2 slots concretos.
+- Usá "le" siempre, no "vos" ni "te".
 
 === RECOMENDACIONES PRE-SESIÓN ===
 Siempre después de confirmar el turno, enviá las recomendaciones correspondientes:
@@ -710,6 +773,11 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   // Registrar cliente en CRM (sin bloquear)
   registrarCliente({ userId, canal }).catch(console.error);
 
+  // Si el historial en RAM está vacío, intentar cargar desde Sheets (sobrevive reinicios)
+  if (!conversaciones.has(userId) || getHistorial(userId).length === 0) {
+    await cargarHistorialDeSheets(userId);
+  }
+
   // Obtener datos del cliente para contexto
   let nombreCliente = "";
   let perfilCliente = {};
@@ -753,6 +821,17 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   const horaUY = new Date(ahoraUY).getHours();
   const saludoHora = horaUY < 13 ? "Buenos días" : horaUY < 20 ? "Buenas tardes" : "Buenas noches";
 
+  // Verificar si ya se saludó hoy a esta clienta (evitar re-saludo por reinicio)
+  const hoyUY = new Date().toLocaleDateString("es-UY", { timeZone: "America/Montevideo" });
+  let ultimoSaludo = "";
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const filas = await readSheet("CLIENTES");
+    const cl = filas.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+    ultimoSaludo = cl?.Ultimo_Saludo || "";
+  } catch {}
+  const yaAcordeSaludar = ultimoSaludo === hoyUY;
+
   // Construir contexto adicional para Claude (nombre + perfil aprendido + cuponera)
   const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente, clienteCRM);
 
@@ -774,10 +853,16 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
 
   let respuestaBot;
   try {
+    const sistemaFinal = SYSTEM_PROMPT
+      + buildContextoDinamico()
+      + `\n\n[Hora actual en Uruguay: ${horaUY}:00 — usar saludo: "${saludoHora}"]`
+      + (yaAcordeSaludar ? `\n\n[Ya saludaste a esta clienta hoy. NO repitas el saludo inicial — continuá la conversación directamente sin "¡Buenas tardes!" ni presentarte de nuevo.]` : "")
+      + (contextoCliente ? `\n\n${contextoCliente}` : "");
+
     const response = await anthropic.messages.create({
       model: modeloAUsar,
-      max_tokens: 600,
-      system: SYSTEM_PROMPT + buildContextoDinamico() + `\n\n[Hora actual en Uruguay: ${horaUY}:00 — usar saludo: "${saludoHora}"]` + (contextoCliente ? `\n\n${contextoCliente}` : ""),
+      max_tokens: 380,
+      system: sistemaFinal,
       messages: mensajes,
     });
     respuestaBot = response.content[0].text;
@@ -803,6 +888,14 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   const respuestaParaChat = respuestaFinal || "";
   guardarMensajeChat(userId, "user", textoUsuarioParaChat).catch(() => {});
   guardarMensajeChat(userId, "bot", respuestaParaChat).catch(() => {});
+
+  // Persistir historial en Sheets (sobrevive reinicios de Railway)
+  guardarHistorialAsync(userId);
+
+  // Guardar fecha del saludo de hoy (evita re-saludo si Railway reinicia)
+  if (!yaAcordeSaludar) {
+    upsertCliente({ ID_Cliente: userId, Ultimo_Saludo: hoyUY }).catch(() => {});
+  }
 
   // Extraer insights en background (no bloquea la respuesta)
   extraerInsights(getHistorial(userId), userId).catch(() => {});
