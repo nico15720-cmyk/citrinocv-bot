@@ -33,6 +33,7 @@ async function getSheets() {
 
 // ─── Leer hoja completa (devuelve array de objetos) ───────────
 async function readSheet(sheetName) {
+  await createSheetIfNotExists(sheetName);
   const api = await getSheets();
   const resp = await api.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -110,8 +111,35 @@ async function deleteRow(sheetName, rowIndex) {
   });
 }
 
+// ─── Crear pestaña si no existe ──────────────────────────────
+async function createSheetIfNotExists(sheetName) {
+  const api = await getSheets();
+  // Obtener lista de pestañas actuales
+  const meta = await api.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const exists = meta.data.sheets.some(
+    s => s.properties.title === sheetName
+  );
+  if (!exists) {
+    await api.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: sheetName } } }],
+      },
+    });
+    // Escribir header
+    const api2 = await getSheets();
+    await api2.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A1`,
+      valueInputOption: "RAW",
+      requestBody: { values: [HEADERS[sheetName] || []] },
+    });
+  }
+}
+
 // ─── Importación masiva (limpia + reescribe) ──────────────────
 async function bulkImport(sheetName, rows) {
+  await createSheetIfNotExists(sheetName);
   const api = await getSheets();
   const headers = HEADERS[sheetName] || [];
 
