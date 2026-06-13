@@ -236,7 +236,7 @@ app.post("/webhook", async (req, res) => {
         } else {
           const { enviarMensaje } = require("./bot/sender");
           await enviarMensaje(msg.from,
-            "🎤 No pude transcribir el audio. Configurá GEMINI_API_KEY para activar la transcripción, o escribime lo que necesitás.\n\nEj: _Vino María, pagó $1500 débito. No vino Juan._",
+            "🎤 No pude escuchar el audio. Escribime lo que necesitás.\n\nEj: _Vino María, pagó $1500 débito. No vino Juan._",
             "whatsapp"
           );
         }

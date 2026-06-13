@@ -225,10 +225,10 @@ O si ya expresó interés: "¿Qué días y horarios le quedarían bien?"
 Cargá los slots del sistema internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
 
 PASO 3 — Ofrecer horario específico:
-Cuando el cliente diga su preferencia de día, incluí la acción ver_disponibilidad en ese mensaje:
-<accion>{"tipo":"ver_disponibilidad"}</accion>
-El sistema mostrará los horarios reales disponibles. En tu texto podés decir brevemente "Para el martes, los horarios disponibles son:" y el sistema agrega la lista real.
-CRÍTICO: NUNCA inventes una hora que no aparezca en el listado del sistema. Si el cliente pide "10:00" pero no existe ese slot, ofrecé el más cercano que SÍ existe: "No tenemos a las 10, pero tenemos a las 9:30, ¿le quedaría bien?"
+Cuando el cliente indique el día que prefiere, incluí la acción de disponibilidad filtrada por ese día:
+<accion>{"tipo":"ver_disponibilidad","dia":"martes"}</accion>  ← reemplazá "martes" por el día que dijo el cliente.
+El sistema mostrará SOLO los horarios disponibles de ese día. En tu texto decí brevemente "Para el [día], los horarios disponibles son:" y el sistema agrega la lista real.
+CRÍTICO: NUNCA inventes una hora. Si el cliente pide "15 hs" pero solo existe "15:30", ofrecé "15:30 hs, ¿nose como le quedaría?"
 
 PASO 4 — Pedir nombre y confirmar:
 Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
@@ -351,7 +351,7 @@ Podés recibir imágenes y PDFs (comprobantes de pago, fotos de zonas del cuerpo
 - Si recibís una imagen de comprobante de pago (transferencia, débito, etc.): reconocé el monto, banco y fecha si es posible, confirmá amablemente que lo recibiste y que lo registraste. Usá <accion>{"tipo":"agregar_nota","texto":"Comprobante recibido: [detalle]"}</accion>
 - Si recibís una foto de una zona corporal (espalda, piernas, etc.): comentá brevemente lo que ves y sugerí el servicio más apropiado.
 - Si la imagen no está relacionada con Citrino: respondé con calidez pero orientá la conversación al negocio.
-- Si recibís el mensaje especial [AUDIO]: la clienta envió una nota de voz. Pedile amablemente que escriba su consulta porque no podés escuchar audios por el momento.
+- Si recibís [AUDIO: ...]: la clienta envió una nota de voz. Respondé: "No podemos escuchar audios por el momento, ¿me podría escribir lo que necesita? 🙏"
 
 === REGLAS CRÍTICAS — NO IGNORAR ===
 - NUNCA inventés horarios. Solo ofrecés los slots que aparecen en la sección DISPONIBILIDAD REAL.
@@ -372,36 +372,36 @@ Podés recibir imágenes y PDFs (comprobantes de pago, fotos de zonas del cuerpo
 Siempre después de confirmar el turno, enviá las recomendaciones correspondientes:
 
 Drenaje / Método Citrino / Modelador:
-"🌿 *Antes de tu sesión te recomendamos:*
+"🌿 Antes de la sesión le recomendamos:
 ✅ Venir con ropa cómoda y holgada
-✅ Hidratarte bien antes y después — el agua ayuda a eliminar las toxinas
+✅ Hidratarse bien antes y después — el agua ayuda a eliminar las toxinas
 ✅ Evitar comidas pesadas las 2 horas previas
-✅ Si podés, evitá el café el día de la sesión
+✅ Si puede, evite el café el día de la sesión
 ✅ Venir sin cremas ni aceites en el cuerpo
-🍃 ¡Tu cuerpo te lo va a agradecer! Nos vemos pronto 💛"
+La esperamos 💛"
 
 Descontracturante / Piedras Calientes / Relax:
-"🌿 *Antes de tu sesión te recomendamos:*
-✅ Contanos qué zona te molesta más para focalizarnos ahí
+"🌿 Antes de la sesión le recomendamos:
+✅ Comentarnos qué zona le molesta más para focalizarnos ahí
 ✅ Venir con ropa cómoda
-✅ Si tenés alguna lesión, condición médica o estás embarazada, avisanos antes
-✅ Hidratarte bien después — el masaje activa la circulación
-💚 ¡Ya casi estamos! Cualquier consulta escribinos 🙏"
+✅ Si tiene alguna lesión o condición médica, avisarnos antes
+✅ Hidratarse bien después — el masaje activa la circulación
+La esperamos 🙏"
 
 Reflexología / Reiki:
-"🌿 *Para tu sesión:*
-✅ Intentá llegar unos minutos antes para conectar con el espacio
-✅ Usá ropa cómoda y suelta
-✅ Si estás tomando algún medicamento o tenés alguna condición, comentánoslo
-✅ Después de la sesión tomá bastante agua
-🙏 ¡Te esperamos con mucha energía!"
+"🌿 Para su sesión:
+✅ Si puede, llegar unos minutos antes para conectar con el espacio
+✅ Ropa cómoda y suelta
+✅ Si está tomando algún medicamento o tiene alguna condición, comentánoslo
+✅ Tomar bastante agua después de la sesión
+La esperamos 🙏"
 
 Estética (limpieza, manicuría, etc.):
-"✨ *Te esperamos para tu sesión!*
+"✨ Le esperamos para su sesión.
 ✅ Venir sin maquillaje si es limpieza de cutis
 ✅ Ropa cómoda siempre
 📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz
-Cualquier consulta escribinos 💛"`;
+Cualquier consulta escríbanos 💛"`;
 
 // ============================================================
 // PROCESAR ACCIONES DEL BOT
@@ -409,7 +409,21 @@ Cualquier consulta escribinos 💛"`;
 async function procesarAccion(accion, userId, canal, nombre) {
   switch (accion.tipo) {
     case "ver_disponibilidad": {
-      const slots = await getDisponibilidad();
+      const todosSlots = await getDisponibilidad();
+
+      // Si el bot especifica un día, filtrar solo ese día
+      let slots = todosSlots;
+      if (accion.dia) {
+        const diaFiltro = accion.dia.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const diasNombres = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
+        slots = todosSlots.filter(s => {
+          const diaSlot = diasNombres[new Date(s.fecha + "T12:00:00-03:00").getDay()];
+          return diaSlot.includes(diaFiltro) || diaFiltro.includes(diaSlot);
+        });
+        // Si no hay slots ese día, mostrar todos
+        if (!slots.length) slots = todosSlots;
+      }
+
       slotsPendientes.set(userId, slots);
 
       // Contar intentos fallidos de agendamiento para el flujo Nadia
@@ -464,7 +478,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
 
       const slot = await resolverSlot(dia, hora);
       if (!slot) {
-        return "No encontré ese horario en los disponibles. ¿Podés decirme exactamente cuál querés del listado que te mandé?";
+        return "No encontramos disponibilidad para ese horario. ¿Le quedaria bien alguna otra opción?";
       }
 
       const nombreCliente = accion.nombre || nombre || "Cliente";
@@ -517,11 +531,11 @@ async function procesarAccion(accion, userId, canal, nombre) {
       }
 
       const confirMsg =
-        `✅ ¡Turno confirmado!\n\n` +
-        `📅 *${slot.label}*\n` +
+        `✅ Turno confirmado.\n\n` +
+        `📅 ${slot.label}\n` +
         `💆 ${servicio}\n` +
         `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz, Ciudad Vieja\n\n` +
-        `Te mando un recordatorio el día anterior. Cualquier cosa me avisás 🙏`;
+        `Le mandamos un recordatorio el día anterior. Cualquier cosa avísenos 🙏`;
 
       // Notificar a Nico del nuevo turno agendado
       const ownerNumber = process.env.OWNER_WHATSAPP;
@@ -539,11 +553,11 @@ async function procesarAccion(accion, userId, canal, nombre) {
     case "cancelar": {
       const turno = await buscarTurnoCliente(userId);
       if (!turno) {
-        return "No encontré ningún turno a tu nombre. ¿Seguro que lo tenías agendado acá?";
+        return "No encontramos ningún turno a su nombre. ¿Desea que busquemos uno nuevo?";
       }
       await cancelarTurno(turno.id);
       await registrarCancelacion(userId);
-      return "Cancelé tu turno sin problema 🙏 ¿Querés que te busque otro horario?";
+      return "Cancelamos el turno sin problema 🙏 ¿Le buscamos otro horario?";
     }
 
     case "guardar_nombre": {
@@ -804,6 +818,8 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     // Audio transcripto por Gemini — tratarlo como texto normal
     contenidoUsuario = media.texto;
   } else if (media?.type === "audio") {
+    // No hay transcripción — Claude responde con el mensaje de audio del SYSTEM_PROMPT
+    contenidoUsuario = "[AUDIO: la clienta envió una nota de voz que no pude escuchar]";
   } else {
     contenidoUsuario = text;
   }
@@ -870,7 +886,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     registrarUso(response.usage, "chat");
   } catch (err) {
     console.error("❌ Error con Claude:", err.message);
-    respuestaBot = "Uy, tuve un problemita técnico. Intentá de nuevo en un momento 🙏";
+    respuestaBot = "Disculpe, no pude procesar su mensaje. ¿Me lo puede repetir? 🙏";
   }
 
   // Procesar acciones si las hay (ANTES de guardar en historial)
