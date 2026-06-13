@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citrino Bot — Test Panel</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2128; --border: #30363d;
+  --text: #e6edf3; --muted: #8b949e; --orange: #f97316; --green: #22c55e;
+  --blue: #60a5fa; --purple: #a78bfa; --red: #f87171;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ── HEADER ── */
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg, #991B1B, #f97316); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.logo-text { font-weight: 700; font-size: 14px; }
+.logo-sub { font-size: 11px; color: var(--muted); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.badge-test { background: #1a2a1a; border: 1px solid #2d4a2d; color: var(--green); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.stats-bar { display: flex; gap: 16px; align-items: center; }
+.stat { font-size: 11px; color: var(--muted); }
+.stat b { color: var(--text); }
+.btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .15s; }
+.btn:hover { border-color: var(--orange); color: var(--orange); }
+.btn-danger { border-color: #2d1a1a; color: var(--red); }
+.btn-danger:hover { background: #1a0f0f; border-color: var(--red); }
+
+/* ── MAIN LAYOUT ── */
+.main { flex: 1; display: grid; grid-template-columns: 300px 1fr 280px; overflow: hidden; }
+
+/* ── CHAT PANEL ── */
+.chat-panel { background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.panel-header { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+
+/* Phone selector */
+.phone-row { padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
+.phone-label { font-size: 10px; color: var(--muted); font-weight: 600; }
+.phone-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 5px; font-size: 12px; width: 100%; font-family: monospace; }
+.phone-input:focus { outline: none; border-color: var(--orange); }
+.client-info { font-size: 10px; color: var(--muted); min-height: 14px; }
+
+/* Chat messages */
+.chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.msg-row { display: flex; }
+.msg-row.user { justify-content: flex-end; }
+.msg-row.bot { justify-content: flex-start; }
+.msg-bubble { max-width: 85%; padding: 7px 10px; border-radius: 10px; font-size: 12px; line-height: 1.5; }
+.msg-row.user .msg-bubble { background: #1a2f1a; border: 1px solid #2d4a2d; color: #86efac; border-radius: 10px 10px 2px 10px; }
+.msg-row.bot .msg-bubble { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 10px 10px 10px 2px; }
+.msg-bubble.error { background: #1a0f0f; border-color: #3d1515; color: var(--red); }
+.msg-meta { font-size: 9px; color: var(--muted); margin-top: 3px; text-align: right; }
+.thinking-dots { display: flex; gap: 4px; padding: 10px; }
+.thinking-dots span { width: 6px; height: 6px; background: var(--orange); border-radius: 50%; animation: dots 1.2s infinite; }
+.thinking-dots span:nth-child(2) { animation-delay: .2s; }
+.thinking-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dots { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+/* Suggestions */
+.suggestions { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 4px; }
+.sug-chip { background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 3px 7px; border-radius: 10px; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.sug-chip:hover { border-color: var(--orange); color: var(--orange); }
+
+/* Input area */
+.chat-input-row { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; align-items: flex-end; }
+.chat-textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 8px; font-size: 12px; resize: none; min-height: 36px; max-height: 100px; font-family: inherit; line-height: 1.4; }
+.chat-textarea:focus { outline: none; border-color: var(--orange); }
+.send-btn { background: var(--orange); border: none; color: #fff; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all .15s; align-self: flex-end; height: 36px; }
+.send-btn:hover { background: #c2410c; }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── PIPELINE CENTER ── */
+.pipeline-panel { display: flex; flex-direction: column; overflow: hidden; }
+.pipe-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.step-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; cursor: pointer; transition: all .2s; position: relative; display: flex; align-items: center; gap: 12px; }
+.step-card:hover { border-color: #555; }
+.step-card.active-step { border-color: var(--orange); background: #1a1208; }
+.step-card.step-running { border-color: var(--blue); animation: stepPulse .8s ease-in-out infinite alternate; }
+.step-card.step-ok { border-color: #1f3a1f; }
+.step-card.step-error { border-color: #3d1515; }
+@keyframes stepPulse { from { box-shadow: 0 0 0 0 rgba(96,165,250,.15); } to { box-shadow: 0 0 0 8px rgba(96,165,250,0); } }
+
+.step-icon { font-size: 20px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; }
+.step-main { flex: 1; min-width: 0; }
+.step-name { font-size: 13px; font-weight: 600; }
+.step-desc { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.step-ms { font-size: 10px; color: var(--muted); font-family: monospace; }
+.step-status { width: 8px; height: 8px; border-radius: 50%; background: #374151; }
+.step-status.running { background: var(--blue); animation: blink 1s infinite; }
+.step-status.ok { background: var(--green); }
+.step-status.error { background: var(--red); }
+.step-status.waiting { background: #374151; }
+@keyframes blink { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* Connector line */
+.step-connector { width: 2px; height: 10px; background: var(--border); margin: 0 auto 0 30px; }
+
+/* Empty state */
+.pipe-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
+.pipe-empty-icon { font-size: 40px; opacity: .3; }
+.pipe-empty p { font-size: 13px; }
+
+/* ── DETAIL PANEL ── */
+.detail-panel { background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.detail-body { flex: 1; overflow-y: auto; padding: 10px; }
+.detail-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 12px; }
+
+.detail-section { margin-bottom: 12px; }
+.detail-section-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 5px; }
+.detail-block { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 11px; font-family: monospace; line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+.json-key { color: #79c0ff; }
+.json-str { color: #a5d6ff; }
+.json-num { color: #f2cc60; }
+.json-bool { color: #ff7b72; }
+.json-null { color: var(--muted); }
+.detail-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.detail-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+.detail-badge.ok { background: #1a2f1a; color: var(--green); border: 1px solid #2d4a2d; }
+.detail-badge.error { background: #1a0f0f; color: var(--red); border: 1px solid #3d1515; }
+.detail-ms { font-size: 11px; color: var(--orange); font-family: monospace; font-weight: 700; }
+
+/* Response preview */
+.response-preview { background: #0d1a0d; border: 1px solid #2d4a2d; border-radius: 8px; padding: 10px; margin-top: 4px; font-size: 12px; color: #86efac; line-height: 1.6; }
+.accion-chip { display: inline-block; background: #1a1a2e; border: 1px solid #3730a3; color: var(--purple); font-size: 10px; padding: 2px 7px; border-radius: 10px; margin: 2px; }
+
+/* Model selector */
+.model-selector { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+.model-selector:focus { outline: none; border-color: var(--orange); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Responsive preview bubble for final response */
+.final-response-card { background: #0d1a0d; border: 1px solid #2d4a2d; border-radius: 10px; padding: 12px; margin: 6px 0; }
+.final-response-label { font-size: 10px; color: var(--green); font-weight: 700; margin-bottom: 5px; }
+.final-response-text { font-size: 12px; color: #86efac; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <div class="logo-text">Bot Simulator</div>
+      <div class="logo-sub">Citrino — Test Panel (dry-run)</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge-test">● MODO TEST</span>
+    <div class="stats-bar">
+      <div class="stat">Tiempo total: <b id="s-total">—</b></div>
+      <div class="stat">Anthropic: <b id="s-ai">—</b></div>
+      <div class="stat">Costo est.: <b id="s-cost">—</b></div>
+      <div class="stat">Turno: <b id="s-turn">—</b></div>
+    </div>
+    <select class="model-selector" id="modelSelect">
+      <option value="claude-haiku-4-5-20251001">Haiku (barato 💚)</option>
+      <option value="claude-sonnet-4-6">Sonnet (mejor 🔶)</option>
+    </select>
+    <button class="btn btn-danger" onclick="clearSession()">🗑 Limpiar</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- CHAT PANEL -->
+  <div class="chat-panel">
+    <div class="panel-header">
+      <span>💬 Chat de prueba</span>
+    </div>
+    <div class="phone-row">
+      <div class="phone-label">Número de teléfono simulado</div>
+      <input class="phone-input" id="phoneInput" value="59891998151" placeholder="598XXXXXXXXX">
+      <div class="client-info" id="clientInfo">—</div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0">
+        Escribí un mensaje abajo para simular<br>una conversación con el bot 🤖
+      </div>
+    </div>
+    <div class="suggestions" id="suggestions">
+      <div class="sug-chip" onclick="useSuggestion(this)">Hola, quiero sacar turno</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">¿Cuánto sale un masaje?</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">Buenos días, ¿tienen lugar mañana?</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">Quiero renovar mi pack</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">¿Qué métodos de pago aceptan?</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">Confirmo para el viernes ✅</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">¿Tienen tarjetas de regalo?</div>
+      <div class="sug-chip" onclick="useSuggestion(this)">Quiero cancelar mi turno</div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-textarea" id="chatInput" placeholder="Escribí el mensaje a probar..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+        oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- PIPELINE CENTER -->
+  <div class="pipeline-panel">
+    <div class="panel-header">
+      <span>⚡ Pipeline de procesamiento</span>
+      <span id="pipeStatus" style="font-size:10px;color:var(--muted);text-transform:none;font-weight:400">En espera</span>
+    </div>
+    <div class="pipe-body" id="pipeBody">
+      <div class="pipe-empty">
+        <div class="pipe-empty-icon">⚡</div>
+        <p>Mandá un mensaje para ver el pipeline</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel">
+    <div class="panel-header">
+      <span>🔬 Detalle del paso</span>
+    </div>
+    <div class="detail-body" id="detailBody">
+      <div class="detail-empty">
+        <div style="font-size:30px;opacity:.3">🔬</div>
+        <span>Hacé click en un paso<br>para ver los detalles</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let currentSteps = [];
+let selectedStep = null;
+let processing = false;
+
+// ── Auto-resize textarea ─────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── Usar sugerencia ──────────────────────────────────────────
+function useSuggestion(el) {
+  document.getElementById('chatInput').value = el.textContent;
+  autoResize(document.getElementById('chatInput'));
+  document.getElementById('chatInput').focus();
+}
+
+// ── Limpiar sesión ───────────────────────────────────────────
+async function clearSession() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  await fetch(`/api/test/historial/${phone}`, { method: 'DELETE', headers: authHeaders() });
+  document.getElementById('chatMessages').innerHTML = `<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px 0">Sesión limpiada — podés empezar de nuevo 🔄</div>`;
+  document.getElementById('pipeBody').innerHTML = `<div class="pipe-empty"><div class="pipe-empty-icon">⚡</div><p>Mandá un mensaje para ver el pipeline</p></div>`;
+  document.getElementById('detailBody').innerHTML = `<div class="detail-empty"><div style="font-size:30px;opacity:.3">🔬</div><span>Hacé click en un paso<br>para ver los detalles</span></div>`;
+  resetStats();
+  currentSteps = [];
+}
+
+function resetStats() {
+  ['s-total','s-ai','s-cost','s-turn'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('clientInfo').textContent = '—';
+}
+
+// ── Auth headers ─────────────────────────────────────────────
+function authHeaders() {
+  const stored = localStorage.getItem('citrino_auth_v1');
+  if (stored) {
+    try {
+      const { user, pass } = JSON.parse(atob(stored));
+      return { 'Authorization': 'Basic ' + btoa(user + ':' + pass), 'Content-Type': 'application/json' };
+    } catch {}
+  }
+  const user = 'nico', pass = prompt('Contraseña de admin:', '');
+  if (pass) localStorage.setItem('citrino_auth_v1', btoa(JSON.stringify({ user, pass })));
+  return { 'Authorization': 'Basic ' + btoa(user + ':' + (pass||'')), 'Content-Type': 'application/json' };
+}
+
+// ── Enviar mensaje ───────────────────────────────────────────
+async function sendMessage() {
+  if (processing) return;
+  const text = document.getElementById('chatInput').value.trim();
+  if (!text) return;
+  const phone = document.getElementById('phoneInput').value.trim() || '59899000001';
+  const model = document.getElementById('modelSelect').value;
+
+  processing = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('chatInput').value = '';
+  document.getElementById('chatInput').style.height = 'auto';
+  document.getElementById('pipeStatus').textContent = 'Procesando...';
+
+  // Añadir mensaje del usuario al chat
+  addChatMsg(text, 'user');
+
+  // Mostrar dots de "pensando"
+  const thinkingEl = addThinkingDots();
+
+  // Iniciar pipeline visual
+  startPipelineAnimation();
+
+  try {
+    const t0 = Date.now();
+    const res = await fetch('/api/test/simulate', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ phone, text, model }),
+    });
+    const data = await res.json();
+    const totalMs = Date.now() - t0;
+
+    thinkingEl.remove();
+
+    if (!data.ok && !data.steps) {
+      addChatMsg(`❌ Error: ${data.error}`, 'bot', true);
+    } else {
+      // Mostrar respuesta final
+      addChatMsg(data.finalResponse || '[Sin respuesta]', 'bot');
+
+      // Actualizar pipeline con pasos reales
+      renderPipeline(data.steps, data);
+
+      // Stats
+      const aiStep = data.steps?.find(s => s.id === 'ai');
+      document.getElementById('s-total').textContent = (data.totalMs || totalMs) + 'ms';
+      document.getElementById('s-ai').textContent = aiStep ? aiStep.ms + 'ms' : '—';
+      document.getElementById('s-cost').textContent = data.costo?.usd ? '$' + data.costo.usd : '—';
+      document.getElementById('s-turn').textContent = data.historialTurns || 1;
+
+      // Info cliente
+      const c = data.cliente;
+      document.getElementById('clientInfo').textContent = c && !data.esNuevo
+        ? `✓ ${c.Nombre} — ${c.Estado || 'lead'}`
+        : '🆕 Cliente nuevo';
+
+      document.getElementById('pipeStatus').textContent = `✓ Completado en ${data.totalMs}ms`;
+
+      // Auto-seleccionar el paso de AI para mostrar la respuesta
+      setTimeout(() => selectStep('ai'), 200);
+    }
+  } catch (e) {
+    thinkingEl.remove();
+    addChatMsg(`❌ Error de red: ${e.message}`, 'bot', true);
+    document.getElementById('pipeStatus').textContent = '❌ Error';
+  }
+
+  processing = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addChatMsg(text, role, isError = false) {
+  const msgs = document.getElementById('chatMessages');
+  // Quitar placeholder si existe
+  const placeholder = msgs.querySelector('div[style]');
+  if (placeholder) placeholder.remove();
+
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+  const time = new Date().toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' });
+  row.innerHTML = `
+    <div>
+      <div class="msg-bubble ${isError ? 'error' : ''}">${text.replace(/\n/g, '<br>')}</div>
+      <div class="msg-meta">${time}</div>
+    </div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+  return row;
+}
+
+function addThinkingDots() {
+  const msgs = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'msg-row bot';
+  el.innerHTML = `<div class="thinking-dots"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return el;
+}
+
+// ── Pipeline animation ───────────────────────────────────────
+const STEP_DEFS = [
+  { id: 'parse',         name: 'Parser',           icon: '🔍', desc: 'Extrae teléfono, texto, hora' },
+  { id: 'crm_lookup',    name: 'CRM Lookup',        icon: '📊', desc: 'Busca cliente en Google Sheets' },
+  { id: 'disponibilidad',name: 'Disponibilidad',    icon: '📅', desc: 'Horarios disponibles' },
+  { id: 'context',       name: 'Contexto AI',       icon: '📋', desc: 'Arma el prompt del sistema' },
+  { id: 'ai',            name: 'Anthropic Claude',  icon: '🧠', desc: 'Genera la respuesta' },
+  { id: 'actions',       name: 'Acciones CRM',      icon: '⚙️', desc: 'Parsea acciones del response' },
+  { id: 'crm_update',    name: 'CRM Update',        icon: '✏️', desc: 'Actualizaría en Sheets' },
+  { id: 'send',          name: 'WhatsApp Envío',    icon: '📤', desc: 'Enviaría por Meta API' },
+];
+
+function startPipelineAnimation() {
+  currentSteps = STEP_DEFS.map(d => ({ ...d, status: 'waiting', ms: null, output: null }));
+  renderPipelineCards(currentSteps);
+  // Animar los primeros pasos como "running"
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i < currentSteps.length) {
+      currentSteps[i].status = 'running';
+      renderPipelineCards(currentSteps);
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 400);
+  // Guardar interval para cancelar después
+  window._pipeInterval = interval;
+}
+
+function renderPipeline(steps, data) {
+  clearInterval(window._pipeInterval);
+  // Merge real step data
+  const stepsById = {};
+  (steps || []).forEach(s => stepsById[s.id] = s);
+
+  currentSteps = STEP_DEFS.map(def => {
+    const real = stepsById[def.id];
+    return {
+      ...def,
+      status: real ? (real.ok ? 'ok' : 'error') : 'ok',
+      ms: real?.ms ?? 0,
+      data: real,
+    };
+  });
+  renderPipelineCards(currentSteps);
+}
+
+function renderPipelineCards(steps) {
+  const body = document.getElementById('pipeBody');
+  body.innerHTML = '';
+  steps.forEach((s, i) => {
+    if (i > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'step-connector';
+      body.appendChild(conn);
+    }
+    const card = document.createElement('div');
+    card.className = `step-card step-${s.status}${selectedStep === s.id ? ' active-step' : ''}`;
+    card.onclick = () => selectStep(s.id);
+
+    const def = STEP_DEFS.find(d => d.id === s.id) || s;
+    const desc = s.data?.output
+      ? buildStepSummary(s.id, s.data)
+      : def.desc;
+
+    card.innerHTML = `
+      <div class="step-icon" style="background:${stepBg(s.status)}">${def.icon}</div>
+      <div class="step-main">
+        <div class="step-name">${def.name}</div>
+        <div class="step-desc">${desc}</div>
+      </div>
+      <div class="step-right">
+        <div class="step-ms">${s.ms != null ? s.ms + 'ms' : ''}</div>
+        <div class="step-status ${s.status}"></div>
+      </div>`;
+    body.appendChild(card);
+  });
+}
+
+function stepBg(status) {
+  return { ok: '#0d2010', error: '#200d0d', running: '#0d1520', waiting: '#1a1f28' }[status] || '#1a1f28';
+}
+
+function buildStepSummary(id, data) {
+  try {
+    const o = data.output;
+    if (id === 'crm_lookup') return o.encontrado ? `✓ ${o.cliente?.Nombre} (${o.cliente?.Estado})` : '🆕 Cliente nuevo';
+    if (id === 'disponibilidad') return o.ok ? `${o.slots_preview?.length || 0} slots disponibles` : '⚠ Sin disponibilidad';
+    if (id === 'context') return `${o.system_chars?.toLocaleString() || '?'} chars · ${o.historial_msgs || 0} msgs historial`;
+    if (id === 'ai') return `${o.tokens?.input_tokens || '?'} in / ${o.tokens?.output_tokens || '?'} out tokens`;
+    if (id === 'actions') return `${o.acciones_detectadas || 0} acciones detectadas`;
+    if (id === 'crm_update') return `${o.updates?.length || 0} updates (dry-run)`;
+    if (id === 'send') return o.nota || 'No enviado (test)';
+  } catch {}
+  return STEP_DEFS.find(d => d.id === id)?.desc || '';
+}
+
+// ── Detail panel ─────────────────────────────────────────────
+function selectStep(stepId) {
+  selectedStep = stepId;
+  renderPipelineCards(currentSteps); // re-render to show selection
+
+  const step = currentSteps.find(s => s.id === stepId);
+  const body = document.getElementById('detailBody');
+
+  if (!step?.data) {
+    body.innerHTML = `<div class="detail-empty"><div style="font-size:30px;opacity:.3">⏳</div><span>Paso aún no ejecutado</span></div>`;
+    return;
+  }
+
+  const d = step.data;
+  const badge = d.ok !== false
+    ? `<span class="detail-badge ok">✓ OK</span>`
+    : `<span class="detail-badge error">✗ Error</span>`;
+
+  let html = `
+    <div class="detail-title">
+      <span>${step.icon || ''} ${step.name}</span>
+      ${badge}
+    </div>
+    <div class="detail-ms">${step.ms}ms</div>`;
+
+  // Respuesta final especial para AI
+  if (stepId === 'ai' && d.output?.response_full) {
+    html += `
+    <div class="final-response-card" style="margin-top:10px">
+      <div class="final-response-label">💬 Respuesta de Marta:</div>
+      <div class="final-response-text">${(d.output.response_full || '').replace(/<accion>[\s\S]*?<\/accion>/g, '').trim().replace(/\n/g,'<br>')}</div>
+    </div>`;
+    if (d.output.costo_usd) {
+      html += `<div style="font-size:10px;color:var(--muted);margin:6px 0">Costo est.: $${d.output.costo_usd} USD · ${d.output.tokens?.input_tokens} in / ${d.output.tokens?.output_tokens} out tokens</div>`;
+    }
+  }
+
+  // Acciones detectadas
+  if (stepId === 'actions' && d.output?.acciones?.length) {
+    html += `<div class="detail-section"><div class="detail-section-label">Acciones detectadas</div>`;
+    d.output.acciones.forEach(a => {
+      html += `<div style="margin:4px 0"><span class="accion-chip">⚙️ ${a.tipo || 'desconocida'}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // CRM Updates (dry run)
+  if (stepId === 'crm_update' && d.output?.updates?.length) {
+    html += `<div class="detail-section"><div class="detail-section-label">Qué haría en producción</div>`;
+    d.output.updates.forEach(u => {
+      html += `<div style="font-size:11px;color:var(--muted);margin-bottom:6px;padding:6px;background:var(--bg);border-radius:5px;border:1px solid var(--border)">
+        <div style="color:var(--purple);font-weight:600;margin-bottom:2px">⚙️ ${u.tipo}</div>
+        <div>${u.queHaria}</div>
+        <div style="color:#3d3d00;margin-top:2px">${u.mensaje}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Input
+  if (d.input) {
+    html += `<div class="detail-section"><div class="detail-section-label">Input</div><div class="detail-block">${syntaxHL(JSON.stringify(d.input, null, 2))}</div></div>`;
+  }
+
+  // Output
+  if (d.output) {
+    const outToShow = { ...d.output };
+    // Truncar response_full si está en AI (ya lo mostramos arriba)
+    if (stepId === 'ai') { delete outToShow.response_full; }
+    html += `<div class="detail-section"><div class="detail-section-label">Output</div><div class="detail-block">${syntaxHL(JSON.stringify(outToShow, null, 2))}</div></div>`;
+  }
+
+  if (d.error) {
+    html += `<div class="detail-section"><div class="detail-section-label" style="color:var(--red)">Error</div><div class="detail-block" style="color:var(--red)">${d.error}</div></div>`;
+  }
+
+  body.innerHTML = html;
+}
+
+function syntaxHL(json) {
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"([^"]+)":/g, (m, k) => `"<span class="json-key">${k}</span>":`)
+    .replace(/: "([^"]*)"/g, (m, v) => `: "<span class="json-str">${v.slice(0,120)}${v.length>120?'…':''}</span>"`)
+    .replace(/: ([0-9.]+)/g, (m, n) => `: <span class="json-num">${n}</span>`)
+    .replace(/: (true|false)/g, (m, b) => `: <span class="json-bool">${b}</span>`)
+    .replace(/: null/g, `: <span class="json-null">null</span>`);
+}
+</script>
+</body>
+</html>

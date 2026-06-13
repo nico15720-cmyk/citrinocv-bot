@@ -927,4 +927,4 @@ async function enviarEnPartes(userId, texto, canal) {
   }
 }
 
-module.exports = { handleIncomingMessage, chatsBloqueados };
+module.exports = { handleIncomingMessage, chatsBloqueados, SYSTEM_PROMPT };

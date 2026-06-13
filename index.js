@@ -1285,6 +1285,33 @@ app.get("/api/clientes/:userId/ltv", async (req, res) => {
 });
 
 // ============================================================
+// TEST SIMULATOR — Panel de prueba del bot (dry-run)
+// ============================================================
+app.post("/api/test/simulate", async (req, res) => {
+  try {
+    const { simulateMessage } = require("./bot/simulator");
+    const { phone = "59899000001", text, model, clearHistory } = req.body;
+    if (!text) return res.status(400).json({ error: "Falta el campo 'text'" });
+    const result = await simulateMessage({ phone, text, model, clearHistory });
+    res.json(result);
+  } catch (e) {
+    console.error("❌ Simulator error:", e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete("/api/test/historial/:phone", (req, res) => {
+  const { clearHistorialTest } = require("./bot/simulator");
+  clearHistorialTest(req.params.phone);
+  res.json({ ok: true });
+});
+
+// Panel de test — página HTML estática
+app.get("/app/test", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "app", "test", "index.html"));
+});
+
+// ============================================================
 // INICIAR
 // ============================================================
 const PORT = process.env.PORT || 3000;
