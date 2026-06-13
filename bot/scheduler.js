@@ -39,6 +39,22 @@ const MENSAJES = {
     `📅 *${fecha} a las ${hora}*\n\n` +
     `¿Confirmás que venís? Respondé *SÍ* para confirmar o *NO* si necesitás cancelar/reagendar.`,
 
+  // ── REMARKETING DIFERENCIADO POR OBJECIÓN ──────────────────
+  remarketingPrecio: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
+    `Sabemos que el precio a veces es una barrera, así que te cuento: si pagás por transferencia o en efectivo tenés un *10% de descuento* 💛\n\n` +
+    `¿Querés que te busquemos un horario esta semana?`,
+
+  remarketingDuda: (nombre, servicio) =>
+    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
+    `Consultaste sobre ${servicio || "el Método Citrino"} y queremos contarte que muchas clientas vienen con las mismas dudas y después de la primera sesión se enamoran 💆‍♀️\n\n` +
+    `¿Querés que te cuente más o te buscamos un horario para que lo pruebes?`,
+
+  remarketingTiempo: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
+    `Sabemos que el tiempo es lo que más escasea 😅 Por eso te avisamos: tenemos turnos disponibles de 50 min que podés encajar en cualquier parte del día.\n\n` +
+    `¿Cuál sería el mejor horario para vos esta semana?`,
+
   remarketingLead: (nombre, servicio) =>
     `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
     `Vimos que consultaste sobre ${servicio || "nuestros masajes"} y queríamos saber si pudimos ayudarte.\n\n` +
@@ -50,6 +66,15 @@ const MENSAJES = {
     `Hace un tiempo que no te vemos por Citrino y te extrañamos 💛\n\n` +
     `Si necesitás un espacio para vos, tenemos turnos disponibles. ¿Agendamos?`,
 
+  // ── UPSELL PACK POST-SESIÓN (24-48hs después de venir) ──────
+  upsellPack: (nombre) =>
+    `¡Hola ${nombre}! 🌿 Esperamos que hayas disfrutado mucho tu sesión en Citrino 💆‍♀️\n\n` +
+    `Te cuento que si querés continuar con el tratamiento, los packs te salen mucho mejor:\n\n` +
+    `✨ *Pack 4 sesiones → $5.100* (te ahorras $900)\n` +
+    `✨ *Pack 6 sesiones → $7.400* (te ahorras $1.600)\n` +
+    `✨ *Pack 8 sesiones → $9.600* (te ahorras $2.400)\n\n` +
+    `Los resultados se notan mucho más cuando es constante 🌿 ¿Te interesa?`,
+
   seguimientoPostSesion: (nombre) =>
     `¡Hola ${nombre}! 🌿 ¿Cómo te quedaste después de tu sesión en Citrino?\n\n` +
     `Esperamos que hayas disfrutado mucho 💆 Si querés repetir o tenés algún comentario, acá estamos.\n\n` +
@@ -58,6 +83,11 @@ const MENSAJES = {
   seguimientoConCuponera: (nombre, sesRest) =>
     `¡Hola ${nombre}! 🌿 ¿Cómo estás? Te recuerdo que tenés *${sesRest} ${sesRest === "1" ? "sesión" : "sesiones"} disponibles* en tu cuponera de Citrino.\n\n` +
     `¿Cuándo agendamos? 🌿`,
+
+  // ── RECUPERACIÓN DE NO-SHOW ──────────────────────────────────
+  recuperacionNoShow: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Vimos que hoy no pudiste venir a tu turno en Citrino, esperamos que estés bien 🙏\n\n` +
+    `Cuando quieras reagendamos sin problema. ¿Cuándo te quedaría bien esta semana?`,
 };
 
 // ============================================================
@@ -124,15 +154,114 @@ async function enviarRemarketing() {
       if (lead.estado === "vino") {
         mensaje = MENSAJES.remarketingClientaVino(nombre);
       } else {
-        mensaje = MENSAJES.remarketingLead(nombre, lead.servicio);
+        // Remarketing diferenciado por objeción
+        const objecion = (lead.objecion || "").toLowerCase();
+        if (objecion.includes("precio") || objecion.includes("caro") || objecion.includes("plata")) {
+          mensaje = MENSAJES.remarketingPrecio(nombre);
+        } else if (objecion.includes("tiempo") || objecion.includes("horario") || objecion.includes("ocupad")) {
+          mensaje = MENSAJES.remarketingTiempo(nombre);
+        } else if (objecion.includes("duda") || objecion.includes("piensa") || objecion.includes("segur")) {
+          mensaje = MENSAJES.remarketingDuda(nombre, lead.servicio);
+        } else {
+          mensaje = MENSAJES.remarketingLead(nombre, lead.servicio);
+        }
       }
 
       await enviarMensaje(lead.userId, mensaje, lead.canal || "whatsapp");
       await registrarRemarketing(lead.userId);
-      console.log(`✅ Remarketing enviado a ${lead.userId} (${nombre}) [${lead.categoria}]`);
+      console.log(`✅ Remarketing enviado a ${lead.userId} (${nombre}) [objecion: ${lead.objecion || "ninguna"}]`);
     } catch (err) {
       console.error(`❌ Error en remarketing a ${lead.userId}:`, err.message);
     }
+  }
+}
+
+// ============================================================
+// UPSELL PACK — 36hs después de la primera sesión
+// Corre todos los días a las 11:30
+// ============================================================
+async function enviarUpsellPack() {
+  console.log("💰 Ejecutando upsell de pack post-sesión...");
+  try {
+    const { readSheet, updateClienteEstado } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = Date.now();
+
+    for (const c of clientes) {
+      try {
+        if (c.Estado !== "vino") continue;
+        if (!c.Fecha_Turno) continue;
+        // Solo si vino entre 24 y 48hs atrás
+        const diffHoras = (ahora - new Date(c.Fecha_Turno)) / (1000 * 60 * 60);
+        if (diffHoras < 24 || diffHoras > 48) continue;
+        // Solo si no tiene cuponera activa
+        if (c.Cuponera === "si") continue;
+        // Evitar reenviar (NOTAS como flag)
+        if ((c.NOTAS || "").includes("[upsell_enviado]")) continue;
+
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+
+        await enviarMensaje(userId, MENSAJES.upsellPack(c.Nombre || ""), c.Origen || "whatsapp");
+        await updateClienteEstado(userId, "vino", { NOTAS: ((c.NOTAS || "") + " [upsell_enviado]").trim() });
+        console.log(`✅ Upsell pack enviado a ${userId} (${c.Nombre})`);
+      } catch (err) {
+        console.error(`❌ Error upsell a ${c.ID_Cliente}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en upsell pack:", err.message);
+  }
+}
+
+// ============================================================
+// CIERRE DE NO-SHOWS — 21hs del día
+// Quien tenía turno hoy y sigue "confirmado" → no_vino
+// ============================================================
+async function cerrarNoShows() {
+  console.log("🔍 Verificando no-shows del día...");
+  try {
+    const { readSheet, updateClienteEstado } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = new Date();
+    const inicioHoy = new Date(ahora); inicioHoy.setHours(0, 0, 0, 0);
+    const finHoy = new Date(ahora); finHoy.setHours(21, 0, 0, 0);
+
+    for (const c of clientes) {
+      try {
+        if (!["confirmado", "pendiente_confirmacion"].includes(c.Estado)) continue;
+        if (!c.Fecha_Turno) continue;
+        const ft = new Date(c.Fecha_Turno);
+        if (ft < inicioHoy || ft > finHoy) continue; // no era hoy
+
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+
+        // Marcar como no_vino
+        await updateClienteEstado(userId, "no_vino");
+
+        // Notificar a Nico
+        if (OWNER) {
+          await enviarMensaje(OWNER,
+            `⚠️ *No-show*: ${c.Nombre || userId} no vino a las ${new Date(c.Fecha_Turno).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })}`,
+            "whatsapp"
+          ).catch(() => {});
+        }
+
+        // Mensaje de recuperación (después de 1 hora)
+        setTimeout(async () => {
+          try {
+            await enviarMensaje(userId, MENSAJES.recuperacionNoShow(c.Nombre || ""), c.Origen || "whatsapp");
+          } catch {}
+        }, 60 * 60 * 1000);
+
+        console.log(`✅ No-show registrado: ${c.Nombre || userId}`);
+      } catch (err) {
+        console.error(`❌ Error no-show ${c.ID_Cliente}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en cerrarNoShows:", err.message);
   }
 }
 
@@ -602,6 +731,16 @@ function startScheduler() {
 
   // Seguimiento post-sesión: todos los días a las 11:00
   cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, {
+    timezone: "America/Montevideo",
+  });
+
+  // Upsell de pack: 36hs post-sesión, corre a las 11:30
+  cron.schedule("30 11 * * *", enviarUpsellPack, {
+    timezone: "America/Montevideo",
+  });
+
+  // Cierre de no-shows: todos los días a las 21:00
+  cron.schedule("0 21 * * *", cerrarNoShows, {
     timezone: "America/Montevideo",
   });
 
