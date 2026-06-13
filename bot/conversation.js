@@ -28,7 +28,7 @@ const {
 const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
 const { registrarUso } = require("./token-tracker");
-const { upsertCliente, appendRow: crmAppend } = require("./sheets-crm");
+const { upsertCliente, appendRow: crmAppend, updateClienteEstado } = require("./sheets-crm");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -241,6 +241,8 @@ Pack 8 sesiones → $9.600
 Para cancelar: <accion>{"tipo":"cancelar"}</accion>
 Para guardar servicio: <accion>{"tipo":"guardar_servicio","servicio":"nombre del servicio"}</accion>
 Para escalar a la dueña: <accion>{"tipo":"escalar","motivo":"descripción del problema"}</accion>
+Para guardar objeción (cuando no agenda): <accion>{"tipo":"guardar_objecion","objecion":"precio|tiempo|duda|otro","intencion":"servicio que le interesa"}</accion>
+IMPORTANTE: Cuando alguien muestra interés pero no agenda (dice "lo pienso", "capaz más adelante", "está caro", etc.), siempre usá guardar_objecion para registrar por qué no avanzó. Esto ayuda con el seguimiento futuro.
 
 IMPORTANTE: Las acciones van dentro de tu respuesta. El sistema las procesa y reemplaza.
 
@@ -429,6 +431,8 @@ async function procesarAccion(accion, userId, canal, nombre) {
           Telefono:    userId,
           Origen:      canal || "whatsapp",
           Fecha_Alta:  fechaHoy,
+          Estado:      "confirmado",
+          Fecha_Turno: slot.inicioISO || "",
           NOTAS:       "",
           Fecha_Nacimiento: "",
         });
@@ -469,7 +473,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
     case "guardar_nombre": {
       if (accion.nombre) {
         await registrarCliente({ userId, nombre: accion.nombre, canal });
-        // Sincronizar con CRM React
+        // Sincronizar con CRM React (estado prospecto si es nuevo)
         try {
           await upsertCliente({
             ID_Cliente:  userId,
@@ -477,12 +481,25 @@ async function procesarAccion(accion, userId, canal, nombre) {
             Telefono:    userId,
             Origen:      canal || "whatsapp",
             Fecha_Alta:  new Date().toISOString().split("T")[0],
+            Estado:      "prospecto",
             NOTAS:       "",
             Fecha_Nacimiento: "",
           });
         } catch {}
       }
       return null; // sin respuesta visible
+    }
+
+    case "guardar_objecion": {
+      if (accion.objecion) {
+        try {
+          await updateClienteEstado(userId, "prospecto", {
+            Objecion: accion.objecion,
+            Intencion_Compra: accion.intencion || "",
+          });
+        } catch {}
+      }
+      return null;
     }
 
     case "guardar_servicio": {
@@ -632,6 +649,46 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   }
   // Si el chat está bloqueado, no intervenir
   if (chatsBloqueados.has(userId)) return;
+
+  // ============================================================
+  // HANDLER SÍ/NO — Respuestas a confirmaciones de turno
+  // ============================================================
+  const textoNorm = text.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const esSi = /^(si|sí|yes|confirmo|confirmar|voy|voy!|si!|sí!|👍|✅|dale|va|va!|de acuerdo|perfecto|ok|okay)$/i.test(textoNorm);
+  const esNo = /^(no|no puedo|cancela|cancelar|no voy|no puedo ir|no vengo|👎|❌)$/i.test(textoNorm);
+
+  if (esSi || esNo) {
+    // Buscar si tiene turno pendiente de confirmación
+    try {
+      const { readSheet } = require("./sheets-crm");
+      const filas = await readSheet("CLIENTES").catch(() => []);
+      const cliente = filas.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+      if (cliente && cliente.Fecha_Turno && (cliente.Estado === "confirmado" || cliente.Estado === "pendiente_confirmacion" || cliente.Estado === "prospecto")) {
+        const fechaTurno = new Date(cliente.Fecha_Turno);
+        const ahora = new Date();
+        const diffHoras = (fechaTurno - ahora) / (1000 * 60 * 60);
+
+        // Solo aplica si el turno es en las próximas 48 horas
+        if (diffHoras > 0 && diffHoras <= 48) {
+          if (esSi) {
+            await updateClienteEstado(userId, "confirmado");
+            const hora = fechaTurno.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
+            await enviarMensaje(userId,
+              `¡Perfecto! 🙏 Confirmado para las ${hora}. ¡Te esperamos! Sarandí 554 apto. 1 — Frente a Plaza Matriz 💛`,
+              canal
+            );
+            return;
+          } else {
+            // NO → marcar como cancelado y ofrecer reagendar
+            await updateClienteEstado(userId, "no_confirmado");
+            agregarMensaje(userId, "user", text);
+            // Dejar que Claude responda (con contexto de cancela → reagendar)
+            // No hacemos return, sigue el flujo normal de Claude
+          }
+        }
+      }
+    } catch {}
+  }
 
   // Marcar como leído (para activar el doble tilde azul en WhatsApp)
   if (platform === "whatsapp" && messageId) {

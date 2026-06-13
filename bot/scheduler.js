@@ -539,10 +539,58 @@ async function procesarMensajeTerapeuta(ter, texto) {
 }
 
 // ============================================================
+// CONFIRMACIÓN 15HS — DÍA ANTERIOR AL TURNO
+// Corre todos los días a las 15:00
+// ============================================================
+async function enviarConfirmacion15hs() {
+  console.log("📋 Enviando confirmaciones de turno (15hs)...");
+  try {
+    const { getClientesParaConfirmar, updateClienteEstado } = require("./sheets-crm");
+    const clientes = await getClientesParaConfirmar();
+
+    for (const cliente of clientes) {
+      try {
+        const nombre = cliente.Nombre || "cliente";
+        const userId = cliente.ID_Cliente || cliente.Telefono;
+        if (!userId) continue;
+
+        const fechaTurno = new Date(cliente.Fecha_Turno);
+        const hora = fechaTurno.toLocaleTimeString("es-UY", {
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo",
+        });
+
+        const msg =
+          `¡Hola ${nombre}! 👋 Te confirmo que mañana tenés turno en Citrino.\n\n` +
+          `🕐 *${hora} hs*\n` +
+          `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz\n\n` +
+          `¿Confirmás que venís? Respondé *SÍ* para confirmar o *NO* si necesitás cancelar 🙏`;
+
+        await enviarMensaje(userId, msg, cliente.Origen || "whatsapp");
+        // Marcar como pendiente de confirmación
+        await updateClienteEstado(userId, "pendiente_confirmacion");
+        console.log(`✅ Confirmación 15hs enviada a ${userId} (${nombre})`);
+      } catch (err) {
+        console.error(`❌ Error confirmación 15hs a ${cliente.ID_Cliente}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en confirmación 15hs:", err.message);
+  }
+}
+
+// Nota: la agenda del día siguiente ya se envía a las 19hs (enviarAgendaTerapeutas)
+// y el resumen a Nico a las 20:05 (enviarAgendaManana). No se necesita cron adicional.
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
-  // Recordatorios: cada hora en punto
+  // Confirmación turno mañana — 15:00hs del día anterior
+  cron.schedule("0 15 * * *", enviarConfirmacion15hs, {
+    timezone: "America/Montevideo",
+  });
+
+  // Recordatorios 24hs: cada hora en punto (complementario a la confirmación 15hs)
   cron.schedule("0 * * * *", enviarRecordatorios, {
     timezone: "America/Montevideo",
   });

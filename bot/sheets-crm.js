@@ -11,7 +11,7 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
 
 // ─── Columnas por hoja ────────────────────────────────────────
 const HEADERS = {
-  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento'],
+  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento', 'Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno'],
   SESIONES: ['ID_Sesion', 'Fecha_Hora', 'Cliente', 'Tratamiento', 'Terapeuta', 'ID_Cliente_Guardado', 'Semana_Anio', 'Mes_Anio', 'A_Pagar_Terapeuta', 'ID_Cliente_Guardado2', 'Observaciones'],
   VENTAS:   ['Fecha', 'ID_Venta', 'Cliente', 'Producto', 'Monto', 'Forma_Pago', 'Notas', 'ID_Cliente_Guardado', 'Cantidad_Calculada', 'Ingreso_Real', 'Fecha_Vencimiento', 'Mes_Anio'],
   GASTOS:   ['Nombre', 'Monto', 'Mes_ID', 'Notas', 'Recurrente', 'Dia_Vencimiento'],
@@ -171,7 +171,7 @@ function colLetter(n) {
   return s;
 }
 
-// ─── Upsert cliente (crea si no existe, ignora si ya está) ───
+// ─── Upsert cliente (crea si no existe, actualiza Estado/Fecha_Turno si existe) ───
 async function upsertCliente(clienteObj) {
   try {
     await createSheetIfNotExists("CLIENTES");
@@ -181,10 +181,91 @@ async function upsertCliente(clienteObj) {
       range: "CLIENTES!A:A",
     });
     const ids = (resp.data.values || []).map(r => r[0]);
-    if (ids.includes(clienteObj.ID_Cliente)) return; // ya existe
-    await appendRow("CLIENTES", clienteObj);
+    const existingIdx = ids.indexOf(clienteObj.ID_Cliente);
+    if (existingIdx === -1) {
+      // Nuevo cliente → prospecto por defecto
+      if (!clienteObj.Estado) clienteObj.Estado = "prospecto";
+      await appendRow("CLIENTES", clienteObj);
+    } else {
+      // Ya existe → solo actualizar campos que vienen en el objeto (Estado, Fecha_Turno, etc.)
+      // No sobreescribir todo para preservar datos existentes
+      const rowIndex = existingIdx + 1; // 1-based (no hay +1 extra porque row 0 = header)
+      const headers = HEADERS.CLIENTES;
+      // Leer fila actual
+      const rowResp = await api.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `CLIENTES!A${rowIndex}:${colLetter(headers.length)}${rowIndex}`,
+      });
+      const currentRow = rowResp.data.values?.[0] || [];
+      const currentObj = {};
+      headers.forEach((h, i) => { currentObj[h] = currentRow[i] ?? ""; });
+      // Merge: solo actualizar campos que vienen en clienteObj y no están vacíos
+      const fieldsToUpdate = ['Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Nombre', 'NOTAS'];
+      fieldsToUpdate.forEach(f => {
+        if (clienteObj[f] !== undefined && clienteObj[f] !== "") {
+          currentObj[f] = clienteObj[f];
+        }
+      });
+      await updateRow("CLIENTES", rowIndex, currentObj);
+    }
   } catch (e) {
     console.error("[sheets-crm] upsertCliente error:", e.message);
+  }
+}
+
+// ─── Actualizar solo el estado de un cliente ──────────────────
+async function updateClienteEstado(userId, estado, extras = {}) {
+  try {
+    await createSheetIfNotExists("CLIENTES");
+    const api = await getSheets();
+    const resp = await api.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "CLIENTES!A:A",
+    });
+    const ids = (resp.data.values || []).map(r => r[0]);
+    const idx = ids.indexOf(userId);
+    if (idx === -1) {
+      // No existe → crear con estado
+      await appendRow("CLIENTES", {
+        ID_Cliente: userId, Telefono: userId, Origen: "whatsapp",
+        Fecha_Alta: new Date().toISOString().split("T")[0],
+        Estado: estado, ...extras,
+      });
+      return;
+    }
+    const rowIndex = idx + 1;
+    const headers = HEADERS.CLIENTES;
+    const rowResp = await api.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `CLIENTES!A${rowIndex}:${colLetter(headers.length)}${rowIndex}`,
+    });
+    const currentRow = rowResp.data.values?.[0] || [];
+    const currentObj = {};
+    headers.forEach((h, i) => { currentObj[h] = currentRow[i] ?? ""; });
+    currentObj.Estado = estado;
+    Object.assign(currentObj, extras);
+    await updateRow("CLIENTES", rowIndex, currentObj);
+  } catch (e) {
+    console.error("[sheets-crm] updateClienteEstado error:", e.message);
+  }
+}
+
+// ─── Obtener clientes con turno mañana (para confirmación 15hs) ───
+async function getClientesParaConfirmar() {
+  try {
+    const filas = await readSheet("CLIENTES");
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    const mananaStr = manana.toISOString().split("T")[0];
+
+    return filas.filter(f => {
+      if (!f.Fecha_Turno) return false;
+      const fechaTurno = f.Fecha_Turno.split("T")[0];
+      return fechaTurno === mananaStr && f.Estado !== "no_confirmado" && f.Estado !== "cancelado";
+    });
+  } catch (e) {
+    console.error("[sheets-crm] getClientesParaConfirmar error:", e.message);
+    return [];
   }
 }
 
@@ -226,6 +307,8 @@ module.exports = {
   deleteRow,
   bulkImport,
   upsertCliente,
+  updateClienteEstado,
+  getClientesParaConfirmar,
   getHorariosParaCalendar,
   HEADERS,
 };
