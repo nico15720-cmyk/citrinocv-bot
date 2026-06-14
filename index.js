@@ -207,7 +207,7 @@ app.post("/webhook", async (req, res) => {
 
     // Si es terapeuta → procesar como mensaje de terapeuta
     if (esTerapeuta && !modoMarta.has(msg.from)) {
-      if (msg.type === "audio" && process.env.GEMINI_API_KEY) {
+      if (msg.type === "audio" && process.env.GROQ_API_KEY) {
         try {
           const { procesarMensajeMedia } = require("./bot/media");
           const mediaT = await procesarMensajeMedia(msg);
@@ -231,7 +231,7 @@ app.post("/webhook", async (req, res) => {
     if (esAdmin) {
       if (msg.type === "audio") {
         // Audio del dueño — transcribir con Gemini si está disponible
-        if (process.env.GEMINI_API_KEY && media?.type === "audio_transcripto") {
+        if (process.env.GROQ_API_KEY && media?.type === "audio_transcripto") {
           await handleAdminMessage({ text: `[Nico por audio]: ${media.texto}`, platform: "whatsapp" });
         } else {
           const { enviarMensaje } = require("./bot/sender");

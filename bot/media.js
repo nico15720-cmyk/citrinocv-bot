@@ -92,39 +92,47 @@ function detectarTipoMedia(msg) {
 }
 
 // ============================================================
-// TRANSCRIBIR AUDIO CON GEMINI
-// Usa Google Gemini Flash (gratis y soporte de audio nativo)
-// Requiere GEMINI_API_KEY en .env
+// TRANSCRIBIR AUDIO CON GROQ WHISPER
+// Usa Groq Whisper (gratis, rápido, excelente en español)
+// Requiere GROQ_API_KEY en .env
 // ============================================================
-async function transcribirAudioConGemini(base64, mimeType) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function transcribirAudio(base64, mimeType) {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
 
   try {
-    const res = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        contents: [{
-          parts: [
-            {
-              inline_data: {
-                mime_type: mimeType || "audio/ogg",
-                data: base64,
-              }
-            },
-            {
-              text: "Transcribí este audio en español rioplatense (Uruguay). Devolvé SOLO el texto transcripto, sin comentarios ni explicaciones. Si el audio no tiene palabras claras, devolvé: [audio inaudible]"
-            }
-          ]
-        }]
-      },
-      { timeout: 20000 }
-    );
-    const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    if (text && !text.includes("[audio inaudible]")) return text.trim();
+    const buffer = Buffer.from(base64, "base64");
+    const ext = mimeType?.includes("ogg") ? "ogg"
+              : mimeType?.includes("mp4") || mimeType?.includes("m4a") ? "m4a"
+              : mimeType?.includes("webm") ? "webm"
+              : "ogg";
+    const mime = mimeType || "audio/ogg";
+
+    const form = new FormData();
+    form.append("file", new Blob([buffer], { type: mime }), `audio.${ext}`);
+    form.append("model", "whisper-large-v3-turbo");
+    form.append("language", "es");
+    form.append("response_format", "text");
+
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || res.statusText);
+    }
+
+    const text = await res.text();
+    if (text && text.trim()) {
+      console.log(`🎤 Groq transcripción: ${text.trim().slice(0, 80)}`);
+      return text.trim();
+    }
     return null;
   } catch (err) {
-    console.error("❌ Gemini transcripción:", err.response?.data?.error?.message || err.message);
+    console.error("❌ Groq transcripción:", err.message);
     return null;
   }
 }
@@ -138,20 +146,19 @@ async function procesarMensajeMedia(msg) {
   if (!tipo) return null;
 
   if (tipo === "audio") {
-    // Intentar transcribir con Gemini si hay API key
-    if (process.env.GEMINI_API_KEY && msg.audio?.id) {
+    // Intentar transcribir con Groq Whisper si hay API key
+    if (process.env.GROQ_API_KEY && msg.audio?.id) {
       try {
         const { base64, mimeType } = await descargarMediaWhatsApp(msg.audio.id);
-        const transcripcion = await transcribirAudioConGemini(base64, mimeType || "audio/ogg");
+        const transcripcion = await transcribirAudio(base64, mimeType || "audio/ogg");
         if (transcripcion) {
-          console.log(`🎤 Transcripción Gemini: ${transcripcion.slice(0, 80)}`);
           return { type: "audio_transcripto", texto: transcripcion };
         }
       } catch (err) {
         console.error("❌ No se pudo transcribir el audio:", err.message);
       }
     }
-    // Sin Gemini o falló la transcripción → Marta pedirá que escriban
+    // Sin API key o falló la transcripción → pedir que escriban
     return { type: "audio" };
   }
 
