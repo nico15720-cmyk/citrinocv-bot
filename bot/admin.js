@@ -1,7 +1,5 @@
 // ============================================================
 // CITRINO BOT — Módulo Admin (solo para el dueño)
-// El dueño le escribe por WhatsApp y Marta responde con datos
-// del negocio, CRM, estadísticas y acciones de gestión.
 // ============================================================
 
 const Anthropic = require("@anthropic-ai/sdk");
@@ -13,21 +11,27 @@ const {
   registrarCuponera,
   actualizarNotas,
   buscarCliente,
-  obtenerTodosLosPerfiles,
   actualizarEstado,
 } = require("./crm");
-const { crearTurno, resolverSlot, getEventosAgenda, getDisponibilidad, formatearDisponibilidad } = require("./calendar");
+const {
+  crearTurno,
+  resolverSlot,
+  getEventosAgenda,
+  getDisponibilidad,
+  marcarAsistencia,
+  cancelarTurno,
+} = require("./calendar");
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const TIMEZONE = "America/Montevideo";
 
 // Historial de conversación admin (en memoria)
 const historialAdmin = [];
-
 function agregarAdmin(role, content) {
   historialAdmin.push({ role, content });
-  if (historialAdmin.length > 30) historialAdmin.splice(0, historialAdmin.length - 30);
+  if (historialAdmin.length > 30) historialAdmin.splice(0, 30);
 }
 
 // ============================================================
@@ -35,51 +39,54 @@ function agregarAdmin(role, content) {
 // ============================================================
 async function recolectarDatosNegocio() {
   try {
-    // Eventos del calendar: hoy + próximos 7 días
     const ahora = new Date();
     const en7dias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const haceUnaSemana = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const haceUnMes = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
-    const [stats, clientes, eventosCalendar] = await Promise.all([
+    const [stats, clientes, sesiones] = await Promise.all([
       getStats(),
       leerTodosLosClientes(),
       getEventosAgenda(ahora, en7dias).catch(() => []),
     ]);
 
-    const hoy = new Date();
-    const haceUnaSemana = new Date(hoy - 7 * 24 * 60 * 60 * 1000);
-    const haceUnMes = new Date(hoy - 30 * 24 * 60 * 60 * 1000);
-
-    // Clientas con turno próximo (próximos 2 días)
-    const proximas48h = new Date(hoy.getTime() + 48 * 60 * 60 * 1000);
-    const conTurnoProximo = clientes.filter(c => {
-      if (!c.FechaTurno || c.Estado !== "agendado") return false;
-      const fecha = new Date(c.FechaTurno);
-      return fecha >= hoy && fecha <= proximas48h;
-    });
-
-    // Clientas nuevas esta semana
-    const nuevasEstaSemana = clientes.filter(c => {
-      if (!c.FechaAlta) return false;
-      return new Date(c.FechaAlta) >= haceUnaSemana;
-    });
-
-    // Clientas que no volvieron en 30+ días
-    const sinRegresarMes = clientes.filter(c => {
-      if (!c.UltimoContacto || c.Estado === "agendado") return false;
-      return new Date(c.UltimoContacto) < haceUnMes && c.Estado === "vino";
-    });
-
-    // Leads sin atender (más de 24hs sin respuesta)
-    const hace24h = new Date(hoy - 24 * 60 * 60 * 1000);
+    // Métricas del CRM
+    const nuevasEstaSemana = clientes.filter(c => c.FechaAlta && new Date(c.FechaAlta) >= haceUnaSemana).length;
+    const sinRegresarMes = clientes.filter(c =>
+      c.UltimoContacto && new Date(c.UltimoContacto) < haceUnMes && c.Estado === "vino"
+    ).length;
     const leadsSinAtender = clientes.filter(c =>
-      c.Estado === "lead" && c.UltimoContacto && new Date(c.UltimoContacto) < hace24h
-    );
-
-    // Ingresos estimados del mes
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      c.Estado === "lead" && c.UltimoContacto && new Date(c.UltimoContacto) < new Date(ahora.getTime() - 24 * 60 * 60 * 1000)
+    ).length;
     const vinieronEsteMes = clientes.filter(c =>
       c.Estado === "vino" && c.UltimoContacto && new Date(c.UltimoContacto) >= inicioMes
-    );
+    ).length;
+
+    // Sesiones de la hoja Sesiones — agrupadas por día, con ID para acciones
+    const sesionesMapeadas = sesiones
+      .filter(ev => ev.estado !== "cancelado")
+      .map(ev => {
+        const inicio = new Date(ev.inicio);
+        return {
+          id: ev.id,
+          clienteNombre: ev.clienteNombre || "?",
+          clienteId: ev.clienteId || "",
+          terapeuta: ev.terapeuta || "",
+          servicio: ev.servicio || "",
+          estado: ev.estado || "confirmado",
+          fecha: inicio.toLocaleDateString("es-UY", { weekday: "short", day: "numeric", month: "short", timeZone: TIMEZONE }),
+          hora: inicio.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: TIMEZONE }),
+          fechaISO: ev.inicio,
+        };
+      });
+
+    // Agrupar sesiones por día para el contexto
+    const sesionesAgrupadas = {};
+    sesionesMapeadas.forEach(s => {
+      if (!sesionesAgrupadas[s.fecha]) sesionesAgrupadas[s.fecha] = [];
+      sesionesAgrupadas[s.fecha].push(s);
+    });
 
     return {
       stats,
@@ -90,119 +97,150 @@ async function recolectarDatosNegocio() {
         leads: stats.leads,
         canceladas: stats.cancelados,
         conCuponera: stats.conCuponera,
-        ingresosMes: vinieronEsteMes.length * 1400, // precio promedio estimado
+        ingresosMes: vinieronEsteMes * 1400,
       },
-      proximas48h: conTurnoProximo,
-      nuevasEstaSemana: nuevasEstaSemana.length,
-      sinRegresar30dias: sinRegresarMes.length,
-      leadsSinAtender: leadsSinAtender.length,
-      // Sesiones de la hoja Sesiones (mismos datos que /app/agenda/)
-      eventosCalendar: eventosCalendar.map(ev => ({
-        clienteNombre: ev.clienteNombre || "Desconocido",
-        terapeuta: ev.terapeuta || "",
-        servicio: ev.servicio || "",
-        estado: ev.estado || "confirmado",
-        inicio: new Date(ev.inicio).toLocaleString("es-UY", {
-          weekday: "short", day: "numeric", month: "short",
-          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo"
-        }),
-      })),
+      nuevasEstaSemana,
+      sinRegresar30dias: sinRegresarMes,
+      leadsSinAtender,
+      sesiones: sesionesMapeadas,        // lista plana con IDs para acciones
+      sesionesAgrupadas,                  // agrupadas por día para el contexto
       totalClientes: clientes,
     };
   } catch (e) {
-    return { error: e.message };
+    console.error("❌ Error recolectarDatosNegocio:", e.message);
+    return { error: e.message, totales: {}, sesiones: [], sesionesAgrupadas: {}, totalClientes: [] };
   }
 }
 
 // ============================================================
-// EJECUTAR ACCIONES ADMIN (detectadas por Claude)
+// EJECUTAR ACCIONES ADMIN
 // ============================================================
-async function ejecutarAccionAdmin(accion, clientes) {
+async function ejecutarAccionAdmin(accion, datos) {
+  const clientes = datos.totalClientes || [];
+  const sesiones = datos.sesiones || [];
+
   try {
     switch (accion.tipo) {
 
-      case "marcar_asistencia": {
-        // Buscar cliente por nombre o teléfono
-        const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes(accion.nombre?.toLowerCase()) ||
-          c.ID === accion.telefono
+      // ── Marcar asistencia de sesión en hoja Sesiones ─────────
+      case "marcar_sesion": {
+        const estadoSesion = accion.vino !== false ? "vino" : "no_vino";
+
+        // Buscar sesión por nombre de cliente (case-insensitive, parcial)
+        const busqueda = (accion.nombre || "").toLowerCase();
+        let sesion = sesiones.find(s =>
+          s.clienteNombre?.toLowerCase().includes(busqueda) && s.estado !== "vino" && s.estado !== "no_vino"
         );
-        if (!cliente) return `No encontré a "${accion.nombre}" en el CRM.`;
-        await registrarAsistencia(cliente.ID, accion.vino !== false);
-        return `✅ Registré que ${cliente.Nombre} ${accion.vino !== false ? "vino" : "no vino"} a su sesión.`;
+
+        // Si no encontró pendiente, buscar cualquiera del día
+        if (!sesion && accion.nombre) {
+          sesion = sesiones.find(s => s.clienteNombre?.toLowerCase().includes(busqueda));
+        }
+
+        if (!sesion?.id) {
+          return `⚠️ No encontré sesión para "${accion.nombre}". Sesiones disponibles: ${sesiones.slice(0,5).map(s => s.clienteNombre).join(", ")}`;
+        }
+
+        await marcarAsistencia(sesion.id, estadoSesion);
+
+        // También actualizar CRM si tiene ID de cliente
+        if (sesion.clienteId) {
+          await registrarAsistencia(sesion.clienteId, accion.vino !== false).catch(() => {});
+        }
+
+        const emoji = estadoSesion === "vino" ? "✅" : "❌";
+        return `${emoji} *${sesion.clienteNombre}* — marcada como *${estadoSesion}* (${sesion.hora})`;
       }
 
+      // ── Cancelar sesión en hoja Sesiones ─────────────────────
+      case "cancelar_sesion": {
+        const busqueda = (accion.nombre || accion.hora || "").toLowerCase();
+        const sesion = sesiones.find(s =>
+          s.clienteNombre?.toLowerCase().includes(busqueda) ||
+          s.hora?.includes(busqueda)
+        );
+
+        if (!sesion?.id) {
+          return `⚠️ No encontré la sesión de "${accion.nombre || accion.hora}". Sesiones: ${sesiones.slice(0,5).map(s => `${s.hora} ${s.clienteNombre}`).join(", ")}`;
+        }
+
+        await cancelarTurno(sesion.id);
+        return `🗑️ Sesión cancelada: *${sesion.clienteNombre}* — ${sesion.hora}`;
+      }
+
+      // ── Marcar asistencia en CRM (cliente por nombre/tel) ────
+      case "marcar_asistencia": {
+        const cliente = clientes.find(c =>
+          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
+          c.ID === accion.telefono
+        );
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre}" en el CRM.`;
+        await registrarAsistencia(cliente.ID, accion.vino !== false);
+        return `✅ ${cliente.Nombre} — marcada como ${accion.vino !== false ? "vino" : "no vino"} en el CRM.`;
+      }
+
+      // ── Nota de cliente ───────────────────────────────────────
       case "agregar_nota": {
         const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes(accion.nombre?.toLowerCase()) ||
+          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
           c.ID === accion.telefono
         );
-        if (!cliente) return `No encontré a "${accion.nombre}".`;
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
         await actualizarNotas(cliente.ID, accion.nota);
-        return `✅ Nota agregada a ${cliente.Nombre}: "${accion.nota}"`;
+        return `📝 Nota agregada a *${cliente.Nombre}*: "${accion.nota}"`;
       }
 
+      // ── Registrar cuponera ────────────────────────────────────
       case "registrar_cuponera": {
         const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes(accion.nombre?.toLowerCase()) ||
+          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
           c.ID === accion.telefono
         );
-        if (!cliente) return `No encontré a "${accion.nombre}".`;
-        const sesiones = accion.sesiones || 4;
-        await registrarCuponera(cliente.ID, sesiones);
-        return `✅ Cuponera de ${sesiones} sesiones registrada para ${cliente.Nombre}.`;
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
+        const sesionesN = accion.sesiones || 4;
+        await registrarCuponera(cliente.ID, sesionesN);
+        return `🎟️ Cuponera de *${sesionesN} sesiones* registrada para *${cliente.Nombre}*.`;
       }
 
+      // ── Cambiar estado CRM ───────────────────────────────────
       case "cambiar_estado": {
         const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes(accion.nombre?.toLowerCase()) ||
+          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
           c.ID === accion.telefono
         );
-        if (!cliente) return `No encontré a "${accion.nombre}".`;
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
         await actualizarEstado(cliente.ID, accion.estado);
-        return `✅ Estado de ${cliente.Nombre} cambiado a "${accion.estado}".`;
+        return `✅ *${cliente.Nombre}* → estado cambiado a "${accion.estado}".`;
       }
 
+      // ── Agendar turno nuevo ───────────────────────────────────
       case "agendar_turno": {
-        // Buscar el slot en Calendar
-        const slots = await getDisponibilidad();
-        // Buscar por fecha y hora aproximada
-        const slotBuscado = slots.find(s => {
-          const fechaSlot = new Date(s.inicioISO);
-          const diaCorrecto = accion.fecha
-            ? fechaSlot.toLocaleDateString("es-UY", { timeZone: "America/Montevideo" }).includes(accion.fecha) ||
-              s.fecha === accion.fecha ||
-              fechaSlot.toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" }).toLowerCase().includes((accion.dia || "").toLowerCase())
-            : false;
-          const horaSlot = fechaSlot.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
-          const horaCorrecto = accion.hora ? horaSlot === accion.hora || horaSlot.startsWith(accion.hora.replace(":00","").replace("hs","").trim()) : false;
-          return diaCorrecto && horaCorrecto;
-        });
+        let slot;
+        if (accion.slot_id) {
+          // Slot ya resuelto
+          const slots = await getDisponibilidad();
+          slot = slots.find(s => s.inicioISO === accion.slot_id) || slots[0];
+        } else {
+          slot = await resolverSlot(accion.dia || accion.fecha || "", accion.hora || "").catch(() => null);
+        }
 
-        if (!slotBuscado) {
-          // Intentar con resolverSlot
-          const slot = await resolverSlot(accion.dia || accion.fecha || "", accion.hora || "").catch(() => null);
-          if (!slot) {
-            return `⚠️ No encontré el horario ${accion.hora} del ${accion.dia || accion.fecha}. Los slots disponibles son:\n${slots.slice(0,5).map(s=>s.label).join(", ")}`;
-          }
-          const evento = await crearTurno({
-            nombre: accion.nombre || "Clienta",
-            telefono: accion.telefono || "sin-tel",
-            servicio: accion.servicio || "Sesión",
-            slot,
-          });
-          return `✅ *Turno creado en Google Calendar*\n📅 ${slot.label}\n👤 ${accion.nombre || "Clienta"}\n💆 ${accion.servicio || "Sesión"}\n🔗 Link: ${evento.htmlLink || "ver en Calendar"}`;
+        if (!slot) {
+          const slots = await getDisponibilidad();
+          const proximos = slots.slice(0, 5).map(s => s.label).join(", ");
+          return `⚠️ No encontré el horario ${accion.hora || ""} del ${accion.dia || accion.fecha || ""}.\nSlots disponibles: ${proximos}`;
         }
 
         const evento = await crearTurno({
           nombre: accion.nombre || "Clienta",
           telefono: accion.telefono || "sin-tel",
-          servicio: accion.servicio || "Sesión",
-          slot: slotBuscado,
+          servicio: accion.servicio || "Masaje Descontracturante",
+          slot,
         });
-        return `✅ *Turno creado en Google Calendar*\n📅 ${slotBuscado.label}\n👤 ${accion.nombre || "Clienta"}\n💆 ${accion.servicio || "Sesión"}\n🔗 Link: ${evento.htmlLink || "ver en Calendar"}`;
+
+        return `✅ *Turno creado en la Agenda*\n📅 ${slot.label}\n👤 ${accion.nombre || "Clienta"}\n💆 ${accion.servicio || "Masaje"}`;
       }
 
+      // ── Generar reporte en Sheets ─────────────────────────────
       case "generar_reporte": {
         let resultado;
         const tipo = (accion.tipo_reporte || "").toLowerCase();
@@ -212,17 +250,29 @@ async function ejecutarAccionAdmin(accion, clientes) {
         else if (tipo.includes("cupon")) resultado = await reporteCuponeras(clientes);
         else if (tipo.includes("agend")) resultado = await reporteAgendadas(clientes);
         else resultado = await reporteLeads(clientes);
-
-        return `✅ *Reporte creado en Google Sheets*\n📊 Tab: "${resultado.tab}"\n📝 ${resultado.registros} registros\n🔗 ${resultado.url}`;
+        return `📊 *Reporte "${resultado.tab}"* — ${resultado.registros} registros\n🔗 ${resultado.url}`;
       }
 
       default:
         return null;
     }
   } catch (e) {
-    console.error("❌ Error en acción admin:", e.message);
-    return `❌ Error ejecutando la acción: ${e.message}`;
+    console.error("❌ Error acción admin:", e.message);
+    return `❌ Error: ${e.message}`;
   }
+}
+
+// ============================================================
+// CONSTRUIR CONTEXTO DE SESIONES PARA EL SYSTEM PROMPT
+// ============================================================
+function formatearSesionesContexto(sesionesAgrupadas) {
+  if (!sesionesAgrupadas || !Object.keys(sesionesAgrupadas).length) {
+    return "Sin sesiones en los próximos 7 días.";
+  }
+  return Object.entries(sesionesAgrupadas).map(([fecha, ss]) => {
+    const items = ss.map(s => `  • ${s.hora} | ${s.clienteNombre} | ${s.terapeuta || "–"} | ${s.estado}`).join("\n");
+    return `📅 ${fecha} (${ss.length} turno${ss.length !== 1 ? "s" : ""}):\n${items}`;
+  }).join("\n\n");
 }
 
 // ============================================================
@@ -230,48 +280,40 @@ async function ejecutarAccionAdmin(accion, clientes) {
 // ============================================================
 async function handleAdminMessage({ text, platform }) {
   const ownerId = process.env.OWNER_WHATSAPP;
+  console.log(`🔑 [ADMIN] Mensaje: ${text?.slice(0, 80)}`);
 
-  console.log(`🔑 [ADMIN] Mensaje del dueño: ${text}`);
-
-  // Recolectar datos frescos del negocio
+  // Recolectar datos frescos
   const datos = await recolectarDatosNegocio();
   const clientes = datos.totalClientes || [];
 
-  // Construir resumen de datos para Claude
-  const resumenNegocio = `
-=== DATOS ACTUALES DEL NEGOCIO (${new Date().toLocaleDateString("es-UY")}) ===
-Total clientas en CRM: ${datos.totales?.clientes || 0}
-Agendadas: ${datos.totales?.agendadas || 0}
-Vinieron: ${datos.totales?.vinieron || 0}
-Leads activos: ${datos.totales?.leads || 0}
-Canceladas: ${datos.totales?.canceladas || 0}
-Con cuponera: ${datos.totales?.conCuponera || 0}
-Nuevas esta semana: ${datos.nuevasEstaSemana || 0}
-Sin regresar +30 días: ${datos.sinRegresar30dias || 0}
-Leads sin atender +24hs: ${datos.leadsSinAtender || 0}
-Ingresos estimados este mes: $${datos.totales?.ingresosMes?.toLocaleString("es-UY") || 0} UYU
-
-Sesiones agendadas (hoja Sesiones — próximos 7 días):
-${datos.eventosCalendar?.length > 0
-    ? datos.eventosCalendar.filter(ev => ev.estado !== "cancelado").map(ev =>
-        `• ${ev.inicio} | ${ev.clienteNombre} | ${ev.terapeuta} | ${ev.servicio}`
-      ).join("\n")
-    : "sin sesiones agendadas"}
-
-Lista de clientas (primeras 20):
-${clientes.slice(0, 20).map(c =>
-    `- ${c.Nombre || "Sin nombre"} | Tel: ${c.ID} | Estado: ${c.Estado} | Servicio: ${c.Servicio} | Último contacto: ${c.UltimoContacto?.split("T")[0] || "-"}`
-  ).join("\n")}
-${clientes.length > 20 ? `... y ${clientes.length - 20} más` : ""}
-`;
-
-  // ── SELF-FIX: detectar si es instrucción de cambio ──
+  // ── SELF-FIX: detectar instrucción de cambio de config ──
   const cambioAplicado = await detectarYAplicarCambio(text);
   if (cambioAplicado) {
-    const confirmacion = `✅ *Cambio aplicado:* ${cambioAplicado}\n\nEl sistema se actualizó automáticamente. Podés ver todos los cambios en el dashboard → Config.`;
-    await enviarMensaje(ownerId, confirmacion, platform);
-    return; // no continuar con el flujo admin normal
+    await enviarMensaje(ownerId, `✅ *Cambio aplicado:* ${cambioAplicado}`, platform);
+    return;
   }
+
+  // Construir contexto de negocio
+  const resumenNegocio = `
+=== DATOS DEL NEGOCIO (${new Date().toLocaleDateString("es-UY", { timeZone: TIMEZONE })}) ===
+
+CRM:
+• Total clientas: ${datos.totales?.clientes || 0}
+• Agendadas: ${datos.totales?.agendadas || 0} | Vinieron: ${datos.totales?.vinieron || 0}
+• Leads activos: ${datos.totales?.leads || 0} | Sin atender +24hs: ${datos.leadsSinAtender || 0}
+• Con cuponera: ${datos.totales?.conCuponera || 0}
+• Nuevas esta semana: ${datos.nuevasEstaSemana || 0}
+• Sin regresar +30 días: ${datos.sinRegresar30dias || 0}
+• Ingresos estimados este mes: $${(datos.totales?.ingresosMes || 0).toLocaleString("es-UY")} UYU
+
+SESIONES PRÓXIMOS 7 DÍAS (hoja Sesiones — misma fuente que /app/agenda/):
+${formatearSesionesContexto(datos.sesionesAgrupadas)}
+
+CLIENTAS EN CRM (primeras 20):
+${clientes.slice(0, 20).map(c =>
+    `• ${c.Nombre || "–"} | ${c.ID} | ${c.Estado} | ${c.Servicio || "–"} | última visita: ${c.UltimoContacto?.split("T")[0] || "–"}`
+  ).join("\n")}${clientes.length > 20 ? `\n... y ${clientes.length - 20} más` : ""}
+`.trim();
 
   agregarAdmin("user", text);
 
@@ -279,90 +321,109 @@ ${clientes.length > 20 ? `... y ${clientes.length - 20} más` : ""}
   try {
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 800,
-      system: `Sos el asistente administrativo interno de Citrino. Solo hablás con Nico, el dueño.
-Sos directo, conciso y útil. Usás "vos". Sos el panel de control privado del negocio.
+      max_tokens: 1000,
+      system: `Sos el panel de control privado de Citrino. Solo hablás con Nico, el dueño.
+Sos directo, conciso, usás "vos". Respondés siempre en base a los datos reales del contexto.
 
-⚠️ MUY IMPORTANTE — YA TENÉS TODO CONECTADO:
-- Google Sheets CRM: conectado y funcionando. Los datos de clientas son REALES.
-- Hoja Sesiones: conectada y funcionando. Las sesiones que ves arriba son las MISMAS que aparecen en citrinobienestar.uy/app/agenda/ — son datos reales.
-- NUNCA digas que no estás conectado. SIEMPRE estás conectado.
-- Si los datos muestran 0 sesiones o 0 clientas, es porque el negocio está arrancando, no porque no estés conectado.
+⚠️ IMPORTANTE:
+- Google Sheets (CRM + hoja Sesiones) están CONECTADOS. Los datos son REALES.
+- Las sesiones del contexto son las mismas que ve Nico en citrinobienestar.uy/app/agenda/
+- NUNCA digas que no estás conectado o que no tenés datos.
 
-Procesás TODO lo que Nico te manda en lenguaje natural: notas del día, observaciones de clientas, lo que pasó en las sesiones.
-Cuando Nico te mande un texto libre → extraés la info y ejecutás las acciones automáticamente.
-Podés ejecutar MÚLTIPLES acciones poniendo varios bloques seguidos.
+═══ ACCIONES DISPONIBLES ═══
+Cuando Nico te manda texto libre, extraés la info y ejecutás las acciones necesarias.
+Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 
-Acciones disponibles:
-<admin_accion>{"tipo":"marcar_asistencia","nombre":"Ana","vino":true}</admin_accion>
+<admin_accion>{"tipo":"marcar_sesion","nombre":"Nadia","vino":true}</admin_accion>
+→ Marca sesión en la hoja Sesiones (por nombre de clienta). vino:false para ausencia.
+
+<admin_accion>{"tipo":"marcar_sesion","nombre":"Nadia","vino":false}</admin_accion>
+→ Marca ausencia de Nadia en la hoja Sesiones.
+
+<admin_accion>{"tipo":"cancelar_sesion","nombre":"Ana"}</admin_accion>
+→ Cancela la sesión de Ana en la hoja Sesiones. También podés buscar por hora: {"hora":"15:30"}
+
 <admin_accion>{"tipo":"agregar_nota","nombre":"María","nota":"le dolía la zona lumbar"}</admin_accion>
+→ Agrega nota en el CRM de María.
+
 <admin_accion>{"tipo":"registrar_cuponera","nombre":"Laura","sesiones":6}</admin_accion>
-<admin_accion>{"tipo":"cambiar_estado","nombre":"Julia","estado":"vino"}</admin_accion>
-<admin_accion>{"tipo":"agendar_turno","nombre":"Susana","telefono":"098123456","dia":"mañana","fecha":"2026-06-06","hora":"10:30","servicio":"Masaje"}</admin_accion>
+→ Registra cuponera de N sesiones en el CRM.
+
+<admin_accion>{"tipo":"cambiar_estado","nombre":"Julia","estado":"cancelado"}</admin_accion>
+→ Cambia estado en el CRM. Estados: lead, agendado, vino, no_vino, cancelado.
+
+<admin_accion>{"tipo":"agendar_turno","nombre":"Susana","telefono":"098123456","dia":"mañana","hora":"10:30","servicio":"Masaje Descontracturante"}</admin_accion>
+→ Crea nueva sesión en la hoja Sesiones. Usá siempre esta acción para agendar.
+
 <admin_accion>{"tipo":"generar_reporte","tipo_reporte":"leads"}</admin_accion>
-<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"inactivas","dias":30}</admin_accion>
-<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"vip"}</admin_accion>
-<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"cuponeras"}</admin_accion>
-<admin_accion>{"tipo":"generar_reporte","tipo_reporte":"agendadas"}</admin_accion>
+→ Crea pestaña en Sheets. Tipos: leads, vip, inactivas, cuponeras, agendadas.
 
-Reportes disponibles: leads, vip, inactivas, cuponeras, agendadas.
-Cuando Nico pida "dame la lista de leads" o "exportá las inactivas" → generar_reporte.
-El reporte se crea como pestaña nueva en el Google Sheet y le das el link.
+═══ EJEMPLOS DE PROCESAMIENTO ═══
+"Nadia vino hoy, le dolía la zona lumbar"
+→ marcar_sesion (vino:true) + agregar_nota
 
-IMPORTANTE sobre agendar:
-- SIEMPRE usá la acción agendar_turno para crear eventos — NUNCA digas que agendaste sin ejecutarla
-- La disponibilidad real está en el contexto bajo "Disponibilidad próximos 7 días"
-- Si el horario pedido no aparece en los slots disponibles, decíselo a Nico
-- Cuando agendás, el evento se crea REALMENTE en Google Calendar
+"Ana no vino"
+→ marcar_sesion (vino:false)
 
-Ejemplos de cómo procesar texto libre de Nico:
-- "Alejandra vino hoy, le dolía la zona lumbar" → marcar_asistencia + agregar_nota
-- "Laura compró cuponera de 6 sesiones" → registrar_cuponera
-- "Sofía canceló su turno" → cambiar_estado cancelado
-- "Agendá a Susana mañana a las 10:30" → agendar_turno (con los datos disponibles)
-- "Hay algo mañana a las 9?" → consultá la disponibilidad del contexto y respondé
-- "¿Qué tengo mañana?" → mirá los turnos proximas48h y respondé con los datos reales
+"Cancelá el turno de las 15:30"
+→ cancelar_sesion (hora:"15:30")
 
-Clasificación de clientas:
-- VIP 🌟: viene seguido, cuponera activa
-- Regular 💚: viene cada 2-4 semanas
-- Lead tibio 🌡️: consultó, tiene potencial
-- Lead frío ❄️: sin respuesta +48hs
-- En riesgo ⚠️: vino pero no volvió en +30 días
+"Laura compró cuponera de 6"
+→ registrar_cuponera (sesiones:6)
 
-${resumenNegocio}
+"Agendá a Susana mañana a las 10:30"
+→ agendar_turno
 
-Respondé siempre en base a los datos reales. Si no tenés el dato, decilo.`,
+"¿Qué tengo mañana?" / "¿Hay algo mañana?"
+→ Mirá las sesiones del contexto y respondé con los datos reales. Formato: hora + nombre + terapeuta.
+
+"Dame la lista de leads"
+→ generar_reporte (tipo:leads)
+
+"¿Quién faltó esta semana?"
+→ Buscá sesiones con estado no_vino en el contexto.
+
+═══ CLASIFICACIÓN DE CLIENTAS ═══
+VIP 🌟 cuponera activa + viene seguido | Regular 💚 cada 2-4 semanas
+Lead tibio 🌡️ consultó, tiene potencial | Lead frío ❄️ sin respuesta +48hs
+En riesgo ⚠️ no volvió en +30 días
+
+${resumenNegocio}`,
       messages: historialAdmin.map(m => ({ role: m.role, content: m.content })),
     });
 
     const textoRespuesta = response.content[0].text;
-    console.log(`🔑 [ADMIN] Respuesta: ${textoRespuesta.slice(0, 100)}...`);
+    console.log(`🔑 [ADMIN] Respuesta: ${textoRespuesta.slice(0, 100)}`);
 
-    // Detectar y ejecutar acción admin si existe
-    const accionMatch = textoRespuesta.match(/<admin_accion>([\s\S]*?)<\/admin_accion>/);
-    let respuestaFinal = textoRespuesta.replace(/<admin_accion>[\s\S]*?<\/admin_accion>/, "").trim();
+    // ── Ejecutar TODAS las acciones (múltiples bloques) ──────
+    const accionRegex = /<admin_accion>([\s\S]*?)<\/admin_accion>/g;
+    const matches = [...textoRespuesta.matchAll(accionRegex)];
+    let respuestaFinal = textoRespuesta.replace(accionRegex, "").trim();
+    const resultadosAcciones = [];
 
-    if (accionMatch) {
+    for (const match of matches) {
       try {
-        const accion = JSON.parse(accionMatch[1]);
-        const resultadoAccion = await ejecutarAccionAdmin(accion, clientes);
-        if (resultadoAccion) {
-          respuestaFinal = respuestaFinal
-            ? `${respuestaFinal}\n\n${resultadoAccion}`
-            : resultadoAccion;
-        }
-      } catch {}
+        const accion = JSON.parse(match[1]);
+        const resultado = await ejecutarAccionAdmin(accion, datos);
+        if (resultado) resultadosAcciones.push(resultado);
+      } catch (e) {
+        console.error("❌ Error ejecutando acción:", e.message);
+      }
     }
 
-    respuesta = respuestaFinal;
+    if (resultadosAcciones.length) {
+      respuestaFinal = respuestaFinal
+        ? `${respuestaFinal}\n\n${resultadosAcciones.join("\n")}`
+        : resultadosAcciones.join("\n");
+    }
+
+    respuesta = respuestaFinal || "✅ Hecho.";
   } catch (err) {
+    console.error("❌ Error admin:", err.message);
     respuesta = `❌ Error: ${err.message}`;
   }
 
   agregarAdmin("assistant", respuesta);
-
-  // Enviar respuesta al dueño
   await enviarMensaje(ownerId, respuesta, platform);
 }
 
