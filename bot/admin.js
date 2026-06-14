@@ -16,7 +16,7 @@ const {
   obtenerTodosLosPerfiles,
   actualizarEstado,
 } = require("./crm");
-const { getDisponibilidad, formatearDisponibilidad, crearTurno, resolverSlot } = require("./calendar");
+const { crearTurno, resolverSlot, getEventosAgenda, getDisponibilidad, formatearDisponibilidad } = require("./calendar");
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 
@@ -35,10 +35,14 @@ function agregarAdmin(role, content) {
 // ============================================================
 async function recolectarDatosNegocio() {
   try {
-    const [stats, clientes, disponibilidad] = await Promise.all([
+    // Eventos del calendar: hoy + próximos 7 días
+    const ahora = new Date();
+    const en7dias = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const [stats, clientes, eventosCalendar] = await Promise.all([
       getStats(),
       leerTodosLosClientes(),
-      getDisponibilidad(),
+      getEventosAgenda(ahora, en7dias).catch(() => []),
     ]);
 
     const hoy = new Date();
@@ -92,20 +96,17 @@ async function recolectarDatosNegocio() {
       nuevasEstaSemana: nuevasEstaSemana.length,
       sinRegresar30dias: sinRegresarMes.length,
       leadsSinAtender: leadsSinAtender.length,
-      disponibilidad: formatearDisponibilidad(disponibilidad),
-      disponibilidadPorDia: (() => {
-        const porDia = {};
-        for (const s of disponibilidad) {
-          if (!porDia[s.fecha]) porDia[s.fecha] = [];
-          porDia[s.fecha].push(s.horaLabel || s.label);
-        }
-        return Object.entries(porDia).map(([fecha, horas]) => {
-          const f = new Date(fecha + "T12:00:00");
-          const label = f.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
-          return `${label}: ${horas.join(", ")}`;
-        }).join("\n");
-      })(),
-      slotsRaw: disponibilidad,
+      // Sesiones de la hoja Sesiones (mismos datos que /app/agenda/)
+      eventosCalendar: eventosCalendar.map(ev => ({
+        clienteNombre: ev.clienteNombre || "Desconocido",
+        terapeuta: ev.terapeuta || "",
+        servicio: ev.servicio || "",
+        estado: ev.estado || "confirmado",
+        inicio: new Date(ev.inicio).toLocaleString("es-UY", {
+          weekday: "short", day: "numeric", month: "short",
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo"
+        }),
+      })),
       totalClientes: clientes,
     };
   } catch (e) {
@@ -250,12 +251,12 @@ Sin regresar +30 días: ${datos.sinRegresar30dias || 0}
 Leads sin atender +24hs: ${datos.leadsSinAtender || 0}
 Ingresos estimados este mes: $${datos.totales?.ingresosMes?.toLocaleString("es-UY") || 0} UYU
 
-Próximos turnos (48hs): ${datos.proximas48h?.length > 0
-    ? datos.proximas48h.map(c => `${c.Nombre} — ${c.FechaTurno}`).join(", ")
-    : "ninguno"}
-
-Disponibilidad próximos 7 días (slots libres en Google Calendar):
-${datos.disponibilidadPorDia || "sin slots disponibles"}
+Sesiones agendadas (hoja Sesiones — próximos 7 días):
+${datos.eventosCalendar?.length > 0
+    ? datos.eventosCalendar.filter(ev => ev.estado !== "cancelado").map(ev =>
+        `• ${ev.inicio} | ${ev.clienteNombre} | ${ev.terapeuta} | ${ev.servicio}`
+      ).join("\n")
+    : "sin sesiones agendadas"}
 
 Lista de clientas (primeras 20):
 ${clientes.slice(0, 20).map(c =>
@@ -283,11 +284,10 @@ ${clientes.length > 20 ? `... y ${clientes.length - 20} más` : ""}
 Sos directo, conciso y útil. Usás "vos". Sos el panel de control privado del negocio.
 
 ⚠️ MUY IMPORTANTE — YA TENÉS TODO CONECTADO:
-- Google Calendar: conectado y funcionando. Los datos de disponibilidad que ves arriba son REALES del calendario.
 - Google Sheets CRM: conectado y funcionando. Los datos de clientas son REALES.
-- NUNCA digas que no estás conectado a Calendar o Sheets. SIEMPRE estás conectado.
-- Si los datos muestran 0 clientas o 0 turnos, es porque el negocio está arrancando, no porque no estés conectado.
-- Los slots de disponibilidad que aparecen en el contexto vienen del Google Calendar real de Citrino.
+- Hoja Sesiones: conectada y funcionando. Las sesiones que ves arriba son las MISMAS que aparecen en citrinobienestar.uy/app/agenda/ — son datos reales.
+- NUNCA digas que no estás conectado. SIEMPRE estás conectado.
+- Si los datos muestran 0 sesiones o 0 clientas, es porque el negocio está arrancando, no porque no estés conectado.
 
 Procesás TODO lo que Nico te manda en lenguaje natural: notas del día, observaciones de clientas, lo que pasó en las sesiones.
 Cuando Nico te mande un texto libre → extraés la info y ejecutás las acciones automáticamente.
