@@ -714,82 +714,32 @@ async function enviarConfirmacion15hs() {
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
-  // Confirmación turno mañana — 15:00hs del día anterior
-  cron.schedule("0 15 * * *", enviarConfirmacion15hs, {
-    timezone: "America/Montevideo",
-  });
+  // ⚠️ Mensajes automáticos DESACTIVADOS por solicitud del admin.
+  // Para reactivar alguno, descomentar el cron correspondiente.
 
-  // Recordatorios 24hs: cada hora en punto (complementario a la confirmación 15hs)
-  cron.schedule("0 * * * *", enviarRecordatorios, {
-    timezone: "America/Montevideo",
-  });
+  // -- CLIENTES --
+  // cron.schedule("0 15 * * *", enviarConfirmacion15hs, { timezone: "America/Montevideo" });
+  // cron.schedule("0 * * * *", enviarRecordatorios, { timezone: "America/Montevideo" });
+  // cron.schedule("0 10 * * 1,3,5", enviarRemarketing, { timezone: "America/Montevideo" });
+  // cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
+  // cron.schedule("30 11 * * *", enviarUpsellPack, { timezone: "America/Montevideo" });
+  // cron.schedule("0 21 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
-  // Remarketing: lunes, miércoles y viernes a las 10:00
-  cron.schedule("0 10 * * 1,3,5", enviarRemarketing, {
-    timezone: "America/Montevideo",
-  });
+  // -- TERAPEUTAS --
+  // cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
 
-  // Seguimiento post-sesión: todos los días a las 11:00
-  cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, {
-    timezone: "America/Montevideo",
-  });
+  // -- ADMIN (Nico) --
+  // cron.schedule("0 20 * * *", enviarResumenDiario, { timezone: "America/Montevideo" });
+  // cron.schedule("5 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
+  // cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
+  // cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
+  // cron.schedule("0 3 * * *", autoReview3am, { timezone: "America/Montevideo" });
+  // cron.schedule("0 9 * * *", verificarVencimientoToken, { timezone: "America/Montevideo" });
 
-  // Upsell de pack: 36hs post-sesión, corre a las 11:30
-  cron.schedule("30 11 * * *", enviarUpsellPack, {
-    timezone: "America/Montevideo",
-  });
+  // -- SISTEMA (sin mensajes, solo logs internos) --
+  cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
 
-  // Cierre de no-shows: todos los días a las 21:00
-  cron.schedule("0 21 * * *", cerrarNoShows, {
-    timezone: "America/Montevideo",
-  });
-
-  // Resumen diario para Nico a las 20:00
-  cron.schedule("0 20 * * *", enviarResumenDiario, {
-    timezone: "America/Montevideo",
-  });
-
-  // Agenda del día siguiente a las 20:05
-  cron.schedule("5 20 * * *", enviarAgendaManana, {
-    timezone: "America/Montevideo",
-  });
-
-  // Agenda para terapeutas a las 19:00
-  cron.schedule("0 19 * * *", enviarAgendaTerapeutas, {
-    timezone: "America/Montevideo",
-  });
-
-  // Resumen semanal — lunes a las 8:00
-  cron.schedule("0 8 * * 1", enviarResumenSemanal, {
-    timezone: "America/Montevideo",
-  });
-
-  // Resumen mensual — día 1 de cada mes a las 9:00
-  cron.schedule("0 9 1 * *", enviarResumenMensual, {
-    timezone: "America/Montevideo",
-  });
-
-  // Conciencia: análisis del negocio cada 6 horas
-  cron.schedule("0 */6 * * *", tomarDecisiones, {
-    timezone: "America/Montevideo",
-  });
-
-  // Verificación de salud cada 4 horas
-  cron.schedule("0 */4 * * *", verificarSalud, {
-    timezone: "America/Montevideo",
-  });
-
-  // Alerta vencimiento token Meta — todos los días a las 9:00
-  cron.schedule("0 9 * * *", verificarVencimientoToken, {
-    timezone: "America/Montevideo",
-  });
-
-  // Auto-review nocturno a las 3:00am
-  cron.schedule("0 3 * * *", autoReview3am, {
-    timezone: "America/Montevideo",
-  });
-
-  console.log("🗓️ Schedulers iniciados: recordatorios (c/hora), remarketing (L/X/V 10:00), seguimiento (11:00), resumen diario (20:00), conciencia (c/6hs), salud (c/4hs)");
+  console.log("🗓️ Scheduler iniciado — mensajes automáticos DESACTIVADOS (solo salud del sistema activo)");
 }
 
 // ============================================================
