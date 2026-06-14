@@ -235,7 +235,8 @@ Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
 <accion>{"tipo":"guardar_nombre","nombre":"nombre"}</accion>
 
 PASO 5 — Confirmar turno:
-<accion>{"tipo":"agendar","slot_label":"lunes 10:00","nombre":"nombre","servicio":"servicio"}</accion>
+<accion>{"tipo":"agendar","slot_label":"lunes 10:00","hora":"10:00","nombre":"nombre","servicio":"servicio"}</accion>
+CRÍTICO: "hora" debe ser EXACTAMENTE el horario confirmado en formato HH:MM (ej: "15:30", "10:00"). Sin esto el sistema agenda el horario incorrecto.
 Mensaje de confirmación natural: "Perfecto, le dejamos agendada para el [día] a las [hora]hs, la esperamos."
 
 === ESTILO DE MENSAJES DE SEGUIMIENTO ===
@@ -471,12 +472,11 @@ async function procesarAccion(accion, userId, canal, nombre) {
       slotsPendientes.set(userId, slots);
 
       // Buscar el slot que coincida con lo que pidió
+      // Pasamos todo el slot_label como texto + hora explícita si el LLM la incluyó
       const slotLabel = accion.slot_label || "";
-      const partes = slotLabel.split(" ");
-      const dia = partes.slice(0, -1).join(" ");
-      const hora = partes[partes.length - 1] || "";
+      const horaExplicita = accion.hora || "";  // campo explícito que el LLM puede incluir
 
-      const slot = await resolverSlot(dia, hora);
+      const slot = await resolverSlot(slotLabel, horaExplicita);
       if (!slot) {
         return "No encontramos disponibilidad para ese horario. ¿Le quedaria bien alguna otra opción?";
       }
