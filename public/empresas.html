@@ -38,10 +38,12 @@
   <link rel="canonical" href="https://citrinobienestar.uy/empresas.html">
   <link rel="icon" href="/imagnes/favicon-citrino.png">
   <link rel="apple-touch-icon" href="/imagnes/favicon-citrino.png">
-  <!-- Preload imagen crítica -->
-  <link rel="preload" as="image" href="/imagnes/Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png">
+  <!-- Preconnect para performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <!-- Preload imagen crítica -->
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1400&h=900&fit=crop&auto=format&q=75">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <!-- JSON-LD: Servicio corporativo -->
   <script type="application/ld+json">
@@ -247,7 +249,7 @@
     }
     .hero-photo {
       position:absolute; inset:0;
-      background:url('/imagnes/Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png') center 40%/cover no-repeat;
+      background:url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1400&h=900&fit=crop&auto=format&q=75') center 40%/cover no-repeat;
       opacity:.07; transform:scale(1.04);
       filter: grayscale(50%);
     }
@@ -1463,8 +1465,9 @@
 
 <!-- ══ FOTO STRIP ══ -->
 <div class="photo-strip">
-  <img src="/imagnes/Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png"
-       alt="Masaje en silla corporativo Citrino">
+  <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1400&h=700&fit=crop&auto=format&q=80"
+       alt="Masaje en silla corporativo Citrino"
+       loading="lazy" decoding="async">
   <div class="photo-strip-overlay">
     <div class="photo-strip-inner">
       <div class="photo-strip-tag"><span style="width:5px;height:5px;border-radius:50%;background:var(--terra);display:inline-block"></span>MASAJE EN SILLA · EN TU EMPRESA</div>

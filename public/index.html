@@ -46,10 +46,11 @@
   <link rel="icon" type="image/png" href="/imagnes/favicon-citrino.png">
   <link rel="apple-touch-icon" href="/imagnes/favicon-citrino.png">
   <!-- Preload imagen crítica -->
-  <link rel="preload" as="image" href="/imagnes/80d14d92-87a1-40e6-91e5-cdc0187b5c5d.jpg">
+  <link rel="preload" as="image" href="/imagnes/hero-principal.jpg">
   <!-- Preconnect para performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <!-- JSON-LD: Negocio local -->
   <script type="application/ld+json">
@@ -1083,40 +1084,6 @@
       background-size: 60px 60px;
     }
 
-    /* ══ GALERÍA ══ */
-    .gallery-strip {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr 1fr;
-      gap: 12px;
-      padding: 0 5% 3rem;
-      background: #fff;
-    }
-    .gallery-strip img {
-      width: 100%; height: 320px;
-      object-fit: cover;
-      border-radius: 18px;
-      transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .4s;
-      display: block;
-    }
-    .gallery-strip img:hover {
-      transform: scale(1.025);
-      box-shadow: 0 16px 48px rgba(30,22,18,.16);
-    }
-    @media (max-width: 768px) {
-      .gallery-strip {
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        padding: 0 5% 2rem;
-      }
-      .gallery-strip img { height: 200px; border-radius: 12px; }
-      .gallery-strip img:last-child { grid-column: span 2; }
-    }
-    @media (max-width: 480px) {
-      .gallery-strip { grid-template-columns: 1fr; }
-      .gallery-strip img { height: 220px; }
-      .gallery-strip img:last-child { grid-column: span 1; }
-    }
-
     /* ══ PILARES ══ */
     .pilares-strip {
       background: #fff;
@@ -1398,6 +1365,7 @@
   <div class="hero-bg" id="heroBg">
     <img src="/imagnes/hero-principal.jpg"
          alt="" aria-hidden="true"
+         fetchpriority="high" decoding="sync"
          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:65% center;transform:scaleX(-1);transition:transform .1s linear">
   </div>
   <div class="hero-overlay"></div>
@@ -1502,19 +1470,6 @@
     <span class="marquee-item">Fangoterapia</span><span class="marquee-sep"></span>
     <span class="marquee-item">Masaje Modelador</span><span class="marquee-sep"></span>
   </div>
-</div>
-
-<!-- ── GALERÍA ── -->
-<div class="gallery-strip" style="background:#fff;padding-top:2.5rem">
-  <img src="/imagnes/18a3a0d1-ae47-47f0-8cdd-7950df8bdc0c.jpg"
-       alt="Citrino — equipo y espacio" loading="lazy"
-       style="object-position:center 40%">
-  <img src="/imagnes/drenaje-linfatico.jpg"
-       alt="Drenaje Linfático" loading="lazy"
-       style="object-position:center center">
-  <img src="/imagnes/04e19f74-de37-4f79-9456-6d2592c927ed.jpg"
-       alt="Método Citrino" loading="lazy"
-       style="object-position:center 60%">
 </div>
 
 <!-- ── PILARES ── -->
