@@ -181,7 +181,7 @@ async function registrarCliente({ userId, nombre, canal, servicio }) {
   fila[COL.TELEFONO]   = String(userId);
   fila[COL.CANAL]      = canal || "";
   fila[COL.SERVICIO]   = servicio || "";
-  fila[COL.ESTADO]     = "lead";
+  fila[COL.ESTADO]     = "prospecto";
   fila[COL.CUPONERA]   = "no";
   fila[COL.SES_REST]   = "0";
   fila[COL.FECHA_ALTA] = ahora;
