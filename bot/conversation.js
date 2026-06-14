@@ -557,6 +557,20 @@ async function procesarAccion(accion, userId, canal, nombre) {
       }
       await cancelarTurno(turno.id);
       await registrarCancelacion(userId);
+
+      // Notificar a Nico de la cancelación
+      const ownerCancel = process.env.OWNER_WHATSAPP;
+      if (ownerCancel) {
+        const { enviarMensaje: enviarC } = require("./sender");
+        const horaLabel = turno.start
+          ? new Date(turno.start).toLocaleString("es-UY", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })
+          : "horario desconocido";
+        enviarC(ownerCancel,
+          `❌ *Cancelación*\n\n👤 ${turno.clienteNombre || userId}\n📱 ${userId}\n🕐 ${horaLabel}`,
+          "whatsapp"
+        ).catch(() => {});
+      }
+
       return "Cancelamos el turno sin problema 🙏 ¿Le buscamos otro horario?";
     }
 

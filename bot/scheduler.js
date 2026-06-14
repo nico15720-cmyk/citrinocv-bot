@@ -451,29 +451,39 @@ async function enviarAgendaManana() {
 
     const [eventos, terapeutas] = await Promise.all([
       getEventosAgenda(inicioManana, finManana),
-      leerTerapeutas().catch(() => [{ nombre: "Citrino" }]),
+      leerTerapeutas().catch(() => []),
     ]);
 
-    if (!eventos.length) return; // sin agenda, no molestar
+    const diaLabel = manana.toLocaleDateString("es-UY", {
+      weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo"
+    });
+    const diaCapital = diaLabel.charAt(0).toUpperCase() + diaLabel.slice(1);
 
-    const diaLabel = manana.toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
+    if (!eventos.length) {
+      await enviarMensaje(OWNER, `📅 *${diaCapital}*\n\nSin turnos agendados.`, "whatsapp");
+      return;
+    }
 
     // Agrupar por terapeuta
     const grupos = {};
     eventos.forEach(ev => {
-      const terapeuta = terapeutas.find(t => ev.titulo?.toLowerCase().includes(t.nombre?.toLowerCase())) || terapeutas[0];
-      const nombre = terapeuta?.nombre || "Citrino";
+      const ter = terapeutas.find(t =>
+        ev.titulo?.toLowerCase().includes(t.nombre?.toLowerCase())
+      );
+      const nombre = ter?.nombre || "Sin asignar";
       if (!grupos[nombre]) grupos[nombre] = [];
-      const hora = new Date(ev.inicio).toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
-      grupos[nombre].push(`${hora} ${ev.clienteNombre || ev.titulo}`);
+      const hora = new Date(ev.inicio).toLocaleTimeString("es-UY", {
+        hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo"
+      });
+      grupos[nombre].push(`${hora} — ${ev.clienteNombre || ev.titulo}`);
     });
 
-    let msg = `📅 *Agenda ${diaLabel.charAt(0).toUpperCase() + diaLabel.slice(1)}*\n`;
+    let msg = `📅 *Agenda ${diaCapital}*\n`;
+    msg += `_(${eventos.length} turno${eventos.length !== 1 ? "s" : ""})_\n`;
     Object.entries(grupos).forEach(([ter, items]) => {
-      msg += `\n*${ter}:*\n`;
+      msg += `\n*${ter}*\n`;
       items.forEach(i => msg += `• ${i}\n`);
     });
-    msg += `\n_Agenda confirmada ✓_`;
 
     await enviarMensaje(OWNER, msg.trim(), "whatsapp");
   } catch (err) {
@@ -714,32 +724,13 @@ async function enviarConfirmacion15hs() {
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
-  // ⚠️ Mensajes automáticos DESACTIVADOS por solicitud del admin.
-  // Para reactivar alguno, descomentar el cron correspondiente.
+  // Agenda de mañana para Nico a las 10:00hs — la reenvía él manualmente
+  cron.schedule("0 10 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
 
-  // -- CLIENTES --
-  // cron.schedule("0 15 * * *", enviarConfirmacion15hs, { timezone: "America/Montevideo" });
-  // cron.schedule("0 * * * *", enviarRecordatorios, { timezone: "America/Montevideo" });
-  // cron.schedule("0 10 * * 1,3,5", enviarRemarketing, { timezone: "America/Montevideo" });
-  // cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
-  // cron.schedule("30 11 * * *", enviarUpsellPack, { timezone: "America/Montevideo" });
-  // cron.schedule("0 21 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
-
-  // -- TERAPEUTAS --
-  // cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
-
-  // -- ADMIN (Nico) --
-  // cron.schedule("0 20 * * *", enviarResumenDiario, { timezone: "America/Montevideo" });
-  // cron.schedule("5 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
-  // cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
-  // cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
-  // cron.schedule("0 3 * * *", autoReview3am, { timezone: "America/Montevideo" });
-  // cron.schedule("0 9 * * *", verificarVencimientoToken, { timezone: "America/Montevideo" });
-
-  // -- SISTEMA (sin mensajes, solo logs internos) --
+  // Salud del sistema cada 4hs (solo logs internos, sin mensajes)
   cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
 
-  console.log("🗓️ Scheduler iniciado — mensajes automáticos DESACTIVADOS (solo salud del sistema activo)");
+  console.log("🗓️ Scheduler iniciado — agenda diaria 10:00hs + salud del sistema");
 }
 
 // ============================================================
