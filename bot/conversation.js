@@ -707,13 +707,8 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
 // HORARIO DEL BOT — 7:30 a 21:30 (Uruguay)
 // ============================================================
 function dentroDeHorario() {
-  const ahora = new Date().toLocaleString("en-US", { timeZone: "America/Montevideo" });
-  const d = new Date(ahora);
-  const hora = d.getHours() + d.getMinutes() / 60;
-  const diaSemana = d.getDay(); // 0=dom, 6=sab
-  // Domingo sin atención
-  if (diaSemana === 0) return false;
-  return hora >= 7.5 && hora < 21.5;
+  // TEMPORAL: sin restricción de horario para pruebas
+  return true;
 }
 
 // ============================================================
