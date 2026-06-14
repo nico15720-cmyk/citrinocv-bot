@@ -28,13 +28,15 @@ const COL = {
 };
 
 // ─── Horarios por defecto (se sobreescriben con hoja Terapeutas) ───
+// TEMPORAL: sin restricción de horario para pruebas
 const HORARIOS_DEFAULT = {
-  1: { dia: "Lunes",     franjas: [{ inicio: 8, fin: 18 }] },
-  2: { dia: "Martes",    franjas: [{ inicio: 8, fin: 18 }] },
-  3: { dia: "Miércoles", franjas: [{ inicio: 8, fin: 18 }] },
-  4: { dia: "Jueves",    franjas: [{ inicio: 8, fin: 18 }] },
-  5: { dia: "Viernes",   franjas: [{ inicio: 8, fin: 18 }] },
-  6: { dia: "Sábado",    franjas: [{ inicio: 8, fin: 12 }] },
+  0: { dia: "Domingo",   franjas: [{ inicio: 0, fin: 24 }] },
+  1: { dia: "Lunes",     franjas: [{ inicio: 0, fin: 24 }] },
+  2: { dia: "Martes",    franjas: [{ inicio: 0, fin: 24 }] },
+  3: { dia: "Miércoles", franjas: [{ inicio: 0, fin: 24 }] },
+  4: { dia: "Jueves",    franjas: [{ inicio: 0, fin: 24 }] },
+  5: { dia: "Viernes",   franjas: [{ inicio: 0, fin: 24 }] },
+  6: { dia: "Sábado",    franjas: [{ inicio: 0, fin: 24 }] },
 };
 
 // ─── Auth ─────────────────────────────────────────────────────
