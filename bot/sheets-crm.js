@@ -141,6 +141,16 @@ async function bulkImport(sheetName, rows) {
   const api = await getSheets();
   const headers = HEADERS[sheetName] || [];
 
+  // Forzar header correcto en fila 1 (por si el sheet tenía nombres viejos)
+  if (headers.length > 0) {
+    await api.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!A1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [headers] },
+    });
+  }
+
   // Limpiar desde fila 2 (conserva el header)
   await api.spreadsheets.values.clear({
     spreadsheetId: SPREADSHEET_ID,
