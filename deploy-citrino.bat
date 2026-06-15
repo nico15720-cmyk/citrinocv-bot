@@ -23,7 +23,7 @@ echo.
 echo [3/5] Git push del bot (incluye CRM + cambios bot)...
 cd /d "C:\Users\Lenovo\Claude\citrino-bot"
 git add -A
-git commit -m "feat: buscar_cliente por tel, fix solo-20-clientes, temperatura leads, agenda timeline, crons activados, remarketing 7d"
+git commit -m "fix: safe() para #ERROR! en ClienteDetalle; feat: temperatura leads, agenda timeline, buscar_cliente tel, crons activados, remarketing 7d"
 git push origin main
 echo Push bot OK.
 echo.
