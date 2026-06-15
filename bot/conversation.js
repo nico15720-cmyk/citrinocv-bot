@@ -282,21 +282,21 @@ Pack 8 sesiones → $9.600
 💡 La sesión individual vale $1.500.
 💳 Medios de pago: Aceptamos débito y crédito (hasta 3 cuotas sin recargo).
 📍 Ubicación: Estamos en Sarandí 554 (frente a Plaza Matriz).
-🌸 Vas a sentir el cambio desde la primera visita.
-¿Te gustaría que te pase los horarios disponibles para comenzar? 💆‍♀️"
+🌸 Va a sentir el cambio desde la primera visita.
+¿Le gustaría que le pase los horarios disponibles para comenzar? 💆‍♀️"
 
 Para Descontracturante:
 "*🌿 Masaje Descontracturante.*
-En Citrino te ayudamos a aflojar zonas puntuales y reconectar tu bienestar.
+En Citrino le ayudamos a aflojar zonas puntuales y reconectar su bienestar.
 *🗓 Costo*: Sesión (50 min) → $1.300
 *📍 Sarandí 554 apto. 1 – Frente a Plaza Matriz*
-✨ Estamos de lunes a viernes de 8:00 a 19:00 hs y sábados por la mañana. ¿Qué horario te quedaría bien para coordinar? 💚"
+✨ Estamos de lunes a viernes de 8:00 a 19:00 hs y sábados por la mañana. ¿Qué horario le quedaría bien para coordinar? 💚"
 
 Para Método Citrino:
 "*💛 ¡Hola! Qué gusto que nos escribas. 🌿*
-Te presento el *Método Citrino*: una experiencia que une la estética con el bienestar integral 💆‍♀️
-Integramos *Drenaje Linfático, Masaje Modelador y Maderoterapia*, finalizando con terapias específicas para potenciar tu resultado 🍃
-⏳ Tiempo de sesión: 50 minutos reales dedicados a vos.
+Le presento el *Método Citrino*: una experiencia que une la estética con el bienestar integral 💆‍♀️
+Integramos *Drenaje Linfático, Masaje Modelador y Maderoterapia*, finalizando con terapias específicas para potenciar su resultado 🍃
+⏳ Tiempo de sesión: 50 minutos reales.
 *✨ Packs 2026:*
 Pack 4 sesiones → $5.100
 Pack 6 sesiones → $7.400
@@ -304,7 +304,7 @@ Pack 8 sesiones → $9.600
 💡 La sesión individual vale $1.500.
 💳 Aceptamos débito, crédito (hasta 3 cuotas sin recargo)
 *📍 Sarandí 554 (frente a Plaza Matriz)*
-¿Te gustaría que te pase los horarios disponibles? 💆‍♀️"
+¿Le gustaría que le pase los horarios disponibles? 💆‍♀️"
 
 === ACCIONES DEL SISTEMA ===
 Para cancelar: <accion>{"tipo":"cancelar"}</accion>
@@ -649,7 +649,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
       await actualizarNotas(userId, `Solicitud tarjeta regalo para: ${accion.para || "destinatario a confirmar"}`).catch(() => {});
       return (
         `¡Qué lindo detalle! 🎁 Ya le avisé a Nico para preparar la tarjeta.\n\n` +
-        `En breve te confirma los detalles de pago y la entrega (digital por acá o retiro en Sarandí 554 💌)`
+        `En breve le confirmamos los detalles de pago y la entrega (digital por acá o retiro en Sarandí 554 💌)`
       );
     }
 
@@ -667,10 +667,10 @@ async function procesarAccion(accion, userId, canal, nombre) {
       }
       // Frases naturales de espera (aleatorias)
       const frasesEspera = [
-        "¡Dejame consultarlo un momento y en seguida te confirmo! 🙏",
-        "Buenísima pregunta, déjame chequear eso y te respondo en un ratito 😊",
-        "Mirá, eso lo consulto rápido y te escribo enseguida, ¿te parece? 🌿",
-        "Dale, lo verifico y en breve te doy la confirmación 💛",
+        "Déjame consultarlo un momento y en seguida le confirmo! 🙏",
+        "Buenísima pregunta, déjame chequear eso y le respondo en un ratito 😊",
+        "Lo consulto rápido y le escribo enseguida, ¿le parece? 🌿",
+        "Lo verifico y en breve le doy la confirmación 💛",
       ];
       return frasesEspera[Math.floor(Math.random() * frasesEspera.length)];
     }
@@ -743,7 +743,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   // Comando /marta — Marta retoma el control
   if (text.trim().toLowerCase() === "/marta") {
     chatsBloqueados.delete(userId);
-    await enviarMensaje(userId, "¡Hola de nuevo! 😊 ¿En qué te puedo ayudar?", canal);
+    await enviarMensaje(userId, "¡Hola de nuevo! 😊 ¿En qué le puedo ayudar?", canal);
     return;
   }
   // Si el chat está bloqueado, no intervenir
