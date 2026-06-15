@@ -23,6 +23,7 @@ const {
 } = require("./calendar");
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
+const { construirContenidoConImagen } = require("./media");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const TIMEZONE = "America/Montevideo";
@@ -278,7 +279,7 @@ function formatearSesionesContexto(sesionesAgrupadas) {
 // ============================================================
 // HANDLER PRINCIPAL ADMIN
 // ============================================================
-async function handleAdminMessage({ text, platform }) {
+async function handleAdminMessage({ text, platform, media }) {
   const ownerId = process.env.OWNER_WHATSAPP;
   console.log(`🔑 [ADMIN] Mensaje: ${text?.slice(0, 80)}`);
 
@@ -315,7 +316,21 @@ ${clientes.slice(0, 20).map(c =>
   ).join("\n")}${clientes.length > 20 ? `\n... y ${clientes.length - 20} más` : ""}
 `.trim();
 
-  agregarAdmin("user", text);
+  // Construir contenido (texto o imagen+texto) para Claude
+  let contenidoUsuario;
+  if (media?.base64 && (media.type === "image" || media.type === "document")) {
+    const caption = text && !text.startsWith("[El dueño envió") ? text : (media.caption || "Analizá esta imagen y decime qué ves.");
+    // Reemplazamos el placeholder "[La clienta...]" por uno para admin
+    const contenido = construirContenidoConImagen(caption, media.base64, media.mimeType);
+    if (contenido[1]?.text?.includes("La clienta envió")) {
+      contenido[1].text = caption || "Analizá esta imagen.";
+    }
+    contenidoUsuario = contenido;
+  } else {
+    contenidoUsuario = text;
+  }
+
+  agregarAdmin("user", contenidoUsuario);
 
   let respuesta;
   try {
@@ -329,6 +344,7 @@ Sos directo, conciso, usás "vos". Respondés siempre en base a los datos reales
 - Google Sheets (CRM + hoja Sesiones) están CONECTADOS. Los datos son REALES.
 - Las sesiones del contexto son las mismas que ve Nico en citrinobienestar.uy/app/agenda/
 - NUNCA digas que no estás conectado o que no tenés datos.
+- Podés ver imágenes que Nico te mande — analizalas y extraé la info relevante (comprobantes, capturas, etc.).
 
 ═══ ACCIONES DISPONIBLES ═══
 Cuando Nico te manda texto libre, extraés la info y ejecutás las acciones necesarias.
