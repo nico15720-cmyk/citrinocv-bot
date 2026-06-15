@@ -215,8 +215,56 @@ async function enviarUpsellPack() {
 }
 
 // ============================================================
-// CIERRE DE NO-SHOWS — 21hs del día
-// Quien tenía turno hoy y sigue "confirmado" → no_vino
+// CHECK-IN DIARIO — 21hs
+// Envía al admin la lista de sesiones del día y pregunta quién vino
+// ============================================================
+async function enviarCheckInDiario() {
+  if (!OWNER) return;
+  console.log("📋 Enviando check-in diario...");
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const sesiones = await readSheet("SESIONES");
+
+    const hoy = new Date();
+    const inicioHoy = new Date(hoy); inicioHoy.setHours(0, 0, 0, 0);
+    const finHoy = new Date(hoy);   finHoy.setHours(23, 59, 59, 999);
+
+    const sesionesHoy = sesiones
+      .filter(s => {
+        if (!s.Fecha_Hora) return false;
+        const f = new Date(s.Fecha_Hora);
+        return !isNaN(f) && f >= inicioHoy && f <= finHoy;
+      })
+      .sort((a, b) => new Date(a.Fecha_Hora) - new Date(b.Fecha_Hora));
+
+    if (sesionesHoy.length === 0) {
+      await enviarMensaje(OWNER, "📋 Sin sesiones registradas hoy.", "whatsapp");
+      return;
+    }
+
+    const lista = sesionesHoy.map((s, i) => {
+      const hora = new Date(s.Fecha_Hora).toLocaleTimeString("es-UY", {
+        hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo",
+      });
+      const terapeuta = s.Terapeuta ? ` — ${s.Terapeuta}` : "";
+      return `${i + 1}. *${s.Cliente}* ${hora}hs${terapeuta}`;
+    }).join("\n");
+
+    const msg =
+      `✅ *Check-in del día*\n\n${lista}\n\n` +
+      `¿Quién vino? Respondé con algo como:\n` +
+      `_"Silvia sí, María no, Laura sí y compró Pack 6 transferencia 7200"_`;
+
+    await enviarMensaje(OWNER, msg, "whatsapp");
+    console.log(`✅ Check-in enviado (${sesionesHoy.length} sesiones)`);
+  } catch (err) {
+    console.error("❌ Error check-in diario:", err.message);
+  }
+}
+
+// ============================================================
+// CIERRE DE NO-SHOWS — 23hs
+// Auto-marca como no_vino a quien sigue en "confirmado" (Nico no respondió)
 // ============================================================
 async function cerrarNoShows() {
   console.log("🔍 Verificando no-shows del día...");
@@ -745,8 +793,11 @@ function startScheduler() {
   // ── Upsell cuponera — 11:30 ───────────────────────────────
   cron.schedule("30 11 * * *", enviarUpsellPack, { timezone: "America/Montevideo" });
 
-  // ── No-shows: cerrar sesiones sin confirmar — 21:00 ───────
-  cron.schedule("0 21 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
+  // ── Check-in diario — 21:00 ────────────────────────────────
+  cron.schedule("0 21 * * *", enviarCheckInDiario, { timezone: "America/Montevideo" });
+
+  // ── No-shows: auto-cierre si Nico no respondió — 23:00 ─────
+  cron.schedule("0 23 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
   // ── Resumen semanal — lunes 8:00 ──────────────────────────
   cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });

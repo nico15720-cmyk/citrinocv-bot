@@ -21,6 +21,7 @@ const {
   marcarAsistencia,
   cancelarTurno,
 } = require("./calendar");
+const { appendRow: appendRowSheets } = require("./sheets-crm");
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 const { construirContenidoConImagen } = require("./media");
@@ -280,6 +281,40 @@ async function ejecutarAccionAdmin(accion, datos) {
         return `📊 *Reporte "${resultado.tab}"* — ${resultado.registros} registros\n🔗 ${resultado.url}`;
       }
 
+      // ── Registrar venta (pack/cuponera) en hoja VENTAS ──────
+      case "registrar_venta": {
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre || accion.telefono}".`;
+
+        const clienteId = cliente.ID || cliente.ID_Cliente || cliente.Telefono || "";
+        const producto   = accion.producto  || "Pack 4";
+        const numMatch   = producto.match(/\d+/);
+        const numSes     = numMatch ? parseInt(numMatch[0]) : 4;
+        const monto      = accion.monto ? Number(accion.monto) : 0;
+        const formaPago  = accion.forma_pago || "";
+        const hoy        = new Date();
+        const fecha      = hoy.toISOString().split("T")[0];
+        const mesAnio    = `${String(hoy.getMonth() + 1).padStart(2, "0")}-${hoy.getFullYear()}`;
+
+        await appendRowSheets("VENTAS", {
+          Fecha:               fecha,
+          ID_Venta:            `V${Date.now()}`,
+          Cliente:             cliente.Nombre,
+          Producto:            producto,
+          Monto:               monto,
+          Forma_Pago:          formaPago,
+          Notas:               accion.notas || "registrado via bot",
+          ID_Cliente_Guardado: clienteId,
+          Cantidad_Calculada:  numSes,
+          Ingreso_Real:        monto,
+          Fecha_Vencimiento:   "",
+          Mes_Anio:            mesAnio,
+        });
+
+        const precioStr = monto ? ` — $${monto.toLocaleString("es-UY")} ${formaPago}` : " (monto a completar en CRM)";
+        return `💰 Venta registrada: *${cliente.Nombre}* — *${producto}* (${numSes} ses.)${precioStr}`;
+      }
+
       default:
         return null;
     }
@@ -402,6 +437,9 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 <admin_accion>{"tipo":"generar_reporte","tipo_reporte":"leads"}</admin_accion>
 → Crea pestaña en Sheets. Tipos: leads, vip, inactivas, cuponeras, agendadas.
 
+<admin_accion>{"tipo":"registrar_venta","nombre":"Laura","producto":"Pack 6","monto":7200,"forma_pago":"transferencia"}</admin_accion>
+→ Agrega fila en hoja VENTAS — actualiza el saldo de sesiones en el CRM. Si no se menciona monto, usá 0.
+
 <admin_accion>{"tipo":"buscar_cliente","telefono":"59899825185"}</admin_accion>
 → Busca cliente por teléfono en el CRM completo y muestra su info.
 
@@ -441,6 +479,15 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 
 "Este es el número de Ana: 099 123 456"
 → buscar_cliente (telefono:"099123456") para ver quién es, luego podés ejecutar acciones sobre ella.
+
+═══ CHECK-IN DIARIO ═══
+Cuando Nico responde al check-in del día (lista de sesiones), procesá TODOS los mencionados:
+"Silvia sí, María no, Laura sí y compró Pack 6 transferencia 7200"
+→ marcar_sesion(Silvia, vino:true) + marcar_sesion(María, vino:false) + marcar_sesion(Laura, vino:true) + registrar_venta(Laura, Pack 6, transferencia, 7200)
+
+"Todas vinieron" → marcar_sesion vino:true para cada una de la lista del check-in
+"Ninguna vino" → marcar_sesion vino:false para todas
+Si no menciona monto de pack, usá monto:0 (se completa después en el CRM).
 
 ═══ CLASIFICACIÓN DE CLIENTAS ═══
 VIP 🌟 cuponera activa + viene seguido | Regular 💚 cada 2-4 semanas
