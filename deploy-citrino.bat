@@ -23,7 +23,7 @@ echo.
 echo [3/5] Git push del bot (incluye CRM + cambios bot)...
 cd /d "C:\Users\Lenovo\Claude\citrino-bot"
 git add -A
-git commit -m "feat: check-in diario 21hs, registrar_venta bot, SesionForm tel+nueva clienta, fix #ERROR! ClienteDetalle"
+git commit -m "feat: saldo real cuponera en bot (VENTAS+SESIONES), alerta última sesión en marcar_sesion y check-in diario"
 git push origin main
 echo Push bot OK.
 echo.

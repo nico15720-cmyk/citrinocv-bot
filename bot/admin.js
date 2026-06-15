@@ -138,6 +138,40 @@ function buscarClienteCRM(clientes, nombre, telefono) {
 }
 
 // ============================================================
+// SALDO REAL DE CUPONERA — lee VENTAS + SESIONES (igual que el CRM React)
+// ============================================================
+const PACK_KW = ["pack", "cuponera", "pase libre"];
+
+async function getSaldoClienteBot(clienteId) {
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const [ventas, sesiones] = await Promise.all([
+      readSheet("VENTAS"),
+      readSheet("SESIONES"),
+    ]);
+    const id = String(clienteId || "").trim();
+    const ventasCli = ventas.filter(v =>
+      String(v.ID_Cliente_Guardado || "").trim() === id &&
+      PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k))
+    );
+    const sesionesCli = sesiones.filter(s =>
+      String(s.ID_Cliente_Guardado || s.ID_Cliente || "").trim() === id
+    );
+    const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+    const usadas    = sesionesCli.length;
+    return { compradas, usadas, saldo: compradas - usadas };
+  } catch {
+    return { compradas: 0, usadas: 0, saldo: 0 };
+  }
+}
+
+function formatSaldo({ compradas, usadas, saldo }) {
+  if (compradas === 0) return "Sin cuponera activa";
+  const alerta = saldo === 1 ? " ⚠️ *¡última sesión!*" : saldo === 0 ? " ⛔ *agotada*" : "";
+  return `${usadas} de ${compradas} usadas — *le quedan ${saldo}*${alerta}`;
+}
+
+// ============================================================
 async function ejecutarAccionAdmin(accion, datos) {
   const clientes = datos.totalClientes || [];
   const sesiones = datos.sesiones || [];
@@ -172,7 +206,19 @@ async function ejecutarAccionAdmin(accion, datos) {
         }
 
         const emoji = estadoSesion === "vino" ? "✅" : "❌";
-        return `${emoji} *${sesion.clienteNombre}* — marcada como *${estadoSesion}* (${sesion.hora})`;
+        let msg = `${emoji} *${sesion.clienteNombre}* — marcada como *${estadoSesion}* (${sesion.hora})`;
+
+        // Si vino → revisar saldo cuponera para alertar
+        if (estadoSesion === "vino" && sesion.clienteId) {
+          const saldoInfo = await getSaldoClienteBot(sesion.clienteId);
+          if (saldoInfo.compradas > 0) {
+            msg += `\n🎟️ ${formatSaldo(saldoInfo)}`;
+            if (saldoInfo.saldo <= 1) {
+              msg += "\n👉 ¿Le ofrecés renovar la cuponera?";
+            }
+          }
+        }
+        return msg;
       }
 
       // ── Cancelar sesión en hoja Sesiones ─────────────────────
@@ -234,11 +280,13 @@ async function ejecutarAccionAdmin(accion, datos) {
         const ultimoC = cliente.UltimoContacto
           ? new Date(cliente.UltimoContacto).toLocaleDateString("es-UY")
           : "–";
-        const cuponera = cliente.Cuponera === "si"
-          ? `Sí (${cliente["Ses.Rest."] || "?"} sesiones restantes)`
-          : "No";
+
+        // Saldo real: leer de VENTAS + SESIONES (misma lógica que el CRM React)
+        const saldoInfo = await getSaldoClienteBot(cliente.ID);
+        const cuponera  = formatSaldo(saldoInfo);
+
         const notas = cliente.Notas ? `\n📝 ${cliente.Notas}` : "";
-        return `👤 *${cliente.Nombre}*\n📱 ${tel}\n📊 ${cliente.Estado || "–"}\n🎟 Cuponera: ${cuponera}\n📅 Último contacto: ${ultimoC}${notas}`;
+        return `👤 *${cliente.Nombre}*\n📱 ${tel}\n📊 ${cliente.Estado || "–"}\n🎟 ${cuponera}\n📅 Último contacto: ${ultimoC}${notas}`;
       }
 
       // ── Agendar turno nuevo ───────────────────────────────────
@@ -338,10 +386,29 @@ function formatearSesionesContexto(sesionesAgrupadas) {
 }
 
 // ============================================================
+// COALESCING — combina mensajes rápidos en uno solo
+// Evita respuestas duplicadas cuando Nico envía 2 mensajes seguidos
+// ============================================================
+const _adminCoalesce = { gen: 0, buf: [] };
+
+// ============================================================
 // HANDLER PRINCIPAL ADMIN
 // ============================================================
 async function handleAdminMessage({ text, platform, media }) {
   const ownerId = process.env.OWNER_WHATSAPP;
+
+  // ── Coalescing: acumula mensajes que llegan en ≤1.5s ─────
+  const myGen = ++_adminCoalesce.gen;
+  _adminCoalesce.buf.push({ text: text || '', media });
+  await new Promise(r => setTimeout(r, 1500));
+  if (myGen !== _adminCoalesce.gen) return; // Un mensaje más reciente toma el control
+  const msgs         = _adminCoalesce.buf.splice(0);
+  const combinedText = msgs.map(m => m.text).filter(Boolean).join('\n').trim();
+  const latestMedia  = msgs.find(m => m.media)?.media;
+  // Usar el texto combinado en lugar del original
+  text  = combinedText || text;
+  media = latestMedia  || media;
+
   console.log(`🔑 [ADMIN] Mensaje: ${text?.slice(0, 80)}`);
 
   // Recolectar datos frescos
@@ -493,6 +560,11 @@ Si no menciona monto de pack, usá monto:0 (se completa después en el CRM).
 VIP 🌟 cuponera activa + viene seguido | Regular 💚 cada 2-4 semanas
 Lead caliente 🔥 agendada o consultó esta semana | Lead tibio 🌡️ consultó, tiene potencial | Lead frío ❄️ sin respuesta +7 días
 En riesgo ⚠️ no volvió en +30 días
+
+⚠️ CONTEXTO DE CONVERSACIÓN:
+- Si la pregunta no nombra ninguna clienta pero el turno anterior fue sobre una clienta concreta, asumí que es sobre ella. NO preguntes "¿de quién?".
+- Si ya hiciste un buscar_cliente y el resultado está en el historial, NO lo repitas. Respondé la pregunta con la info que ya tenés.
+- Ejemplo: si buscaste a Silvia y luego Nico pregunta "¿tiene cuponera?", respondé sobre Silvia directamente.
 
 ⚠️ SOBRE NOMBRES AMBIGUOS:
 Si el nombre de una clienta puede coincidir con múltiples, igual generá la acción con el nombre que te dio Nico.

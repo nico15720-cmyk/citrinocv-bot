@@ -215,6 +215,35 @@ async function enviarUpsellPack() {
 }
 
 // ============================================================
+// SALDO CUPONERA — helper compartido (mismo que en admin.js)
+// ============================================================
+const PACK_KW_SCH = ["pack", "cuponera", "pase libre"];
+
+async function getSaldoClienteBotSch(clienteId) {
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const [ventas, sesiones] = await Promise.all([
+      readSheet("VENTAS"),
+      readSheet("SESIONES"),
+    ]);
+    const id = String(clienteId || "").trim();
+    if (!id) return { compradas: 0, usadas: 0, saldo: 0 };
+    const ventasCli = ventas.filter(v =>
+      String(v.ID_Cliente_Guardado || "").trim() === id &&
+      PACK_KW_SCH.some(k => (v.Producto || "").toLowerCase().includes(k))
+    );
+    const sesionesCli = sesiones.filter(s =>
+      String(s.ID_Cliente_Guardado || s.ID_Cliente || "").trim() === id
+    );
+    const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+    const usadas    = sesionesCli.length;
+    return { compradas, usadas, saldo: compradas - usadas };
+  } catch {
+    return { compradas: 0, usadas: 0, saldo: 0 };
+  }
+}
+
+// ============================================================
 // CHECK-IN DIARIO — 21hs
 // Envía al admin la lista de sesiones del día y pregunta quién vino
 // ============================================================
@@ -250,10 +279,29 @@ async function enviarCheckInDiario() {
       return `${i + 1}. *${s.Cliente}* ${hora}hs${terapeuta}`;
     }).join("\n");
 
-    const msg =
+    // Revisar saldos de cuponera para las sesiones de hoy
+    const alertasCuponera = [];
+    for (const s of sesionesHoy) {
+      const cid = s.ID_Cliente_Guardado || s.ID_Cliente;
+      if (!cid) continue;
+      const saldo = await getSaldoClienteBotSch(cid);
+      if (saldo.compradas > 0 && saldo.saldo <= 1) {
+        const iconoSaldo = saldo.saldo === 0 ? "⛔" : "⚠️";
+        const textoSaldo = saldo.saldo === 0
+          ? `agotada (${saldo.usadas}/${saldo.compradas})`
+          : `última sesión (${saldo.usadas}/${saldo.compradas})`;
+        alertasCuponera.push(`${iconoSaldo} *${s.Cliente}* — cuponera ${textoSaldo}`);
+      }
+    }
+
+    let msg =
       `✅ *Check-in del día*\n\n${lista}\n\n` +
       `¿Quién vino? Respondé con algo como:\n` +
       `_"Silvia sí, María no, Laura sí y compró Pack 6 transferencia 7200"_`;
+
+    if (alertasCuponera.length > 0) {
+      msg += `\n\n🎟️ *Cuponeras por vencer hoy:*\n${alertasCuponera.join("\n")}`;
+    }
 
     await enviarMensaje(OWNER, msg, "whatsapp");
     console.log(`✅ Check-in enviado (${sesionesHoy.length} sesiones)`);
