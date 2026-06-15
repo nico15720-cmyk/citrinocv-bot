@@ -115,6 +115,27 @@ async function recolectarDatosNegocio() {
 
 // ============================================================
 // EJECUTAR ACCIONES ADMIN
+// Normaliza teléfono para comparación (quita +, espacios, guiones)
+function normalizeTel(t) {
+  return (t || "").replace(/[\s+\-().]/g, "");
+}
+
+// Busca cliente por nombre parcial O teléfono (flexible)
+function buscarClienteCRM(clientes, nombre, telefono) {
+  const busqN = (nombre || "").toLowerCase().trim();
+  const busqT = normalizeTel(telefono);
+  return clientes.find(c => {
+    if (busqT) {
+      const telC = normalizeTel(c.Teléfono || c.ID || c.Telefono || "");
+      // busca match parcial (últimos 8 dígitos)
+      const tel8 = busqT.slice(-8);
+      if (tel8 && telC.includes(tel8)) return true;
+    }
+    if (busqN && c.Nombre?.toLowerCase().includes(busqN)) return true;
+    return false;
+  });
+}
+
 // ============================================================
 async function ejecutarAccionAdmin(accion, datos) {
   const clientes = datos.totalClientes || [];
@@ -171,47 +192,52 @@ async function ejecutarAccionAdmin(accion, datos) {
 
       // ── Marcar asistencia en CRM (cliente por nombre/tel) ────
       case "marcar_asistencia": {
-        const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
-          c.ID === accion.telefono
-        );
-        if (!cliente) return `⚠️ No encontré a "${accion.nombre}" en el CRM.`;
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre || accion.telefono}" en el CRM.`;
         await registrarAsistencia(cliente.ID, accion.vino !== false);
-        return `✅ ${cliente.Nombre} — marcada como ${accion.vino !== false ? "vino" : "no vino"} en el CRM.`;
+        return `✅ ${cliente.Nombre} — ${accion.vino !== false ? "vino" : "no vino"}`;
       }
 
       // ── Nota de cliente ───────────────────────────────────────
       case "agregar_nota": {
-        const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
-          c.ID === accion.telefono
-        );
-        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre || accion.telefono}".`;
         await actualizarNotas(cliente.ID, accion.nota);
-        return `📝 Nota agregada a *${cliente.Nombre}*: "${accion.nota}"`;
+        return `📝 *${cliente.Nombre}*: "${accion.nota}"`;
       }
 
       // ── Registrar cuponera ────────────────────────────────────
       case "registrar_cuponera": {
-        const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
-          c.ID === accion.telefono
-        );
-        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre || accion.telefono}".`;
         const sesionesN = accion.sesiones || 4;
         await registrarCuponera(cliente.ID, sesionesN);
-        return `🎟️ Cuponera de *${sesionesN} sesiones* registrada para *${cliente.Nombre}*.`;
+        return `🎟 Cuponera de *${sesionesN}* sesiones → *${cliente.Nombre}*`;
       }
 
       // ── Cambiar estado CRM ───────────────────────────────────
       case "cambiar_estado": {
-        const cliente = clientes.find(c =>
-          c.Nombre?.toLowerCase().includes((accion.nombre || "").toLowerCase()) ||
-          c.ID === accion.telefono
-        );
-        if (!cliente) return `⚠️ No encontré a "${accion.nombre}".`;
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre || accion.telefono}".`;
         await actualizarEstado(cliente.ID, accion.estado);
-        return `✅ *${cliente.Nombre}* → estado cambiado a "${accion.estado}".`;
+        return `✅ *${cliente.Nombre}* → ${accion.estado}`;
+      }
+
+      // ── Buscar cliente por nombre o teléfono ─────────────────
+      case "buscar_cliente": {
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) {
+          return `❓ No encontré cliente con "${accion.nombre || accion.telefono}".`;
+        }
+        const tel = cliente.Teléfono || cliente.Telefono || cliente.ID || "–";
+        const ultimoC = cliente.UltimoContacto
+          ? new Date(cliente.UltimoContacto).toLocaleDateString("es-UY")
+          : "–";
+        const cuponera = cliente.Cuponera === "si"
+          ? `Sí (${cliente["Ses.Rest."] || "?"} sesiones restantes)`
+          : "No";
+        const notas = cliente.Notas ? `\n📝 ${cliente.Notas}` : "";
+        return `👤 *${cliente.Nombre}*\n📱 ${tel}\n📊 ${cliente.Estado || "–"}\n🎟 Cuponera: ${cuponera}\n📅 Último contacto: ${ultimoC}${notas}`;
       }
 
       // ── Agendar turno nuevo ───────────────────────────────────
@@ -310,10 +336,10 @@ CRM:
 SESIONES PRÓXIMOS 7 DÍAS (hoja Sesiones — misma fuente que /app/agenda/):
 ${formatearSesionesContexto(datos.sesionesAgrupadas)}
 
-CLIENTAS EN CRM (primeras 20):
-${clientes.slice(0, 20).map(c =>
-    `• ${c.Nombre || "–"} | ${c.ID} | ${c.Estado} | ${c.Servicio || "–"} | última visita: ${c.UltimoContacto?.split("T")[0] || "–"}`
-  ).join("\n")}${clientes.length > 20 ? `\n... y ${clientes.length - 20} más` : ""}
+CLIENTAS EN CRM (${clientes.length} total):
+${clientes.map(c =>
+    `• ${c.Nombre || "–"} | ${c.ID} | ${c.Estado} | última visita: ${c.UltimoContacto?.split("T")[0] || "–"}`
+  ).join("\n")}
 `.trim();
 
   // Construir contenido (texto o imagen+texto) para Claude
@@ -336,15 +362,17 @@ ${clientes.slice(0, 20).map(c =>
   try {
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
+      max_tokens: 400,
       system: `Sos el panel de control privado de Citrino. Solo hablás con Nico, el dueño.
-Sos directo, conciso, usás "vos". Respondés siempre en base a los datos reales del contexto.
+Sos MUY directo y BREVE. Usás "vos". Sin saludos ni despedidas. Máx 2-3 líneas por respuesta.
+Respondés siempre en base a los datos reales del contexto.
 
 ⚠️ IMPORTANTE:
-- Google Sheets (CRM + hoja Sesiones) están CONECTADOS. Los datos son REALES.
-- Las sesiones del contexto son las mismas que ve Nico en citrinobienestar.uy/app/agenda/
-- NUNCA digas que no estás conectado o que no tenés datos.
-- Podés ver imágenes que Nico te mande — analizalas y extraé la info relevante (comprobantes, capturas, etc.).
+- Tenés acceso al CRM COMPLETO — TODOS los clientes. NUNCA digas "solo veo 20" o "no tengo acceso completo".
+- Cuando recibís un número de teléfono, usá buscar_cliente con ese teléfono — el sistema lo encuentra.
+- Si no estás seguro de qué cliente es, usá buscar_cliente para lookup antes de hacer acciones.
+- Una sola respuesta por turno. No hagas preguntas múltiples.
+- Si una consulta pide listado largo, usá generar_reporte.
 
 ═══ ACCIONES DISPONIBLES ═══
 Cuando Nico te manda texto libre, extraés la info y ejecutás las acciones necesarias.
@@ -374,6 +402,12 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 <admin_accion>{"tipo":"generar_reporte","tipo_reporte":"leads"}</admin_accion>
 → Crea pestaña en Sheets. Tipos: leads, vip, inactivas, cuponeras, agendadas.
 
+<admin_accion>{"tipo":"buscar_cliente","telefono":"59899825185"}</admin_accion>
+→ Busca cliente por teléfono en el CRM completo y muestra su info.
+
+<admin_accion>{"tipo":"buscar_cliente","nombre":"Silvana"}</admin_accion>
+→ Busca cliente por nombre y muestra: estado, cuponera, sesiones restantes, último contacto.
+
 ═══ EJEMPLOS DE PROCESAMIENTO ═══
 "Nadia vino hoy, le dolía la zona lumbar"
 → marcar_sesion (vino:true) + agregar_nota
@@ -399,10 +433,23 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 "¿Quién faltó esta semana?"
 → Buscá sesiones con estado no_vino en el contexto.
 
+"+598 99 825 185" (solo un número de teléfono)
+→ buscar_cliente (telefono:"59899825185")
+
+"¿Cuántas sesiones le quedan a Silvana?" / "¿Qué tiene pendiente Silvana?"
+→ buscar_cliente (nombre:"Silvana")
+
+"Este es el número de Ana: 099 123 456"
+→ buscar_cliente (telefono:"099123456") para ver quién es, luego podés ejecutar acciones sobre ella.
+
 ═══ CLASIFICACIÓN DE CLIENTAS ═══
 VIP 🌟 cuponera activa + viene seguido | Regular 💚 cada 2-4 semanas
-Lead tibio 🌡️ consultó, tiene potencial | Lead frío ❄️ sin respuesta +48hs
+Lead caliente 🔥 agendada o consultó esta semana | Lead tibio 🌡️ consultó, tiene potencial | Lead frío ❄️ sin respuesta +7 días
 En riesgo ⚠️ no volvió en +30 días
+
+⚠️ SOBRE NOMBRES AMBIGUOS:
+Si el nombre de una clienta puede coincidir con múltiples, igual generá la acción con el nombre que te dio Nico.
+El sistema automáticamente detectará si hay duplicados y pedirá aclaración.
 
 ${resumenNegocio}`,
       messages: historialAdmin.map(m => ({ role: m.role, content: m.content })),
@@ -420,6 +467,26 @@ ${resumenNegocio}`,
     for (const match of matches) {
       try {
         const accion = JSON.parse(match[1]);
+
+        // ── Disambiguación: si hay nombre, verificar que sea único ──
+        // (no aplica si ya hay teléfono — el teléfono identifica unívocamente)
+        if (accion.nombre && !accion.telefono && accion.tipo !== "buscar_cliente") {
+          const busq = accion.nombre.toLowerCase();
+          const coincidencias = datos.totalClientes.filter(c =>
+            c.Nombre?.toLowerCase().includes(busq)
+          );
+          if (coincidencias.length > 1) {
+            const lista = coincidencias.slice(0, 5).map(c => {
+              const tel = c.Teléfono || c.Telefono || c.ID || "sin tel";
+              return `• ${c.Nombre} (${tel})`;
+            }).join("\n");
+            resultadosAcciones.push(
+              `❓ Hay ${coincidencias.length} con ese nombre. ¿Cuál?\n${lista}`
+            );
+            continue;
+          }
+        }
+
         const resultado = await ejecutarAccionAdmin(accion, datos);
         if (resultado) resultadosAcciones.push(resultado);
       } catch (e) {

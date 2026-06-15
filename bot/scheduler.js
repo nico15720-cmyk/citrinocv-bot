@@ -724,13 +724,57 @@ async function enviarConfirmacion15hs() {
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
-  // Agenda de mañana para Nico a las 10:00hs — la reenvía él manualmente
-  cron.schedule("0 10 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
-
-  // Salud del sistema cada 4hs (solo logs internos, sin mensajes)
+  // ── Salud del sistema ──────────────────────────────────────
   cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
 
-  console.log("🗓️ Scheduler iniciado — agenda diaria 10:00hs + salud del sistema");
+  // ── Confirmaciones 15hs (día anterior al turno) ────────────
+  cron.schedule("0 15 * * *", enviarConfirmacion15hs, { timezone: "America/Montevideo" });
+
+  // ── Agenda mañana para terapeutas — 19:00 ─────────────────
+  cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
+
+  // ── Resumen diario para Nico — 20:05 ──────────────────────
+  cron.schedule("5 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
+
+  // ── Re-marketing leads sin turno (+7 días) — 10:30 ────────
+  cron.schedule("30 10 * * *", enviarRemarketing, { timezone: "America/Montevideo" });
+
+  // ── Seguimiento post-sesión — 11:00 ───────────────────────
+  cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
+
+  // ── Upsell cuponera — 11:30 ───────────────────────────────
+  cron.schedule("30 11 * * *", enviarUpsellPack, { timezone: "America/Montevideo" });
+
+  // ── No-shows: cerrar sesiones sin confirmar — 21:00 ───────
+  cron.schedule("0 21 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
+
+  // ── Resumen semanal — lunes 8:00 ──────────────────────────
+  cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
+
+  // ── Resumen mensual — día 1 de cada mes 9:00 ──────────────
+  cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
+
+  // ── Verificar vencimiento token WA — diario 9:00 ──────────
+  if (typeof verificarVencimientoToken === "function") {
+    cron.schedule("0 9 * * *", verificarVencimientoToken, { timezone: "America/Montevideo" });
+  }
+
+  // ── Auto-review nocturno — 3:00 ───────────────────────────
+  cron.schedule("0 3 * * *", autoReview3am, { timezone: "America/Montevideo" });
+
+  console.log("🗓️ Scheduler iniciado:");
+  console.log("  • 03:00 auto-review nocturno");
+  console.log("  • 09:00 verificar token WA");
+  console.log("  • 10:30 remarketing leads +7d");
+  console.log("  • 11:00 seguimiento post-sesión");
+  console.log("  • 11:30 upsell cuponera");
+  console.log("  • 15:00 confirmaciones día siguiente");
+  console.log("  • 19:00 agenda para terapeutas");
+  console.log("  • 20:05 resumen diario para Nico");
+  console.log("  • 21:00 cerrar no-shows");
+  console.log("  • lunes 08:00 resumen semanal");
+  console.log("  • día 1 09:00 resumen mensual");
+  console.log("  • */4hs verificar salud del sistema");
 }
 
 // ============================================================

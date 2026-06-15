@@ -382,16 +382,16 @@ function calcularScore(fila) {
 async function getLeadsParaRemarketing() {
   const filas = await leerTodasLasFilas();
   const ahora = new Date();
-  const limite48h = 48 * 60 * 60 * 1000;
+  const limite7d  = 7 * 24 * 60 * 60 * 1000;
   const limite30d = 30 * 24 * 60 * 60 * 1000;
 
   return filas.slice(1).filter((fila) => {
     const estado = fila[COL.ESTADO];
-    // Leads sin respuesta > 48hs
+    // Leads que no se agendaron en 7 días → remarketing
     if (estado === "lead") {
       if (fila[COL.REMARKETING]) return false;
       const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
-      return ahora - ultimoContacto > limite48h;
+      return ahora - ultimoContacto > limite7d;
     }
     // Clientas que vinieron pero no volvieron en 30 días
     if (estado === "vino") {
