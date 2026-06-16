@@ -142,9 +142,24 @@ function buscarClienteCRM(clientes, nombre, telefono) {
 // ============================================================
 const PACK_KW = ["pack", "cuponera", "pase libre"];
 
-// Normaliza un ID/teléfono: quita +, espacios, guiones → últimos 9 dígitos
+// Normaliza un teléfono a solo dígitos (sin slice fijo)
+function normDigits(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+
+// Compara dos teléfonos por sufijo: "91755745" matchea "+598 91 755 745"
+// porque uno termina en el otro
+function phoneMatch(a, b) {
+  const na = normDigits(a);
+  const nb = normDigits(b);
+  if (!na || !nb) return false;
+  const min = Math.min(na.length, nb.length);
+  return na.slice(-min) === nb.slice(-min);
+}
+
+// Compat con código viejo (para matchId de hashes)
 function normId(v) {
-  return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
+  return normDigits(v).slice(-9);
 }
 
 // Deriva cantidad de sesiones del nombre del producto (igual que enrichVentas en React)
@@ -172,15 +187,15 @@ async function getSaldoClienteBot(clienteId, clienteNombre) {
 
     // Resolver el ID hash real desde la hoja CLIENTES
     // (el bot tiene el phone/WhatsApp ID; VENTAS/SESIONES usan el hash ID_Cliente)
-    const id9 = normId(clienteId);
     const clienteRow = clientesSheet.find(c =>
-      c.ID_Cliente === clienteId ||                          // match exacto (si ya es hash)
-      (id9 && normId(c.Telefono) === id9) ||                 // match por teléfono
+      c.ID_Cliente === clienteId ||                              // match exacto (si ya es hash)
+      phoneMatch(c.Telefono, clienteId) ||                      // match por teléfono (sufijo)
       (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase()) // match por nombre
     );
     const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
 
-    const matchId = v => v === hashId || (id9 && normId(v) === id9);
+    // matchId solo compara contra el hash (VENTAS/SESIONES usan hash, no phones)
+    const matchId = v => v === hashId;
 
     const ventasCli = ventas.filter(v =>
       matchId(v.ID_Cliente_Guardado) &&

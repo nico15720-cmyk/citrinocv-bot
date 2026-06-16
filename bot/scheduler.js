@@ -219,8 +219,18 @@ async function enviarUpsellPack() {
 // ============================================================
 const PACK_KW_SCH = ["pack", "cuponera", "pase libre"];
 
+function normDigitsSch(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+function phoneMatchSch(a, b) {
+  const na = normDigitsSch(a);
+  const nb = normDigitsSch(b);
+  if (!na || !nb) return false;
+  const min = Math.min(na.length, nb.length);
+  return na.slice(-min) === nb.slice(-min);
+}
 function normIdSch(v) {
-  return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
+  return normDigitsSch(v).slice(-9);
 }
 const PROD_CANT_SCH = { "pack 2": 2, "pack 4": 4, "pack 6": 6, "pack 8": 8, "pase libre": 1, "sesión individual": 1, "sesion individual": 1 };
 function cantidadProductoSch(producto, cantHoja) {
@@ -240,14 +250,13 @@ async function getSaldoClienteBotSch(clienteId, clienteNombre) {
       readSheet("VENTAS"),
       readSheet("SESIONES"),
     ]);
-    const id9 = normIdSch(clienteId);
     const clienteRow = clientesSheet.find(c =>
       c.ID_Cliente === clienteId ||
-      (id9 && normIdSch(c.Telefono) === id9) ||
+      phoneMatchSch(c.Telefono, clienteId) ||
       (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase())
     );
     const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
-    const matchId = v => v === hashId || (id9 && normIdSch(v) === id9);
+    const matchId = v => v === hashId;
 
     const ventasCli = ventas.filter(v =>
       matchId(v.ID_Cliente_Guardado) &&
