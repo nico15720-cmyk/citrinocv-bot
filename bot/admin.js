@@ -161,21 +161,33 @@ function cantidadProducto(producto, cantHoja) {
   return m ? parseInt(m[0]) : 0;
 }
 
-async function getSaldoClienteBot(clienteId) {
+async function getSaldoClienteBot(clienteId, clienteNombre) {
   try {
     const { readSheet } = require("./sheets-crm");
-    const [ventas, sesiones] = await Promise.all([
+    const [clientesSheet, ventas, sesiones] = await Promise.all([
+      readSheet("CLIENTES"),
       readSheet("VENTAS"),
       readSheet("SESIONES"),
     ]);
+
+    // Resolver el ID hash real desde la hoja CLIENTES
+    // (el bot tiene el phone/WhatsApp ID; VENTAS/SESIONES usan el hash ID_Cliente)
     const id9 = normId(clienteId);
-    if (!id9) return { compradas: 0, usadas: 0, saldo: 0 };
+    const clienteRow = clientesSheet.find(c =>
+      c.ID_Cliente === clienteId ||                          // match exacto (si ya es hash)
+      (id9 && normId(c.Telefono) === id9) ||                 // match por teléfono
+      (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase()) // match por nombre
+    );
+    const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
+
+    const matchId = v => v === hashId || (id9 && normId(v) === id9);
+
     const ventasCli = ventas.filter(v =>
-      normId(v.ID_Cliente_Guardado) === id9 &&
+      matchId(v.ID_Cliente_Guardado) &&
       PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k))
     );
     const sesionesCli = sesiones.filter(s =>
-      normId(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
+      matchId(s.ID_Cliente_Guardado || s.ID_Cliente)
     );
     const compradas = ventasCli.reduce((a, v) => a + cantidadProducto(v.Producto, v.Cantidad_Calculada), 0);
     const usadas    = sesionesCli.length;
@@ -230,7 +242,7 @@ async function ejecutarAccionAdmin(accion, datos) {
 
         // Si vino → revisar saldo cuponera para alertar
         if (estadoSesion === "vino" && sesion.clienteId) {
-          const saldoInfo = await getSaldoClienteBot(sesion.clienteId);
+          const saldoInfo = await getSaldoClienteBot(sesion.clienteId, sesion.clienteNombre);
           if (saldoInfo.compradas > 0) {
             msg += `\n🎟️ ${formatSaldo(saldoInfo)}`;
             if (saldoInfo.saldo <= 1) {
@@ -302,7 +314,7 @@ async function ejecutarAccionAdmin(accion, datos) {
           : "–";
 
         // Saldo real: leer de VENTAS + SESIONES (misma lógica que el CRM React)
-        const saldoInfo = await getSaldoClienteBot(cliente.ID);
+        const saldoInfo = await getSaldoClienteBot(cliente.ID, cliente.Nombre);
         const cuponera  = formatSaldo(saldoInfo);
 
         const notas = cliente.Notas ? `\n📝 ${cliente.Notas}` : "";

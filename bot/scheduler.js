@@ -232,21 +232,29 @@ function cantidadProductoSch(producto, cantHoja) {
   return m ? parseInt(m[0]) : 0;
 }
 
-async function getSaldoClienteBotSch(clienteId) {
+async function getSaldoClienteBotSch(clienteId, clienteNombre) {
   try {
     const { readSheet } = require("./sheets-crm");
-    const [ventas, sesiones] = await Promise.all([
+    const [clientesSheet, ventas, sesiones] = await Promise.all([
+      readSheet("CLIENTES"),
       readSheet("VENTAS"),
       readSheet("SESIONES"),
     ]);
     const id9 = normIdSch(clienteId);
-    if (!id9) return { compradas: 0, usadas: 0, saldo: 0 };
+    const clienteRow = clientesSheet.find(c =>
+      c.ID_Cliente === clienteId ||
+      (id9 && normIdSch(c.Telefono) === id9) ||
+      (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase())
+    );
+    const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
+    const matchId = v => v === hashId || (id9 && normIdSch(v) === id9);
+
     const ventasCli = ventas.filter(v =>
-      normIdSch(v.ID_Cliente_Guardado) === id9 &&
+      matchId(v.ID_Cliente_Guardado) &&
       PACK_KW_SCH.some(k => (v.Producto || "").toLowerCase().includes(k))
     );
     const sesionesCli = sesiones.filter(s =>
-      normIdSch(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
+      matchId(s.ID_Cliente_Guardado || s.ID_Cliente)
     );
     const compradas = ventasCli.reduce((a, v) => a + cantidadProductoSch(v.Producto, v.Cantidad_Calculada), 0);
     const usadas    = sesionesCli.length;
@@ -297,7 +305,7 @@ async function enviarCheckInDiario() {
     for (const s of sesionesHoy) {
       const cid = s.ID_Cliente_Guardado || s.ID_Cliente;
       if (!cid) continue;
-      const saldo = await getSaldoClienteBotSch(cid);
+      const saldo = await getSaldoClienteBotSch(cid, s.Cliente);
       if (saldo.compradas > 0 && saldo.saldo <= 1) {
         const iconoSaldo = saldo.saldo === 0 ? "⛔" : "⚠️";
         const textoSaldo = saldo.saldo === 0
