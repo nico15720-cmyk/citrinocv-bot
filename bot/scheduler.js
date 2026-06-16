@@ -219,6 +219,10 @@ async function enviarUpsellPack() {
 // ============================================================
 const PACK_KW_SCH = ["pack", "cuponera", "pase libre"];
 
+function normIdSch(v) {
+  return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
+}
+
 async function getSaldoClienteBotSch(clienteId) {
   try {
     const { readSheet } = require("./sheets-crm");
@@ -226,14 +230,14 @@ async function getSaldoClienteBotSch(clienteId) {
       readSheet("VENTAS"),
       readSheet("SESIONES"),
     ]);
-    const id = String(clienteId || "").trim();
-    if (!id) return { compradas: 0, usadas: 0, saldo: 0 };
+    const id9 = normIdSch(clienteId);
+    if (!id9) return { compradas: 0, usadas: 0, saldo: 0 };
     const ventasCli = ventas.filter(v =>
-      String(v.ID_Cliente_Guardado || "").trim() === id &&
+      normIdSch(v.ID_Cliente_Guardado) === id9 &&
       PACK_KW_SCH.some(k => (v.Producto || "").toLowerCase().includes(k))
     );
     const sesionesCli = sesiones.filter(s =>
-      String(s.ID_Cliente_Guardado || s.ID_Cliente || "").trim() === id
+      normIdSch(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
     );
     const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
     const usadas    = sesionesCli.length;

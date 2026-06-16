@@ -142,6 +142,11 @@ function buscarClienteCRM(clientes, nombre, telefono) {
 // ============================================================
 const PACK_KW = ["pack", "cuponera", "pase libre"];
 
+// Normaliza un ID/teléfono para comparación: quita +, espacios, guiones → últimos 9 dígitos
+function normId(v) {
+  return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
+}
+
 async function getSaldoClienteBot(clienteId) {
   try {
     const { readSheet } = require("./sheets-crm");
@@ -149,13 +154,14 @@ async function getSaldoClienteBot(clienteId) {
       readSheet("VENTAS"),
       readSheet("SESIONES"),
     ]);
-    const id = String(clienteId || "").trim();
+    const id9 = normId(clienteId);
+    if (!id9) return { compradas: 0, usadas: 0, saldo: 0 };
     const ventasCli = ventas.filter(v =>
-      String(v.ID_Cliente_Guardado || "").trim() === id &&
+      normId(v.ID_Cliente_Guardado) === id9 &&
       PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k))
     );
     const sesionesCli = sesiones.filter(s =>
-      String(s.ID_Cliente_Guardado || s.ID_Cliente || "").trim() === id
+      normId(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
     );
     const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
     const usadas    = sesionesCli.length;
