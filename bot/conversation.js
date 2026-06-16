@@ -28,7 +28,7 @@ const {
 const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
 const { registrarUso } = require("./token-tracker");
-const { upsertCliente, appendRow: crmAppend, updateClienteEstado } = require("./sheets-crm");
+const { upsertCliente, appendRow: crmAppend, updateClienteEstado, getSaldoClienteBot } = require("./sheets-crm");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -865,19 +865,24 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   const horaUY = new Date(ahoraUY).getHours();
   const saludoHora = horaUY < 13 ? "Buenos días" : horaUY < 20 ? "Buenas tardes" : "Buenas noches";
 
-  // Verificar si ya se saludó hoy a esta clienta (evitar re-saludo por reinicio)
+  // Verificar si ya se saludó hoy + obtener saldo cuponera real (fuente: VENTAS - SESIONES)
   const hoyUY = new Date().toLocaleDateString("es-UY", { timeZone: "America/Montevideo" });
   let ultimoSaludo = "";
+  let saldoCuponera = null; // { compradas, usadas, saldo }
   try {
     const { readSheet } = require("./sheets-crm");
     const filas = await readSheet("CLIENTES");
     const cl = filas.find(f => f.ID_Cliente === userId || f.Telefono === userId);
     ultimoSaludo = cl?.Ultimo_Saludo || "";
+    // Obtener saldo real solo si el cliente existe en el CRM
+    if (cl) {
+      saldoCuponera = await getSaldoClienteBot(userId, nombreCliente).catch(() => null);
+    }
   } catch {}
   const yaAcordeSaludar = ultimoSaludo === hoyUY;
 
-  // Construir contexto adicional para Claude (nombre + perfil aprendido + cuponera)
-  const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente, clienteCRM);
+  // Construir contexto adicional para Claude (nombre + perfil aprendido + cuponera real)
+  const contextoCliente = formatearPerfilParaContexto(nombreCliente, perfilCliente, clienteCRM, saldoCuponera);
 
   // Para Claude: usar el historial pero reemplazar el último mensaje con el contenido real (multimodal si aplica)
   const mensajesHistorial = getHistorial(userId);
@@ -942,6 +947,15 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     upsertCliente({ ID_Cliente: userId, Ultimo_Saludo: hoyUY }).catch(() => {});
   }
 
+  // Reset del ciclo de remarketing: el cliente está activo → reiniciar reloj.
+  // Remarketing_Etapa vuelve a 0 y Ultimo_Remarketing = ahora.
+  // Así, si el cliente vuelve a quedar en silencio >48hs, arrancará desde Msg1.
+  upsertCliente({
+    ID_Cliente:         userId,
+    Remarketing_Etapa:  "0",
+    Ultimo_Remarketing: new Date().toISOString(),
+  }).catch(() => {});
+
   // Extraer insights en background (no bloquea la respuesta)
   extraerInsights(getHistorial(userId), userId).catch(() => {});
 
@@ -996,19 +1010,33 @@ Campos posibles:
 }
 
 // Formatea el perfil del cliente como contexto legible para Claude
-function formatearPerfilParaContexto(nombre, perfil, datosCliente = null) {
+// saldoCuponera = { compradas, usadas, saldo } desde VENTAS-SESIONES (fuente de verdad)
+// datosCliente = datos del CRM legacy (para estado/servicio)
+function formatearPerfilParaContexto(nombre, perfil, datosCliente = null, saldoCuponera = null) {
   const partes = [];
   if (nombre) partes.push(`La clienta se llama ${nombre}.`);
 
-  // Cuponera — importante para responder preguntas sobre sesiones
-  if (datosCliente) {
+  // Cuponera — fuente de verdad: VENTAS - SESIONES (saldoCuponera)
+  if (saldoCuponera !== null) {
+    const { compradas, usadas, saldo } = saldoCuponera;
+    if (compradas > 0 && saldo > 0) {
+      partes.push(`Tiene cuponera activa con ${saldo} sesión${saldo !== 1 ? "es" : ""} disponible${saldo !== 1 ? "s" : ""} (usó ${usadas} de ${compradas}). Si pregunta cuántas le quedan, decile exactamente: "${saldo} sesión${saldo !== 1 ? "es" : ""} disponible${saldo !== 1 ? "s" : ""} en tu cuponera 🎟"`);
+    } else if (compradas > 0 && saldo === 0) {
+      partes.push(`Usó todas sus sesiones de cuponera (${usadas}/${compradas}). Podés ofrecerle renovar.`);
+    }
+  } else if (datosCliente) {
+    // Fallback al CRM legacy si no hay saldo nuevo disponible
     const cuponera = datosCliente.datos?.[6];
     const sesRest = parseInt(datosCliente.datos?.[7]) || 0;
     if (cuponera === "si" && sesRest > 0) {
-      partes.push(`Tiene cuponera activa con ${sesRest} sesión${sesRest !== 1 ? "es" : ""} disponible${sesRest !== 1 ? "s" : ""}. Si pregunta cuántas sesiones le quedan, decile exactamente: "${sesRest} sesión${sesRest !== 1 ? "es" : ""} disponible${sesRest !== 1 ? "s" : ""} en tu cuponera 🎟"`);
+      partes.push(`Tiene cuponera activa con aproximadamente ${sesRest} sesión${sesRest !== 1 ? "es" : ""} disponible${sesRest !== 1 ? "s" : ""}.`);
     } else if (cuponera === "si") {
       partes.push(`Tenía cuponera pero ya no le quedan sesiones. Podés ofrecerle renovar.`);
     }
+  }
+
+  // Estado y servicio del CRM legacy
+  if (datosCliente) {
     const estado = datosCliente.datos?.[5];
     const servicio = datosCliente.datos?.[4];
     if (estado) partes.push(`Estado en CRM: ${estado}.`);

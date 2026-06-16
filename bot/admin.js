@@ -194,8 +194,8 @@ async function getSaldoClienteBot(clienteId, clienteNombre) {
     );
     const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
 
-    // matchId solo compara contra el hash (VENTAS/SESIONES usan hash, no phones)
-    const matchId = v => v === hashId;
+    // matchId: compara hash (CRM manual) O teléfono (bot agendó directo con phone)
+    const matchId = v => v === hashId || phoneMatch(v, clienteId);
 
     const ventasCli = ventas.filter(v =>
       matchId(v.ID_Cliente_Guardado) &&

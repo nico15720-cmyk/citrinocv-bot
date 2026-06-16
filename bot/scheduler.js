@@ -84,6 +84,18 @@ const MENSAJES = {
     `¡Hola ${nombre}! 🌿 ¿Cómo estás? Te recuerdo que tenés *${sesRest} ${sesRest === "1" ? "sesión" : "sesiones"} disponibles* en tu cuponera de Citrino.\n\n` +
     `¿Cuándo agendamos? 🌿`,
 
+  // ── REMARKETING ETAPA 2 — social proof + oferta ─────────────
+  remarketingEtapa2: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Volvemos a escribirte de Citrino.\n\n` +
+    `Una cosa que muchas clientas no saben: si pagás con transferencia o efectivo, tenés un *10% de descuento* 💛 Y las que empezaron con el pack de 4 sesiones notaron la diferencia mucho más rápido que viniendo de a una.\n\n` +
+    `¿Te buscamos un horario esta semana?`,
+
+  // ── REMARKETING ETAPA 3 — cierre cálido ─────────────────────
+  remarketingEtapa3: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Te escribimos por última vez para no saturarte.\n\n` +
+    `Si en algún momento querés un espacio para cuidarte y desconectarte, en Citrino siempre hay lugar para vos 💛\n\n` +
+    `Cuando estés lista, acá estamos. ¡Que estés muy bien!`,
+
   // ── RECUPERACIÓN DE NO-SHOW ──────────────────────────────────
   recuperacionNoShow: (nombre) =>
     `¡Hola ${nombre || ""}! 🌿 Vimos que hoy no pudiste venir a tu turno en Citrino, esperamos que estés bien 🙏\n\n` +
@@ -132,47 +144,117 @@ async function enviarRecordatorios() {
 }
 
 // ============================================================
-// REMARKETING — Leads sin respuesta > 48hs
-// Corre todos los días a las 10:00
+// REMARKETING — Secuencia en 3 etapas
+//   Etapa 0→1: primer mensaje a las 48hs de contacto inicial (o último reset)
+//   Etapa 1→2: segundo mensaje 48hs después del primero
+//   Etapa 2→3: tercer mensaje 10 días después del segundo
+//
+// Auto-excluye si Estado = vino/agendado/confirmado/pendiente_confirmacion.
+// Se resetea automáticamente cuando el cliente responde (conversation.js
+// actualiza Ultimo_Remarketing a now y Remarketing_Etapa a "0").
+//
+// Corre todos los días a las 10:30
 // ============================================================
 async function enviarRemarketing() {
-  console.log("📣 Ejecutando remarketing de leads...");
-
-  let leads;
+  console.log("📣 Ejecutando remarketing secuencial...");
   try {
-    leads = await getLeadsParaRemarketing();
-  } catch (err) {
-    console.error("❌ Error al obtener leads para remarketing:", err.message);
-    return;
-  }
+    const { readSheet, upsertCliente } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = Date.now();
 
-  for (const lead of leads) {
-    try {
-      const nombre = lead.nombre || "";
-      let mensaje;
+    // Estados que excluyen completamente del remarketing
+    const estadosExcluidos = new Set(["vino", "agendado", "confirmado", "pendiente_confirmacion", "cancelado"]);
 
-      if (lead.estado === "vino") {
-        mensaje = MENSAJES.remarketingClientaVino(nombre);
-      } else {
-        // Remarketing diferenciado por objeción
-        const objecion = (lead.objecion || "").toLowerCase();
-        if (objecion.includes("precio") || objecion.includes("caro") || objecion.includes("plata")) {
-          mensaje = MENSAJES.remarketingPrecio(nombre);
-        } else if (objecion.includes("tiempo") || objecion.includes("horario") || objecion.includes("ocupad")) {
-          mensaje = MENSAJES.remarketingTiempo(nombre);
-        } else if (objecion.includes("duda") || objecion.includes("piensa") || objecion.includes("segur")) {
-          mensaje = MENSAJES.remarketingDuda(nombre, lead.servicio);
+    let enviados = 0;
+    let saltados = 0;
+
+    for (const c of clientes) {
+      try {
+        // Saltar si ya es cliente activo / convertida
+        if (estadosExcluidos.has(c.Estado)) { saltados++; continue; }
+
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+
+        const etapa = parseInt(c.Remarketing_Etapa) || 0;
+
+        // Etapa 3+ = ciclo agotado
+        if (etapa >= 3) continue;
+
+        // ── Calcular referencia de tiempo según etapa ──────────────
+        let refDate;
+        let horasRequeridas;
+
+        if (etapa === 0) {
+          // Msg1: 48h desde Ultimo_Remarketing (reset por respuesta) o Fecha_Alta
+          const base = c.Ultimo_Remarketing || c.Fecha_Alta;
+          refDate = base ? new Date(base) : null;
+          horasRequeridas = 48;
         } else {
-          mensaje = MENSAJES.remarketingLead(nombre, lead.servicio);
+          // Msg2 y Msg3: basado en cuándo se envió el mensaje anterior
+          refDate = c.Ultimo_Remarketing ? new Date(c.Ultimo_Remarketing) : null;
+          horasRequeridas = etapa === 1 ? 48 : 10 * 24; // 48h → msg2, 10 días → msg3
         }
-      }
 
-      await enviarMensaje(lead.userId, mensaje, lead.canal || "whatsapp");
-      await registrarRemarketing(lead.userId);
-      console.log(`✅ Remarketing enviado a ${lead.userId} (${nombre}) [objecion: ${lead.objecion || "ninguna"}]`);
-    } catch (err) {
-      console.error(`❌ Error en remarketing a ${lead.userId}:`, err.message);
+        if (!refDate || isNaN(refDate.getTime())) { saltados++; continue; }
+
+        const diffHoras = (ahora - refDate.getTime()) / (1000 * 60 * 60);
+        if (diffHoras < horasRequeridas) { saltados++; continue; }
+
+        // ── Seleccionar mensaje según etapa y objeción ─────────────
+        const nombre   = c.Nombre || "";
+        const objecion = (c.Objecion || "").toLowerCase();
+        const servicio = c.Intencion_Compra || "nuestros masajes";
+
+        let mensaje;
+
+        if (etapa === 0) {
+          // Primera toma de contacto: diferenciada por objeción (la más personalizada)
+          if (objecion.includes("precio") || objecion.includes("caro") || objecion.includes("plata")) {
+            mensaje = MENSAJES.remarketingPrecio(nombre);
+          } else if (objecion.includes("tiempo") || objecion.includes("horario") || objecion.includes("ocupad")) {
+            mensaje = MENSAJES.remarketingTiempo(nombre);
+          } else if (objecion.includes("duda") || objecion.includes("piensa") || objecion.includes("segur")) {
+            mensaje = MENSAJES.remarketingDuda(nombre, servicio);
+          } else if (c.Estado === "vino") {
+            // No debería llegar acá (filtrado arriba), pero por las dudas
+            mensaje = MENSAJES.remarketingClientaVino(nombre);
+          } else {
+            mensaje = MENSAJES.remarketingLead(nombre, servicio);
+          }
+        } else if (etapa === 1) {
+          // Social proof + oferta concreta
+          mensaje = MENSAJES.remarketingEtapa2(nombre);
+        } else {
+          // Cierre cálido — último intento
+          mensaje = MENSAJES.remarketingEtapa3(nombre);
+        }
+
+        // ── Enviar ─────────────────────────────────────────────────
+        await enviarMensaje(userId, mensaje, c.Origen || "whatsapp");
+
+        // ── Actualizar etapa y timestamp ───────────────────────────
+        const nuevaEtapa = String(etapa + 1);
+        await upsertCliente({
+          ID_Cliente:           userId,
+          Remarketing_Etapa:    nuevaEtapa,
+          Ultimo_Remarketing:   new Date().toISOString(),
+        });
+
+        enviados++;
+        console.log(`✅ Remarketing etapa ${etapa + 1} enviado a ${userId} (${nombre}) [objecion: ${c.Objecion || "–"}]`);
+
+        // Pausa breve entre envíos para no saturar la API
+        await new Promise(r => setTimeout(r, 1200));
+
+      } catch (err) {
+        console.error(`❌ Error remarketing a ${c.ID_Cliente}:`, err.message);
+      }
     }
+
+    console.log(`📣 Remarketing finalizado: ${enviados} enviados, ${saltados} saltados`);
+  } catch (err) {
+    console.error("❌ Error en enviarRemarketing:", err.message);
   }
 }
 
@@ -256,7 +338,7 @@ async function getSaldoClienteBotSch(clienteId, clienteNombre) {
       (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase())
     );
     const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
-    const matchId = v => v === hashId;
+    const matchId = v => v === hashId || phoneMatchSch(v, clienteId);
 
     const ventasCli = ventas.filter(v =>
       matchId(v.ID_Cliente_Guardado) &&
@@ -351,7 +433,7 @@ async function cerrarNoShows() {
     const clientes = await readSheet("CLIENTES");
     const ahora = new Date();
     const inicioHoy = new Date(ahora); inicioHoy.setHours(0, 0, 0, 0);
-    const finHoy = new Date(ahora); finHoy.setHours(21, 0, 0, 0);
+    const finHoy = new Date(ahora); finHoy.setHours(20, 0, 0, 0); // cron corre 20:05, cerramos hasta 20:00
 
     for (const c of clientes) {
       try {
@@ -633,53 +715,65 @@ async function enviarAlertaUrgente(motivo) {
 }
 
 // ============================================================
-// AUTO-REVIEW 3AM — Claude analiza el sistema y se auto-corrige
+// AUTO-REVIEW 6AM — revisión silenciosa: token + sistema
+// Solo notifica si hay un error o alerta real. Silencio = todo OK.
 // ============================================================
-async function autoReview3am() {
-  console.log("🔍 Auto-review 3am iniciado...");
+async function autoReview6am() {
+  console.log("🔍 Revisión automática 6am...");
   if (!OWNER) return;
 
+  const alertas = [];
+
+  // ── 1. Verificar vencimiento token Meta ─────────────────────
+  try {
+    const fechaStr = process.env.META_PAGE_TOKEN_EXPIRES;
+    if (fechaStr) {
+      const expira = new Date(fechaStr);
+      const diasRestantes = Math.ceil((expira - Date.now()) / (1000 * 60 * 60 * 24));
+      if (diasRestantes <= 3 && diasRestantes >= 0) {
+        alertas.push(
+          `⚠️ *TOKEN META VENCE ${diasRestantes === 0 ? "HOY" : `en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`}*\n` +
+          `Ir a developers.facebook.com/tools/explorer → generar nuevo token → actualizar META_PAGE_ACCESS_TOKEN en Railway.`
+        );
+      }
+    }
+  } catch {}
+
+  // ── 2. Análisis del sistema con Claude ──────────────────────
   try {
     const [stats, clientes] = await Promise.all([
       getStats().catch(() => ({})),
       leerTodosLosClientes().catch(() => []),
     ]);
 
+    const sinVolver30 = clientes.filter(c =>
+      c.UltimoContacto && Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000) > 30
+    ).length;
+
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
-      system: `Sos el sistema de auto-monitoreo del Citrino Bot. Analizás el estado del negocio de madrugada y detectás problemas o oportunidades. Respondés en español, directo y conciso.`,
+      max_tokens: 200,
+      system: `Monitoreás el Citrino Bot. Si todo está bien respondés únicamente "OK". Si hay algo urgente, describís el problema en máximo 2 líneas empezando con "⚠️".`,
       messages: [{
         role: "user",
-        content: `Análisis nocturno del sistema (${new Date().toLocaleDateString("es-UY")}):
-- Total clientas CRM: ${stats.total || 0}
-- Leads sin atender: ${stats.leads || 0}
-- Agendadas: ${stats.agendados || 0}
-- Sin volver en 30+ días: ${clientes.filter(c => {
-  if (!c.UltimoContacto) return false;
-  return Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000) > 30;
-}).length}
-- Con cuponera pero sin turno: ${clientes.filter(c => c.Cuponera === "si" && c.Estado !== "agendado").length}
-
-Identificá: ¿hay algo urgente que atender? ¿alguna oportunidad de negocio obvia? ¿algún problema en los datos?
-Sé muy breve, máximo 3 puntos. Si todo está bien, decí solo "✅ Sistema OK, sin alertas nocturnas."`,
+        content: `Revisión ${new Date().toLocaleDateString("es-UY")}: total=${stats.total||0}, leads=${stats.leads||0}, agendadas=${stats.agendados||0}, sin volver 30d=${sinVolver30}. ¿Hay algo urgente?`,
       }],
     });
 
-    const analisis = response.content[0].text;
-    const hayProblema = !analisis.includes("✅ Sistema OK");
-
-    if (hayProblema) {
-      await enviarMensaje(
-        OWNER,
-        `🌙 *Auto-revisión 3am*\n\n${analisis}`,
-        "whatsapp"
-      ).catch(() => {});
+    const analisis = response.content[0].text.trim();
+    if (analisis !== "OK") {
+      alertas.push(`🤖 ${analisis}`);
     }
-
-    console.log("✅ Auto-review 3am completado");
   } catch (err) {
-    console.error("❌ Error en auto-review:", err.message);
+    console.error("❌ Error en análisis 6am:", err.message);
+  }
+
+  // ── 3. Solo notificar si hay alertas ────────────────────────
+  if (alertas.length > 0) {
+    await enviarMensaje(OWNER, `🔔 *Revisión 6am — Citrino*\n\n${alertas.join("\n\n")}`, "whatsapp").catch(() => {});
+    console.log(`⚠️ Revisión 6am: ${alertas.length} alerta(s) enviada(s)`);
+  } else {
+    console.log("✅ Revisión 6am: sin alertas");
   }
 }
 
@@ -856,11 +950,11 @@ function startScheduler() {
   // ── Confirmaciones 15hs (día anterior al turno) ────────────
   cron.schedule("0 15 * * *", enviarConfirmacion15hs, { timezone: "America/Montevideo" });
 
-  // ── Agenda mañana para terapeutas — 19:00 ─────────────────
-  cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
+  // ── Agenda mañana para terapeutas — DESACTIVADO por ahora ──
+  // cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
 
-  // ── Resumen diario para Nico — 20:05 ──────────────────────
-  cron.schedule("5 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
+  // ── Agenda del día siguiente para Nico — 20:00 ────────────
+  cron.schedule("0 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
 
   // ── Re-marketing leads sin turno (+7 días) — 10:30 ────────
   cron.schedule("30 10 * * *", enviarRemarketing, { timezone: "America/Montevideo" });
@@ -868,14 +962,11 @@ function startScheduler() {
   // ── Seguimiento post-sesión — 11:00 ───────────────────────
   cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
 
-  // ── Upsell cuponera — 11:30 ───────────────────────────────
-  cron.schedule("30 11 * * *", enviarUpsellPack, { timezone: "America/Montevideo" });
-
   // ── Check-in diario — 21:00 ────────────────────────────────
   cron.schedule("0 21 * * *", enviarCheckInDiario, { timezone: "America/Montevideo" });
 
-  // ── No-shows: auto-cierre si Nico no respondió — 23:00 ─────
-  cron.schedule("0 23 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
+  // ── No-shows: cierre automático — 20:05 (después de agenda) ─
+  cron.schedule("5 20 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
   // ── Resumen semanal — lunes 8:00 ──────────────────────────
   cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
@@ -883,24 +974,17 @@ function startScheduler() {
   // ── Resumen mensual — día 1 de cada mes 9:00 ──────────────
   cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
 
-  // ── Verificar vencimiento token WA — diario 9:00 ──────────
-  if (typeof verificarVencimientoToken === "function") {
-    cron.schedule("0 9 * * *", verificarVencimientoToken, { timezone: "America/Montevideo" });
-  }
-
-  // ── Auto-review nocturno — 3:00 ───────────────────────────
-  cron.schedule("0 3 * * *", autoReview3am, { timezone: "America/Montevideo" });
+  // ── Auto-review silencioso — 6:00 (token + sistema, avisa solo si hay error) ─
+  cron.schedule("0 6 * * *", autoReview6am, { timezone: "America/Montevideo" });
 
   console.log("🗓️ Scheduler iniciado:");
-  console.log("  • 03:00 auto-review nocturno");
-  console.log("  • 09:00 verificar token WA");
-  console.log("  • 10:30 remarketing leads +7d");
+  console.log("  • 06:00 revisión silenciosa (token + sistema) — avisa solo si hay error");
+  console.log("  • 10:30 remarketing secuencial (48h → 48h → 10d)");
   console.log("  • 11:00 seguimiento post-sesión");
-  console.log("  • 11:30 upsell cuponera");
   console.log("  • 15:00 confirmaciones día siguiente");
-  console.log("  • 19:00 agenda para terapeutas");
-  console.log("  • 20:05 resumen diario para Nico");
-  console.log("  • 21:00 cerrar no-shows");
+  console.log("  • 20:00 agenda del día siguiente para Nico");
+  console.log("  • 20:05 cierre de no-shows automático");
+  console.log("  • 21:00 check-in diario + alertas cuponera");
   console.log("  • lunes 08:00 resumen semanal");
   console.log("  • día 1 09:00 resumen mensual");
   console.log("  • */4hs verificar salud del sistema");

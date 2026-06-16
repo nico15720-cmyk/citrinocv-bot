@@ -23,7 +23,7 @@ echo.
 echo [3/5] Git push del bot (incluye CRM + cambios bot)...
 cd /d "C:\Users\Lenovo\Claude\citrino-bot"
 git add -A
-git commit -m "fix: phone suffix match para cuponera — resuelve Victoria Arias (8 digitos vs 9); redesign UI floating nav"
+git commit -m "feat: remarketing 3 etapas; autoReview6am silencioso; fix cuponera Marta (getSaldoClienteBot real); crons 20:00/20:05; no-shows 20:05; sacar upsell; script update-profile.js"
 git push origin main
 echo Push bot OK.
 echo.

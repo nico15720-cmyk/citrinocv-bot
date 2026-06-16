@@ -11,7 +11,7 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
 
 // ─── Columnas por hoja ────────────────────────────────────────
 const HEADERS = {
-  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento', 'Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno'],
+  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento', 'Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Ultimo_Saludo', 'Historial_JSON', 'Remarketing_Etapa', 'Ultimo_Remarketing'],
   SESIONES: ['ID_Sesion', 'Fecha_Hora', 'Cliente', 'Tratamiento', 'Terapeuta', 'ID_Cliente_Guardado', 'Semana_Anio', 'Mes_Anio', 'A_Pagar_Terapeuta', 'ID_Cliente_Guardado2', 'Observaciones'],
   VENTAS:   ['Fecha', 'ID_Venta', 'Cliente', 'Producto', 'Monto', 'Forma_Pago', 'Notas', 'ID_Cliente_Guardado', 'Cantidad_Calculada', 'Ingreso_Real', 'Fecha_Vencimiento', 'Mes_Anio'],
   GASTOS:   ['Nombre', 'Monto', 'Mes_ID', 'Notas', 'Recurrente', 'Dia_Vencimiento'],
@@ -210,7 +210,7 @@ async function upsertCliente(clienteObj) {
       const currentObj = {};
       headers.forEach((h, i) => { currentObj[h] = currentRow[i] ?? ""; });
       // Merge: solo actualizar campos que vienen en clienteObj y no están vacíos
-      const fieldsToUpdate = ['Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Nombre', 'NOTAS'];
+      const fieldsToUpdate = ['Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Nombre', 'NOTAS', 'Ultimo_Saludo', 'Historial_JSON', 'Remarketing_Etapa', 'Ultimo_Remarketing'];
       fieldsToUpdate.forEach(f => {
         if (clienteObj[f] !== undefined && clienteObj[f] !== "") {
           currentObj[f] = clienteObj[f];
@@ -310,6 +310,60 @@ async function getHorariosParaCalendar() {
   }
 }
 
+// ─── Saldo de cuponera (fuente de verdad: VENTAS - SESIONES) ──
+// Función compartida usada por admin.js, scheduler.js y conversation.js
+const PACK_KW = ["pack", "cuponera", "pase libre"];
+const PROD_CANT = {
+  "pack 2": 2, "pack 4": 4, "pack 6": 6, "pack 8": 8,
+  "pase libre": 1, "sesión individual": 1, "sesion individual": 1,
+};
+
+function _normDigits(v) { return String(v || "").replace(/\D/g, ""); }
+function _phoneMatch(a, b) {
+  const na = _normDigits(a); const nb = _normDigits(b);
+  if (!na || !nb) return false;
+  const min = Math.min(na.length, nb.length);
+  return na.slice(-min) === nb.slice(-min);
+}
+function _cantProd(producto, cantHoja) {
+  const n = parseInt(cantHoja) || 0;
+  if (n > 0) return n;
+  const p = (producto || "").toLowerCase();
+  for (const [k, v] of Object.entries(PROD_CANT)) { if (p.includes(k)) return v; }
+  const m = p.match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+async function getSaldoClienteBot(clienteId, clienteNombre) {
+  try {
+    const [clientesSheet, ventas, sesiones] = await Promise.all([
+      readSheet("CLIENTES"),
+      readSheet("VENTAS"),
+      readSheet("SESIONES"),
+    ]);
+    const clienteRow = clientesSheet.find(c =>
+      c.ID_Cliente === clienteId ||
+      _phoneMatch(c.Telefono, clienteId) ||
+      (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase())
+    );
+    const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
+    const matchId = v => v === hashId || _phoneMatch(v, clienteId);
+
+    const ventasCli = ventas.filter(v =>
+      matchId(v.ID_Cliente_Guardado) &&
+      PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k))
+    );
+    const sesionesCli = sesiones.filter(s =>
+      matchId(s.ID_Cliente_Guardado || s.ID_Cliente_Guardado2 || s.ID_Cliente)
+    );
+    const compradas = ventasCli.reduce((a, v) => a + _cantProd(v.Producto, v.Cantidad_Calculada), 0);
+    const usadas    = sesionesCli.length;
+    return { compradas, usadas, saldo: Math.max(0, compradas - usadas) };
+  } catch {
+    return { compradas: 0, usadas: 0, saldo: 0 };
+  }
+}
+
 module.exports = {
   readSheet,
   appendRow,
@@ -320,5 +374,6 @@ module.exports = {
   updateClienteEstado,
   getClientesParaConfirmar,
   getHorariosParaCalendar,
+  getSaldoClienteBot,
   HEADERS,
 };
