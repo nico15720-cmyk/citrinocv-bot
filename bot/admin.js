@@ -602,6 +602,11 @@ En riesgo ⚠️ no volvió en +30 días
 Si el nombre de una clienta puede coincidir con múltiples, igual generá la acción con el nombre que te dio Nico.
 El sistema automáticamente detectará si hay duplicados y pedirá aclaración.
 
+⚠️ SOBRE CUPONERA Y SESIONES RESTANTES:
+El campo "Ses.Rest." del contexto de clientes está DESACTUALIZADO — NUNCA lo uses para responder.
+Para saber cuántas sesiones tiene una clienta, ejecutá buscar_cliente y usá el resultado de la acción.
+En tu texto NO menciones sesiones restantes antes de tener el resultado de la acción.
+
 ${resumenNegocio}`,
       messages: historialAdmin.map(m => ({ role: m.role, content: m.content })),
     });
