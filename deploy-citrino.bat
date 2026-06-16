@@ -4,7 +4,7 @@ echo  CITRINO — Deploy completo (bot + CRM)
 echo ================================================
 echo.
 
-echo [1/5] Build del CRM (citrino-agent)...
+echo [1/6] Build del CRM (citrino-agent)...
 cd /d "C:\Users\Lenovo\Desktop\citrino-agent"
 call npm run build
 if %errorlevel% neq 0 (
@@ -15,20 +15,38 @@ if %errorlevel% neq 0 (
 echo Build OK.
 echo.
 
-echo [2/5] Copiando dist al bot (citrino-bot)...
+echo [2/6] Copiando dist al bot (citrino-bot)...
 xcopy /s /y "dist\*" "C:\Users\Lenovo\Claude\citrino-bot\public\app\crm\"
 echo Copia OK.
 echo.
 
-echo [3/5] Git push del bot (incluye CRM + cambios bot)...
 cd /d "C:\Users\Lenovo\Claude\citrino-bot"
+
+echo [3/6] Migrando columnas en Google Sheets (CLIENTES)...
+node bot/migrate-sheets.js
+if %errorlevel% neq 0 (
+  echo ADVERTENCIA: No se pudo migrar Sheets. Continuar de todas formas.
+)
+echo.
+
+echo [4/6] Actualizando perfil de WhatsApp Business...
+node bot/update-profile.js
+if %errorlevel% neq 0 (
+  echo ADVERTENCIA: No se pudo actualizar el perfil WA. Continuar de todas formas.
+)
+echo.
+
+echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: remarketing 3 etapas; autoReview6am silencioso; fix cuponera Marta (getSaldoClienteBot real); crons 20:00/20:05; no-shows 20:05; sacar upsell; script update-profile.js"
+git commit -m "feat: remarketing 3 etapas; autoReview6am 6hs silencioso; fix cuponera Marta; crons 20:00/20:05; no-shows 20:05; sacar upsell; migrate-sheets; update-profile"
 git push origin main
-echo Push bot OK.
+echo Push OK.
 echo.
 
 echo ================================================
-echo  Deploy completado! Railway redeploy en ~2min.
+echo  [6/6] Deploy completado!
+echo  Railway redeploy en ~2min.
+echo  Foto de perfil: cambiarla manualmente en
+echo  Meta Business Suite si es necesario.
 echo ================================================
 pause

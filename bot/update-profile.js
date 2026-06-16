@@ -19,15 +19,14 @@ if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
 }
 
 // ─── Configuración del perfil ─────────────────────────────────
-// Editá estos valores antes de correr el script
 const PERFIL = {
   messaging_product: "whatsapp",
-  about:       "Citrino 🌿 Centro de bienestar — Ciudad Vieja, Montevideo",
-  description: "Masajes terapéuticos y relajantes en el corazón de la Ciudad Vieja. " +
-               "Escribinos para consultar horarios y agendar tu sesión 💛",
-  address:     "Sarandí 554 apto. 1, Ciudad Vieja, Montevideo",
+  about:       "Centro Integral de Bienestar en Ciudad Vieja, Montevideo. Masajes terapéuticos y estéticos, packs de sesiones y talleres. Agendá tu turno por acá 🌿",
+  description: "Centro Integral de Bienestar en Ciudad Vieja, Montevideo. Masajes terapéuticos y estéticos, packs de sesiones y talleres. Agendá tu turno por acá 🌿",
+  address:     "Peatonal Sarandí 554, 11000 Montevideo, Uruguay",
+  email:       "nicolas.nirodriguez@gmail.com",
   vertical:    "BEAUTY_SPA_SALON",
-  websites:    [], // Ej: ["https://citrino.com.uy"]
+  websites:    ["https://citrinobienestar.uy"],
 };
 
 // ─── Actualizar perfil de negocio ────────────────────────────
