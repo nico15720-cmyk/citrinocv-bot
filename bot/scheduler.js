@@ -222,6 +222,15 @@ const PACK_KW_SCH = ["pack", "cuponera", "pase libre"];
 function normIdSch(v) {
   return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
 }
+const PROD_CANT_SCH = { "pack 2": 2, "pack 4": 4, "pack 6": 6, "pack 8": 8, "pase libre": 1, "sesión individual": 1, "sesion individual": 1 };
+function cantidadProductoSch(producto, cantHoja) {
+  const n = parseInt(cantHoja) || 0;
+  if (n > 0) return n;
+  const p = (producto || "").toLowerCase();
+  for (const [k, v] of Object.entries(PROD_CANT_SCH)) { if (p.includes(k)) return v; }
+  const m = p.match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
 
 async function getSaldoClienteBotSch(clienteId) {
   try {
@@ -239,7 +248,7 @@ async function getSaldoClienteBotSch(clienteId) {
     const sesionesCli = sesiones.filter(s =>
       normIdSch(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
     );
-    const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+    const compradas = ventasCli.reduce((a, v) => a + cantidadProductoSch(v.Producto, v.Cantidad_Calculada), 0);
     const usadas    = sesionesCli.length;
     return { compradas, usadas, saldo: compradas - usadas };
   } catch {

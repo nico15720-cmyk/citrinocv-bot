@@ -142,9 +142,23 @@ function buscarClienteCRM(clientes, nombre, telefono) {
 // ============================================================
 const PACK_KW = ["pack", "cuponera", "pase libre"];
 
-// Normaliza un ID/teléfono para comparación: quita +, espacios, guiones → últimos 9 dígitos
+// Normaliza un ID/teléfono: quita +, espacios, guiones → últimos 9 dígitos
 function normId(v) {
   return String(v || "").replace(/[\s+\-().]/g, "").slice(-9);
+}
+
+// Deriva cantidad de sesiones del nombre del producto (igual que enrichVentas en React)
+const PROD_CANT = { "pack 2": 2, "pack 4": 4, "pack 6": 6, "pack 8": 8, "pase libre": 1, "sesión individual": 1, "sesion individual": 1 };
+function cantidadProducto(producto, cantHoja) {
+  const n = parseInt(cantHoja) || 0;
+  if (n > 0) return n;
+  const p = (producto || "").toLowerCase();
+  for (const [k, v] of Object.entries(PROD_CANT)) {
+    if (p.includes(k)) return v;
+  }
+  // fallback: primer número en el nombre ("Pack 8" → 8)
+  const m = p.match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
 }
 
 async function getSaldoClienteBot(clienteId) {
@@ -163,7 +177,7 @@ async function getSaldoClienteBot(clienteId) {
     const sesionesCli = sesiones.filter(s =>
       normId(s.ID_Cliente_Guardado || s.ID_Cliente) === id9
     );
-    const compradas = ventasCli.reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+    const compradas = ventasCli.reduce((a, v) => a + cantidadProducto(v.Producto, v.Cantidad_Calculada), 0);
     const usadas    = sesionesCli.length;
     return { compradas, usadas, saldo: compradas - usadas };
   } catch {
