@@ -33,7 +33,7 @@ const TIMEZONE = "America/Montevideo";
 const historialAdmin = [];
 function agregarAdmin(role, content) {
   historialAdmin.push({ role, content });
-  if (historialAdmin.length > 30) historialAdmin.splice(0, 30);
+  if (historialAdmin.length > 10) historialAdmin.splice(0, historialAdmin.length - 10);
 }
 
 // ============================================================
@@ -470,10 +470,14 @@ CRM:
 SESIONES PRÓXIMOS 7 DÍAS (hoja Sesiones — misma fuente que /app/agenda/):
 ${formatearSesionesContexto(datos.sesionesAgrupadas)}
 
-CLIENTAS EN CRM (${clientes.length} total):
-${clientes.map(c =>
-    `• ${c.Nombre || "–"} | ${c.ID} | ${c.Estado} | última visita: ${c.UltimoContacto?.split("T")[0] || "–"}`
-  ).join("\n")}
+CLIENTAS EN CRM (${clientes.length} total — solo activas recientes):
+${clientes
+    .filter(c => c.Estado && c.Estado !== "lead")
+    .sort((a, b) => new Date(b.UltimoContacto || 0) - new Date(a.UltimoContacto || 0))
+    .slice(0, 40)
+    .map(c => `• ${c.Nombre || "–"} | ${c.ID} | ${c.Estado} | ${c.UltimoContacto?.split("T")[0] || "–"}`)
+    .join("\n")}
+(Para buscar cualquier clienta por nombre/tel usá buscar_cliente)
 `.trim();
 
   // Construir contenido (texto o imagen+texto) para Claude
