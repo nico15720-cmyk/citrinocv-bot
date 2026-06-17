@@ -268,10 +268,12 @@ async function getClientesParaConfirmar() {
     manana.setDate(manana.getDate() + 1);
     const mananaStr = manana.toISOString().split("T")[0];
 
+    // Excluir: ya dijo que no, cancelados, y pendiente_confirmacion (ya notificados por ghost o este cron)
+    const excluidos = new Set(["no_confirmado", "cancelado", "pendiente_confirmacion"]);
     return filas.filter(f => {
       if (!f.Fecha_Turno) return false;
       const fechaTurno = f.Fecha_Turno.split("T")[0];
-      return fechaTurno === mananaStr && f.Estado !== "no_confirmado" && f.Estado !== "cancelado";
+      return fechaTurno === mananaStr && !excluidos.has(f.Estado);
     });
   } catch (e) {
     console.error("[sheets-crm] getClientesParaConfirmar error:", e.message);

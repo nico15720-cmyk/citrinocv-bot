@@ -16,7 +16,7 @@ const {
   getStats,
   leerTodosLosClientes,
 } = require("./crm");
-const { getDisponibilidad, formatearDisponibilidad, crearReservasFantasma, liberarGhostExpiradas } = require("./calendar");
+const { getDisponibilidad, formatearDisponibilidad, crearReservasFantasma, liberarGhostExpiradas, getEventosAgenda } = require("./calendar");
 const { tomarDecisiones } = require("./consciousness");
 const { verificarSalud } = require("./utils");
 
@@ -948,14 +948,136 @@ async function enviarConfirmacion15hs() {
 // y el resumen a Nico a las 20:05 (enviarAgendaManana). No se necesita cron adicional.
 
 // ============================================================
+// NOTIFICAR GHOSTS — 24-48hs antes del turno esperado
+// Corre todos los días a las 9:00.
+// Si el cliente tiene un ghost booking en las próximas 24-48hs,
+// le manda un WA preguntando si viene "como siempre" y actualiza
+// CLIENTES → pendiente_confirmacion para que el handler SÍ/NO lo procese.
+// ============================================================
+async function notificarGhosts() {
+  console.log("👻 Verificando ghost bookings para notificar...");
+  try {
+    const { readSheet, upsertCliente } = require("./sheets-crm");
+
+    const ahora = new Date();
+    const en24h = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
+    const en48h = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+
+    // Obtener todos los eventos en ventana 24-48hs (incluye ghosts)
+    const eventos = await getEventosAgenda(en24h, en48h);
+    const ghosts = eventos.filter(ev => ev.estado === "ghost" && ev.clienteId);
+
+    if (!ghosts.length) {
+      console.log("👻 Sin ghosts para notificar");
+      return;
+    }
+
+    const clientes = await readSheet("CLIENTES");
+
+    for (const ghost of ghosts) {
+      try {
+        const clienteId = ghost.clienteId;
+        const fechaISO  = ghost.inicio;
+
+        // Evitar doble notificación si ya se marcó pendiente_confirmacion para este turno
+        const cl = clientes.find(c => c.ID_Cliente === clienteId || c.Telefono === clienteId);
+        if (cl?.Estado === "pendiente_confirmacion" && cl?.Fecha_Turno === fechaISO) continue;
+
+        const fechaGhost = new Date(fechaISO);
+        const diaLabel = fechaGhost.toLocaleDateString("es-UY", {
+          weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo",
+        });
+        const horaLabel = fechaGhost.toLocaleTimeString("es-UY", {
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo",
+        });
+        const nombre = cl?.Nombre ? `${cl.Nombre}! ` : "";
+
+        await enviarMensaje(
+          clienteId,
+          `¡Hola ${nombre}🌿 ¿Venís el *${diaLabel} a las ${horaLabel}* como siempre?\n\n` +
+          `Le tenemos el espacio reservado 💛 Respondé *SÍ* para confirmar o *NO* si no podés.`,
+          cl?.Origen || "whatsapp"
+        );
+
+        // Actualizar CLIENTES → pendiente_confirmacion para que el handler SÍ/NO lo tome
+        await upsertCliente({
+          ID_Cliente:  clienteId,
+          Estado:      "pendiente_confirmacion",
+          Fecha_Turno: fechaISO,
+        });
+
+        console.log(`👻 Ghost notificado: ${cl?.Nombre || clienteId} — ${diaLabel} ${horaLabel}`);
+        await new Promise(r => setTimeout(r, 1000)); // pausa entre envíos
+      } catch (err) {
+        console.error(`❌ Error notificando ghost ${ghost.clienteId}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en notificarGhosts:", err.message);
+  }
+}
+
+// ============================================================
+// SEGUNDO RECORDATORIO — 18hs
+// Para clientes con turno mañana que todavía no respondieron
+// la confirmación de las 15hs ni la notificación de ghost.
+// ============================================================
+async function enviarRecordatorio18hs() {
+  console.log("🔔 Segundo recordatorio (18hs) — turnos pendientes de confirmación...");
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+
+    const ahora = new Date();
+    const manana = new Date(ahora);
+    manana.setDate(manana.getDate() + 1);
+    const mananaStr = manana.toLocaleDateString("en-CA", { timeZone: "America/Montevideo" });
+
+    for (const c of clientes) {
+      try {
+        if (c.Estado !== "pendiente_confirmacion") continue;
+        const fechaTurnoStr = c.Fecha_Turno?.split("T")[0];
+        if (fechaTurnoStr !== mananaStr) continue;
+
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+
+        const hora = new Date(c.Fecha_Turno).toLocaleTimeString("es-UY", {
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo",
+        });
+
+        await enviarMensaje(
+          userId,
+          `Buenas tardes ${c.Nombre ? `${c.Nombre}` : ""}! 🌿 ¿Pudiste ver el mensaje de antes?\n\n` +
+          `Mañana a las *${hora}hs* tenés turno en Citrino — respondé *SÍ* o *NO* para avisarnos 🙏`,
+          c.Origen || "whatsapp"
+        );
+        console.log(`✅ Segundo recordatorio 18hs → ${userId} (${c.Nombre || ""})`);
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (err) {
+        console.error(`❌ Error segundo recordatorio a ${c.ID_Cliente}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en enviarRecordatorio18hs:", err.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
   // ── Salud del sistema ──────────────────────────────────────
   cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
 
+  // ── Notificar ghosts — 9:00 diario (ventana 24-48hs antes del turno) ───
+  cron.schedule("0 9 * * *", notificarGhosts, { timezone: "America/Montevideo" });
+
   // ── Confirmaciones 15hs (día anterior al turno) ────────────
   cron.schedule("0 15 * * *", enviarConfirmacion15hs, { timezone: "America/Montevideo" });
+
+  // ── Segundo recordatorio — 18hs (para pendiente_confirmacion de mañana) ─
+  cron.schedule("0 18 * * *", enviarRecordatorio18hs, { timezone: "America/Montevideo" });
 
   // ── Agenda mañana para terapeutas — DESACTIVADO por ahora ──
   // cron.schedule("0 19 * * *", enviarAgendaTerapeutas, { timezone: "America/Montevideo" });
@@ -998,9 +1120,11 @@ function startScheduler() {
   console.log("🗓️ Scheduler iniciado:");
   console.log("  • 06:00 revisión silenciosa (token + sistema + liberar ghosts expiradas)");
   console.log("  • 07:00 (lunes) detectar patrones y crear ghost bookings");
+  console.log("  • 09:00 notificar ghost bookings próximos (24-48hs antes)");
   console.log("  • 10:30 remarketing secuencial (48h → 48h → 10d)");
   console.log("  • 11:00 seguimiento post-sesión");
   console.log("  • 15:00 confirmaciones día siguiente");
+  console.log("  • 18:00 segundo recordatorio (pendiente_confirmacion de mañana)");
   console.log("  • 20:00 agenda del día siguiente para Nico");
   console.log("  • 20:05 cierre de no-shows automático");
   console.log("  • 21:00 check-in diario + alertas cuponera");

@@ -13,6 +13,7 @@ const {
   cancelarTurno,
   buscarTurnoCliente,
   resolverSlot,
+  actualizarEstadoGhost,
 } = require("./calendar");
 const {
   registrarCliente,
@@ -789,6 +790,8 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
         if (diffHoras > 0 && diffHoras <= 48) {
           if (esSi) {
             await updateClienteEstado(userId, "confirmado");
+            // Si era un ghost booking, convertirlo a confirmado en hoja Sesiones
+            actualizarEstadoGhost(userId, cliente.Fecha_Turno, "confirmado").catch(() => {});
             const hora = fechaTurno.toLocaleTimeString("es-UY", { hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" });
             await enviarMensaje(userId,
               `¡Perfecto! 🙏 Confirmado para las ${hora}. ¡Te esperamos! Sarandí 554 apto. 1 — Frente a Plaza Matriz 💛`,
@@ -796,8 +799,9 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
             );
             return;
           } else {
-            // NO → marcar como cancelado y ofrecer reagendar
+            // NO → marcar como no_confirmado y cancelar ghost si había
             await updateClienteEstado(userId, "no_confirmado");
+            actualizarEstadoGhost(userId, cliente.Fecha_Turno, "cancelado").catch(() => {});
             agregarMensaje(userId, "user", text);
             // Dejar que Claude responda (con contexto de cancela → reagendar)
             // No hacemos return, sigue el flujo normal de Claude

@@ -667,6 +667,38 @@ async function liberarGhostExpiradas() {
   return liberadas;
 }
 
+// ─── ACTUALIZAR ESTADO DE UN GHOST BOOKING ────────────────────
+// Convierte el ghost a "confirmado" o "cancelado" cuando el cliente responde.
+// Busca por ID_CLIENTE + fecha (YYYY-MM-DD). Devuelve true si encontró y actualizó.
+async function actualizarEstadoGhost(clienteId, fechaISO, nuevoEstado) {
+  if (!clienteId || !fechaISO) return false;
+  const sesiones = await _leerSesiones();
+  const api = await getSheets();
+  const fechaStr = fechaISO.split("T")[0]; // YYYY-MM-DD
+
+  for (let i = 0; i < sesiones.length; i++) {
+    const f = sesiones[i];
+    if (f[COL.ESTADO] !== "ghost") continue;
+    if (f[COL.ID_CLIENTE] !== clienteId) continue;
+    if (!f[COL.FECHA]?.startsWith(fechaStr)) continue;
+
+    const row = i + 2; // +1 cabecera, +1 índice 1-based
+    await conRetry(
+      () => api.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_SESIONES}!J${row}`,
+        valueInputOption: "RAW",
+        resource: { values: [[nuevoEstado]] },
+      }),
+      { nombre: "Sheets - actualizarEstadoGhost", intentos: 2 }
+    );
+    invalidarCacheSlots();
+    console.log(`👻 Ghost ${clienteId} → ${nuevoEstado} (${fechaStr})`);
+    return true;
+  }
+  return false;
+}
+
 // ─── PRÓXIMA FECHA DE UN DÍA DE SEMANA ───────────────────────
 // diaSemana: 0=Dom...6=Sab, semanaOffset: 1=próxima, 2=siguiente, etc.
 function proximaFechaDiaSemana(diaSemana, semanaOffset = 1) {
@@ -705,6 +737,7 @@ module.exports = {
   detectarPatrones,
   crearReservasFantasma,
   liberarGhostExpiradas,
+  actualizarEstadoGhost,
   proximaFechaDiaSemana,
   HORARIOS,
   TERAPEUTAS,
