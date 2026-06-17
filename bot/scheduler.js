@@ -16,7 +16,7 @@ const {
   getStats,
   leerTodosLosClientes,
 } = require("./crm");
-const { getDisponibilidad, formatearDisponibilidad } = require("./calendar");
+const { getDisponibilidad, formatearDisponibilidad, crearReservasFantasma, liberarGhostExpiradas } = require("./calendar");
 const { tomarDecisiones } = require("./consciousness");
 const { verificarSalud } = require("./utils");
 
@@ -768,7 +768,14 @@ async function autoReview6am() {
     console.error("❌ Error en análisis 6am:", err.message);
   }
 
-  // ── 3. Solo notificar si hay alertas ────────────────────────
+  // ── 3. Liberar ghost expiradas (silencioso) ─────────────────
+  try {
+    await liberarGhostExpiradas();
+  } catch (err) {
+    console.error("❌ Error liberando ghosts:", err.message);
+  }
+
+  // ── 4. Solo notificar si hay alertas ────────────────────────
   if (alertas.length > 0) {
     await enviarMensaje(OWNER, `🔔 *Revisión 6am — Citrino*\n\n${alertas.join("\n\n")}`, "whatsapp").catch(() => {});
     console.log(`⚠️ Revisión 6am: ${alertas.length} alerta(s) enviada(s)`);
@@ -974,11 +981,23 @@ function startScheduler() {
   // ── Resumen mensual — día 1 de cada mes 9:00 ──────────────
   cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
 
-  // ── Auto-review silencioso — 6:00 (token + sistema, avisa solo si hay error) ─
+  // ── Auto-review silencioso — 6:00 (token + sistema + liberar ghosts) ───────
   cron.schedule("0 6 * * *", autoReview6am, { timezone: "America/Montevideo" });
 
+  // ── Ghost bookings — lunes 7:00 (detectar patrones y crear reservas fantasma)
+  cron.schedule("0 7 * * 1", async () => {
+    console.log("👻 Analizando patrones para ghost bookings...");
+    try {
+      const creados = await crearReservasFantasma(2);
+      console.log(`👻 Ghost bookings: ${creados} creado(s)`);
+    } catch (err) {
+      console.error("❌ Error ghost bookings:", err.message);
+    }
+  }, { timezone: "America/Montevideo" });
+
   console.log("🗓️ Scheduler iniciado:");
-  console.log("  • 06:00 revisión silenciosa (token + sistema) — avisa solo si hay error");
+  console.log("  • 06:00 revisión silenciosa (token + sistema + liberar ghosts expiradas)");
+  console.log("  • 07:00 (lunes) detectar patrones y crear ghost bookings");
   console.log("  • 10:30 remarketing secuencial (48h → 48h → 10d)");
   console.log("  • 11:00 seguimiento post-sesión");
   console.log("  • 15:00 confirmaciones día siguiente");

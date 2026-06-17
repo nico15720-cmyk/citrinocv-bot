@@ -143,13 +143,14 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
     _leerTerapeutas(),
   ]);
 
-  // Sesiones ocupadas (estado != cancelado)
+  // Sesiones ocupadas (estado != cancelado) — incluye ghost para bloquear slots
   const ocupadas = sesiones
     .filter(f => f[COL.ESTADO] !== "cancelado" && f[COL.FECHA])
     .map(f => ({
-      inicio: new Date(f[COL.FECHA]),
-      fin:    f[COL.FECHA_FIN] ? new Date(f[COL.FECHA_FIN]) : new Date(new Date(f[COL.FECHA]).getTime() + DURACION_MIN * 60000),
+      inicio:    new Date(f[COL.FECHA]),
+      fin:       f[COL.FECHA_FIN] ? new Date(f[COL.FECHA_FIN]) : new Date(new Date(f[COL.FECHA]).getTime() + DURACION_MIN * 60000),
       terapeuta: (f[COL.TERAPEUTA] || "").toLowerCase(),
+      estado:    f[COL.ESTADO] || "pendiente",
     }));
 
   const ahoraMVD = toMVD(new Date());
@@ -207,14 +208,15 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
     }
   }
 
-  // Ordenar por fecha/hora
-  slots.sort((a, b) => a.inicioISO.localeCompare(b.inicioISO));
+  // Aplicar clustering: solo ofrecer slots próximos a sesiones ya agendadas ese día
+  const slotsCluster = filtrarSlotsAgrupados(slots, ocupadas);
+  slotsCluster.sort((a, b) => a.inicioISO.localeCompare(b.inicioISO));
 
   if (diasDesdeHoy === 0) {
-    _slotsCache = slots;
+    _slotsCache = slotsCluster;
     _slotsCacheTs = ahora;
   }
-  return slots;
+  return slotsCluster;
 }
 
 // Cache de slots independiente
@@ -478,6 +480,203 @@ async function getTurnosDelDia(fecha) {
     .sort((a, b) => a.hora.localeCompare(b.hora));
 }
 
+// ─── CLUSTERING: filtrar slots demasiado alejados de sesiones existentes ──
+// Si el día ya tiene sesiones activas, solo ofrecer slots dentro de maxGapHoras.
+// Las reservas fantasma (ghost) bloquean el slot pero NO anclan el clúster.
+function filtrarSlotsAgrupados(slotsLibres, ocupadasConEstado, maxGapHoras = 2.5) {
+  // Agrupar sesiones reales (no ghost, no canceladas) por día → array de hora float
+  const sesionesPorDia = {};
+  for (const o of ocupadasConEstado) {
+    if (["cancelado", "ghost"].includes(o.estado)) continue;
+    const diaKey = o.inicio.toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+    if (!sesionesPorDia[diaKey]) sesionesPorDia[diaKey] = [];
+    const mvd = toMVD(o.inicio);
+    sesionesPorDia[diaKey].push(mvd.getHours() + mvd.getMinutes() / 60);
+  }
+
+  return slotsLibres.filter(slot => {
+    const sesionesDelDia = sesionesPorDia[slot.fecha];
+    // Si el día está vacío → dejar el slot libre (sin restricción)
+    if (!sesionesDelDia?.length) return true;
+    // Si el día ya tiene sesiones → solo mostrar slots dentro de maxGapHoras de alguna
+    const horaSlot = horaToFloat(slot.horaInicio);
+    return sesionesDelDia.some(h => Math.abs(horaSlot - h) <= maxGapHoras);
+  });
+}
+
+// ─── DETECTAR PATRONES de asistencia semanal recurrente ───────
+// Devuelve clientes que vinieron 3+ semanas consecutivas al mismo día/hora
+async function detectarPatrones() {
+  const sesiones = await _leerSesiones();
+  const ahora = new Date();
+
+  // Solo sesiones pasadas no canceladas y no fantasma
+  const pasadas = sesiones.filter(f =>
+    f[COL.FECHA] &&
+    new Date(f[COL.FECHA]) < ahora &&
+    !["cancelado", "ghost"].includes(f[COL.ESTADO]) &&
+    f[COL.ID_CLIENTE]
+  );
+
+  // Agrupar por clienteId + diaSemana + hora (redondeada a 30 min)
+  const grupos = {};
+  for (const s of pasadas) {
+    const mvd = toMVD(new Date(s[COL.FECHA]));
+    const dia = mvd.getDay();
+    const hora = Math.round((mvd.getHours() + mvd.getMinutes() / 60) * 2) / 2;
+    const clienteId = s[COL.ID_CLIENTE];
+    const key = `${clienteId}|${dia}|${hora}`;
+    if (!grupos[key]) {
+      grupos[key] = { clienteId, cliente: s[COL.CLIENTE] || "", dia, hora, fechas: [] };
+    }
+    grupos[key].fechas.push(new Date(s[COL.FECHA]));
+  }
+
+  const patrones = [];
+  for (const [, g] of Object.entries(grupos)) {
+    if (g.fechas.length < 3) continue;
+    g.fechas.sort((a, b) => a - b);
+
+    // Buscar racha de 3+ semanas consecutivas (gap 6-8 días)
+    let racha = 1;
+    let ultimaEnRacha = g.fechas[0];
+    for (let i = 1; i < g.fechas.length; i++) {
+      const diffDias = (g.fechas[i] - g.fechas[i - 1]) / 86400000;
+      if (diffDias >= 6 && diffDias <= 8) {
+        racha++;
+        ultimaEnRacha = g.fechas[i];
+        if (racha >= 3) {
+          // Solo patrones activos (última sesión hace 30 días o menos)
+          const diasDesdeUltima = (ahora - ultimaEnRacha) / 86400000;
+          if (diasDesdeUltima <= 30) {
+            patrones.push({
+              clienteId:  g.clienteId,
+              cliente:    g.cliente,
+              diaSemana:  g.dia,
+              hora:       g.hora,
+              ultimaFecha: ultimaEnRacha,
+            });
+          }
+          break;
+        }
+      } else {
+        racha = 1;
+        ultimaEnRacha = g.fechas[i];
+      }
+    }
+  }
+  return patrones;
+}
+
+// ─── CREAR RESERVAS FANTASMA para patrones detectados ─────────
+// Para cada patrón activo, crea hasta maxSemanas ghost entries en el futuro.
+async function crearReservasFantasma(maxSemanas = 2) {
+  const [patrones, sesiones] = await Promise.all([
+    detectarPatrones(),
+    _leerSesiones(),
+  ]);
+  if (!patrones.length) return 0;
+
+  const api = await getSheets();
+  const ahora = new Date();
+  let creados = 0;
+
+  for (const patron of patrones) {
+    for (let semana = 1; semana <= maxSemanas; semana++) {
+      // Siguiente ocurrencia = última fecha + semana * 7 días
+      const fechaGhost = new Date(patron.ultimaFecha);
+      fechaGhost.setDate(fechaGhost.getDate() + semana * 7);
+      if (fechaGhost <= ahora) continue; // ya pasó
+
+      const fechaStr = fechaGhost.toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+      const inicioISO = buildISO(fechaStr, patron.hora);
+      const finISO   = buildISO(fechaStr, patron.hora + DURACION_MIN / 60);
+
+      // Evitar duplicados: ya existe turno de ese cliente ese día a esa hora
+      const yaExiste = sesiones.some(f => {
+        if (f[COL.ID_CLIENTE] !== patron.clienteId) return false;
+        if (!f[COL.FECHA]?.startsWith(fechaStr)) return false;
+        if (!["ghost", "pendiente", "confirmado"].includes(f[COL.ESTADO])) return false;
+        const d = toMVD(new Date(f[COL.FECHA]));
+        return Math.abs((d.getHours() + d.getMinutes() / 60) - patron.hora) < 0.5;
+      });
+      if (yaExiste) continue;
+
+      const fila = [
+        generateId(),          // A: ID_Sesion
+        inicioISO,             // B: Fecha
+        patron.cliente || patron.clienteId, // C: Cliente
+        "ghost",               // D: Tratamiento (marcador)
+        "",                    // E: Terapeuta
+        patron.clienteId,      // F: ID_Cliente
+        0,                     // G: Monto_Terapeuta
+        "Reserva fantasma — patrón semanal automático", // H: Observaciones
+        finISO,                // I: Fecha_Fin
+        "ghost",               // J: Estado
+      ];
+
+      await conRetry(
+        () => api.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `${SHEET_SESIONES}!A:J`,
+          valueInputOption: "USER_ENTERED",
+          resource: { values: [fila] },
+        }),
+        { nombre: "Sheets - crearGhost", intentos: 3 }
+      );
+      console.log(`👻 Ghost creado: ${patron.cliente} — ${fechaStr} ${floatToHHMM(patron.hora)}`);
+      creados++;
+    }
+  }
+
+  if (creados > 0) invalidarCacheSlots();
+  return creados;
+}
+
+// ─── LIBERAR GHOST EXPIRADAS ──────────────────────────────────
+// Cancela reservas fantasma cuya fecha ya pasó (el cliente no vino o no confirmó)
+async function liberarGhostExpiradas() {
+  const sesiones = await _leerSesiones();
+  const ahora = new Date();
+  const api = await getSheets();
+  let liberadas = 0;
+
+  for (let i = 0; i < sesiones.length; i++) {
+    const f = sesiones[i];
+    if (f[COL.ESTADO] !== "ghost") continue;
+    if (!f[COL.FECHA]) continue;
+    if (new Date(f[COL.FECHA]) >= ahora) continue; // todavía futura
+
+    const row = i + 2; // +1 header, +1 1-based
+    await conRetry(
+      () => api.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_SESIONES}!J${row}`,
+        valueInputOption: "RAW",
+        resource: { values: [["cancelado"]] },
+      }),
+      { nombre: "Sheets - liberarGhost", intentos: 2 }
+    ).catch(() => {});
+    liberadas++;
+  }
+
+  if (liberadas > 0) {
+    invalidarCacheSlots();
+    console.log(`👻 ${liberadas} ghost(s) expirada(s) liberada(s)`);
+  }
+  return liberadas;
+}
+
+// ─── PRÓXIMA FECHA DE UN DÍA DE SEMANA ───────────────────────
+// diaSemana: 0=Dom...6=Sab, semanaOffset: 1=próxima, 2=siguiente, etc.
+function proximaFechaDiaSemana(diaSemana, semanaOffset = 1) {
+  const hoy = toMVD(new Date());
+  const diasHastaProximo = ((diaSemana - hoy.getDay() + 7) % 7) || 7;
+  const fecha = new Date(hoy);
+  fecha.setDate(hoy.getDate() + diasHastaProximo + (semanaOffset - 1) * 7);
+  return fecha;
+}
+
 // ─── DISPONIBILIDAD TODOS (alias para compatibilidad) ─────────
 async function getDisponibilidadTodos(diasDesdeHoy = 0) {
   return getDisponibilidad(diasDesdeHoy);
@@ -501,6 +700,12 @@ module.exports = {
   getEventosAgenda,
   getTurnosDelDia,
   invalidarCacheSlots,
+  // clustering + ghost bookings
+  filtrarSlotsAgrupados,
+  detectarPatrones,
+  crearReservasFantasma,
+  liberarGhostExpiradas,
+  proximaFechaDiaSemana,
   HORARIOS,
   TERAPEUTAS,
 };
