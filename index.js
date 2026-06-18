@@ -181,6 +181,74 @@ app.post("/webhook", async (req, res) => {
         }
         return;
       }
+      // ── /vino TELEFONO [FECHA HORA] ─────────────────────────────
+      // Marca que el cliente vino hoy. Si se reagendó, envía confirmación.
+      // Si no: envía seguimiento post-sesión y deja pendiente.
+      // Uso: /vino 099123456
+      //      /vino 099123456 viernes 10:30
+      //      /vino 099123456 20/06 10:30
+      if (texto.toLowerCase().startsWith("/vino") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
+        const partes = texto.substring(5).trim().split(/\s+/);
+        const telefonoRaw = partes[0] || "";
+        const { enviarMensaje: enviar } = require("./bot/sender");
+
+        if (!telefonoRaw) {
+          await enviar(msg.from, "⚠️ Uso: /vino TELEFONO [FECHA HORA]\nEj: /vino 099123456 viernes 10:30", "whatsapp");
+          return;
+        }
+
+        const telLimpio = telefonoRaw.replace(/\D/g, "");
+        const dest = telLimpio.startsWith("598") ? telLimpio : `598${telLimpio.replace(/^0/, "")}`;
+
+        try {
+          const { readSheet, upsertCliente } = require("./bot/sheets-crm");
+          const clientesCRM = await readSheet("CLIENTES");
+          const cliente = clientesCRM.find(c => {
+            const t = String(c.Telefono || c.ID_Cliente || "").replace(/\D/g, "");
+            return t.endsWith(telLimpio.slice(-8)) || t === telLimpio;
+          });
+          const nombre = cliente?.Nombre || "";
+
+          // Marcar Estado=vino y Ultimo_Saludo=hoy
+          const ahora = new Date().toISOString();
+          const update = { Estado: "vino", Ultimo_Saludo: ahora };
+
+          // Parsear fecha+hora de reagendamiento (si la hay)
+          const fechaHoraStr = partes.slice(1).join(" ").trim();
+          let mensajeCliente;
+
+          if (fechaHoraStr) {
+            // Tiene nueva fecha — enviar confirmación
+            // Guardar Fecha_Turno en CRM
+            update.Fecha_Turno = fechaHoraStr;
+            await upsertCliente({ ID_Cliente: telLimpio, ...update });
+
+            mensajeCliente =
+              `¡Hola ${nombre || ""}! 🌿 Muchas gracias por su visita a Citrino 💆‍♀️\n\n` +
+              `Su próxima sesión quedó agendada para el *${fechaHoraStr}*.\n\n` +
+              `Le recordamos el día anterior. ¡Hasta pronto! 🌿`;
+
+            await enviar(dest, mensajeCliente, "whatsapp");
+            await enviar(msg.from, `✅ ${nombre || dest} marcada como vino. Confirmación enviada para el ${fechaHoraStr}.`, "whatsapp");
+          } else {
+            // No reagendó — seguimiento post-sesión
+            update.NOTAS = ((cliente?.NOTAS || "") + " [seguimiento_pendiente]").trim();
+            await upsertCliente({ ID_Cliente: telLimpio, ...update });
+
+            mensajeCliente =
+              `¡Hola ${nombre || ""}! 🌿 ¿Cómo quedó después de su sesión en Citrino?\n\n` +
+              `Esperamos que haya disfrutado mucho 💆 Si quiere repetir, acá estamos.\n\n` +
+              `¿Agendamos el próximo turno?`;
+
+            await enviar(dest, mensajeCliente, "whatsapp");
+            await enviar(msg.from, `✅ ${nombre || dest} marcada como vino. Seguimiento post-sesión enviado. Si no agenda en 3 días te aviso.`, "whatsapp");
+          }
+        } catch (e) {
+          await enviar(msg.from, `❌ Error: ${e.message}`, "whatsapp");
+        }
+        return;
+      }
+
       if (texto.toLowerCase() === "/admin") {
         modoAdmin.add(msg.from);
         modoMarta.delete(msg.from);

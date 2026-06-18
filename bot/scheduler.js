@@ -66,6 +66,12 @@ const MENSAJES = {
     `Si todavía le interesa agendar, tenemos buenos horarios disponibles esta semana ✨\n` +
     `¿Le contamos más?`,
 
+  // ── Lead tibio: preguntó horarios o mostró intención de agendar ──
+  remarketingLeadTibio: (nombre, servicio) =>
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino.\n\n` +
+    `La última vez estaba a punto de coordinar su turno para ${servicio || "su sesión"}. Esta semana tenemos buenos horarios disponibles, incluso de mañana y de tarde.\n\n` +
+    `¿Agendamos?`,
+
   remarketingClientaVino: (nombre) =>
     `¡Hola ${nombre || ""}! 🌿 ¿Cómo está?\n\n` +
     `Hace un tiempo que no la vemos por Citrino y la extrañamos 💛\n\n` +
@@ -173,6 +179,29 @@ async function enviarRemarketing() {
     let enviados = 0;
     let saltados = 0;
 
+    // Pre-cargar VENTAS y SESIONES para detectar cuponeras sin usar
+    let ventasSheet = [], sesionesSheet = [];
+    try {
+      [ventasSheet, sesionesSheet] = await Promise.all([
+        readSheet("VENTAS").catch(() => []),
+        readSheet("SESIONES").catch(() => []),
+      ]);
+    } catch {}
+
+    const PACK_KW_REMARK = ["pack", "cuponera", "pase libre"];
+    function normIdRemark(v) { return String(v || "").replace(/\D/g, "").slice(-9); }
+    function saldoCuponeraRapido(clienteId) {
+      const cid = normIdRemark(clienteId);
+      if (!cid) return 0;
+      const compradas = ventasSheet
+        .filter(v => normIdRemark(v.ID_Cliente_Guardado) === cid &&
+          PACK_KW_REMARK.some(k => (v.Producto || "").toLowerCase().includes(k)))
+        .reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+      const usadas = sesionesSheet
+        .filter(s => normIdRemark(s.ID_Cliente_Guardado) === cid).length;
+      return Math.max(0, compradas - usadas);
+    }
+
     for (const c of clientes) {
       try {
         // Saltar si ya es cliente activo / convertida
@@ -206,24 +235,39 @@ async function enviarRemarketing() {
         const diffHoras = (ahora - refDate.getTime()) / (1000 * 60 * 60);
         if (diffHoras < horasRequeridas) { saltados++; continue; }
 
-        // ── Seleccionar mensaje según etapa y objeción ─────────────
+        // ── Seleccionar mensaje según etapa y segmento ─────────────
         const nombre   = c.Nombre || "";
         const objecion = (c.Objecion || "").toLowerCase();
         const servicio = c.Intencion_Compra || "nuestros masajes";
 
+        // Detectar si es lead tibio (preguntó por horarios en el historial)
+        let preguntoPorHorario = false;
+        try {
+          const hist = JSON.parse(c.Historial_JSON || "[]");
+          const textoHist = hist.map(m => m.content || m.msg || m.text || "").join(" ").toLowerCase();
+          preguntoPorHorario = /horario|turno|cuando|agendar|disponib|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado/.test(textoHist);
+        } catch {}
+
+        // Detectar cuponera con saldo (clientes que ya pagaron pero no usaron)
+        const saldoCuponera = saldoCuponeraRapido(userId);
+
         let mensaje;
 
         if (etapa === 0) {
-          // Primera toma de contacto: diferenciada por objeción (la más personalizada)
-          if (objecion.includes("precio") || objecion.includes("caro") || objecion.includes("plata")) {
+          // Prioridad 1: tiene cuponera con saldo → recordar que las espera
+          if (saldoCuponera > 0) {
+            mensaje = MENSAJES.seguimientoConCuponera(nombre, String(saldoCuponera));
+          // Prioridad 2: objeción específica conocida
+          } else if (objecion.includes("precio") || objecion.includes("caro") || objecion.includes("plata")) {
             mensaje = MENSAJES.remarketingPrecio(nombre);
-          } else if (objecion.includes("tiempo") || objecion.includes("horario") || objecion.includes("ocupad")) {
+          } else if (objecion.includes("tiempo") || objecion.includes("ocupad")) {
             mensaje = MENSAJES.remarketingTiempo(nombre);
           } else if (objecion.includes("duda") || objecion.includes("piensa") || objecion.includes("segur")) {
             mensaje = MENSAJES.remarketingDuda(nombre, servicio);
-          } else if (c.Estado === "vino") {
-            // No debería llegar acá (filtrado arriba), pero por las dudas
-            mensaje = MENSAJES.remarketingClientaVino(nombre);
+          // Prioridad 3: lead tibio (preguntó horarios pero no completó)
+          } else if (preguntoPorHorario) {
+            mensaje = MENSAJES.remarketingLeadTibio(nombre, servicio);
+          // Prioridad 4: lead frío (nunca mostró intención clara)
           } else {
             mensaje = MENSAJES.remarketingLead(nombre, servicio);
           }
@@ -715,22 +759,44 @@ async function autoReview6am() {
 
   // ── 2. Análisis del sistema con Claude ──────────────────────
   try {
-    const [stats, clientes] = await Promise.all([
+    const { readSheet } = require("./sheets-crm");
+    const [stats, clientesCRM] = await Promise.all([
       getStats().catch(() => ({})),
-      leerTodosLosClientes().catch(() => []),
+      readSheet("CLIENTES").catch(() => []),
     ]);
 
-    const sinVolver30 = clientes.filter(c =>
-      c.UltimoContacto && Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000) > 30
+    const ahora6 = Date.now();
+    const diasDesde = (c, campo) => {
+      const v = c[campo];
+      if (!v) return 9999;
+      const d = new Date(v);
+      return isNaN(d) ? 9999 : Math.floor((ahora6 - d) / 86400000);
+    };
+
+    // Clientas que efectivamente vinieron y no han vuelto en 30+ días (churn real)
+    const clientasInactivasReal = clientesCRM.filter(c =>
+      c.Estado === "vino" && diasDesde(c, "Ultimo_Saludo") > 30
+    ).length;
+
+    // Leads que nunca convirtieron (normal, no es alarma)
+    const leadsTotal = clientesCRM.filter(c =>
+      ["prospecto", "lead"].includes(c.Estado || "")
+    ).length;
+
+    // Cuponeras con saldo sin usar > 21 días (urgente)
+    // Cálculo rápido sin cross-join pesado
+    const cuponeraPendiente = clientesCRM.filter(c =>
+      c.Estado === "vino" && diasDesde(c, "Ultimo_Saludo") > 21 &&
+      (c.NOTAS || "").toLowerCase().includes("cuponera")
     ).length;
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 200,
-      system: `Monitoreás el Citrino Bot. Si todo está bien respondés únicamente "OK". Si hay algo urgente, describís el problema en máximo 2 líneas empezando con "⚠️".`,
+      system: `Monitoreás el Citrino Bot (centro de estética). Tu rol es detectar problemas técnicos reales, no comentar métricas normales de negocio. Los leads que no convierten son normales. Solo alertás si: (a) el ratio de agendadas/leads está por debajo del 5%, (b) hay un error sistémico evidente, o (c) el volumen de agendadas cayó >50% respecto a la semana anterior. Si todo está normal respondés únicamente "OK".`,
       messages: [{
         role: "user",
-        content: `Revisión ${new Date().toLocaleDateString("es-UY")}: total=${stats.total||0}, leads=${stats.leads||0}, agendadas=${stats.agendados||0}, sin volver 30d=${sinVolver30}. ¿Hay algo urgente?`,
+        content: `Revisión ${new Date().toLocaleDateString("es-UY")}: total_contactos=${stats.total||0}, leads_activos=${leadsTotal}, agendadas=${stats.agendados||0}, clientas_que_vinieron_y_no_volvieron_30d=${clientasInactivasReal}. ¿Hay algo urgente?`,
       }],
     });
 
@@ -1082,6 +1148,29 @@ function startScheduler() {
 
   // ── Resumen mensual — día 1 de cada mes 9:00 ──────────────
   cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
+
+  // ── Seguimiento pendiente — 9:30 (clientes que vinieron pero no reagendaron) ─
+  cron.schedule("30 9 * * *", async () => {
+    if (!OWNER) return;
+    try {
+      const { readSheet } = require("./sheets-crm");
+      const clientes = await readSheet("CLIENTES");
+      const ahora = Date.now();
+      const pendientes = clientes.filter(c => {
+        if (!(c.NOTAS || "").includes("[seguimiento_pendiente]")) return false;
+        const ult = c.Ultimo_Saludo ? new Date(c.Ultimo_Saludo) : null;
+        if (!ult) return false;
+        const diasDesde = (ahora - ult) / 86400000;
+        return diasDesde >= 3 && diasDesde < 14; // entre 3 y 14 días sin agendar
+      });
+      if (!pendientes.length) return;
+      const lista = pendientes.map(c => `• ${c.Nombre || c.ID_Cliente} (${c.Telefono || c.ID_Cliente})`).join("\n");
+      await enviarMensaje(OWNER,
+        `📋 *Seguimiento pendiente — clientas sin reagendar*\n\nVinieron hace 3+ días y no reagendaron:\n\n${lista}\n\n¿Las contactamos o las dejamos para la semana que viene?`,
+        "whatsapp"
+      ).catch(() => {});
+    } catch {}
+  }, { timezone: "America/Montevideo" });
 
   // ── Auto-review silencioso — 6:00 (token + sistema + liberar ghosts) ───────
   cron.schedule("0 6 * * *", autoReview6am, { timezone: "America/Montevideo" });
