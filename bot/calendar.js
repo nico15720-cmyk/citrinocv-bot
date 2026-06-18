@@ -10,7 +10,8 @@ const { conRetry } = require("./utils");
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
 const SHEET_SESIONES = "Sesiones";
 const TIMEZONE = "America/Montevideo";
-const DURACION_MIN = 90;    // duración de cada sesión en minutos
+const DURACION_MIN  = 60;   // duración de cada sesión en minutos (1 hora exacta)
+const SLOT_CADA_MIN = 30;   // paso entre slots ofrecidos (cada 30 min: 8:30, 9:00, 9:30…)
 const DIAS_A_MOSTRAR = 7;  // ventana de disponibilidad (días)
 
 // ─── Columnas de la hoja Sesiones (0-based) ──────────────────
@@ -28,15 +29,16 @@ const COL = {
 };
 
 // ─── Horarios por defecto (se sobreescriben con hoja Terapeutas) ───
-// TEMPORAL: sin restricción de horario para pruebas
+// Primera sesión: 8:30  |  Última sesión empieza: 19:30 (termina 20:30)
+// Horarios válidos: solo horas exactas o medias (8:30, 9:00, 9:30 … 19:30)
 const HORARIOS_DEFAULT = {
-  0: { dia: "Domingo",   franjas: [{ inicio: 0, fin: 24 }] },
-  1: { dia: "Lunes",     franjas: [{ inicio: 0, fin: 24 }] },
-  2: { dia: "Martes",    franjas: [{ inicio: 0, fin: 24 }] },
-  3: { dia: "Miércoles", franjas: [{ inicio: 0, fin: 24 }] },
-  4: { dia: "Jueves",    franjas: [{ inicio: 0, fin: 24 }] },
-  5: { dia: "Viernes",   franjas: [{ inicio: 0, fin: 24 }] },
-  6: { dia: "Sábado",    franjas: [{ inicio: 0, fin: 24 }] },
+  0: { dia: "Domingo",   franjas: [] },                               // cerrado
+  1: { dia: "Lunes",     franjas: [{ inicio: 8.5, fin: 20.5 }] },
+  2: { dia: "Martes",    franjas: [{ inicio: 8.5, fin: 20.5 }] },
+  3: { dia: "Miércoles", franjas: [{ inicio: 8.5, fin: 20.5 }] },
+  4: { dia: "Jueves",    franjas: [{ inicio: 8.5, fin: 20.5 }] },
+  5: { dia: "Viernes",   franjas: [{ inicio: 8.5, fin: 20.5 }] },
+  6: { dia: "Sábado",    franjas: [] },                               // cerrado
 };
 
 // ─── Auth ─────────────────────────────────────────────────────
@@ -172,14 +174,16 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
 
       for (const franja of (horario.franjas || [])) {
         let h = franja.inicio;
-        while (h + DURACION_MIN / 60 <= franja.fin) {
+        const durH  = DURACION_MIN  / 60; // 1.0
+        const stepH = SLOT_CADA_MIN / 60; // 0.5 → slots cada 30 min
+        while (h + durH <= franja.fin) {
           const inicioISO = buildISO(fechaStr, h);
-          const finISO   = buildISO(fechaStr, h + DURACION_MIN / 60);
+          const finISO   = buildISO(fechaStr, h + durH);
           const inicioDate = new Date(inicioISO);
           const finDate    = new Date(finISO);
 
           // No mostrar slots pasados
-          if (inicioDate <= new Date()) { h += DURACION_MIN / 60; continue; }
+          if (inicioDate <= new Date()) { h += stepH; continue; }
 
           // Chequear si está ocupado para ESTE terapeuta
           const ocupado = ocupadas.some(o => {
@@ -192,7 +196,7 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
               fecha: fechaStr,
               fechaLabel: formatFecha(fechaStr),
               horaInicio: floatToHHMM(h),
-              horaFin:    floatToHHMM(h + DURACION_MIN / 60),
+              horaFin:    floatToHHMM(h + durH),
               label: `${formatFecha(fechaStr)} a las ${floatToHHMM(h)} con ${ter.nombre}`,
               inicioISO,
               finISO,
@@ -202,7 +206,7 @@ async function getDisponibilidad(diasDesdeHoy = 0) {
             });
           }
 
-          h += DURACION_MIN / 60;
+          h += stepH;
         }
       }
     }
@@ -481,26 +485,65 @@ async function getTurnosDelDia(fecha) {
 }
 
 // ─── CLUSTERING: filtrar slots demasiado alejados de sesiones existentes ──
-// Si el día ya tiene sesiones activas, solo ofrecer slots dentro de maxGapHoras.
+// ─── REGLAS DE AGENDA — filtrar slots según las 5 reglas de Citrino ──────────
+//
+// Regla 2: Entre el fin de una sesión y el inicio de la siguiente ≤ 2.5 horas.
+// Regla 3: Agendar una sesión nueva no puede CREAR un hueco > 2.5h entre sesiones.
+// Regla 4: Se puede expandir hacia atrás siempre que el hueco resultante sea ≤ 2.5h.
 // Las reservas fantasma (ghost) bloquean el slot pero NO anclan el clúster.
+//
+// Lógica: para cada slot candidato, con sesiones existentes del día ordenadas
+// por hora de inicio, se valida:
+//   - gap entre fin de sesión anterior y este slot start ≤ maxGapHoras
+//   - gap entre fin de este slot y el inicio de la siguiente sesión ≤ maxGapHoras
+// Si no hay sesión antes/después, el lado libre no genera restricción.
+// Si el día está vacío → todos los slots son válidos.
 function filtrarSlotsAgrupados(slotsLibres, ocupadasConEstado, maxGapHoras = 2.5) {
-  // Agrupar sesiones reales (no ghost, no canceladas) por día → array de hora float
+  const durH = DURACION_MIN / 60; // 1.0h
+
+  // Agrupar sesiones reales (no ghost, no canceladas) por día → array de {start, end} en horas
   const sesionesPorDia = {};
   for (const o of ocupadasConEstado) {
     if (["cancelado", "ghost"].includes(o.estado)) continue;
     const diaKey = o.inicio.toLocaleDateString("en-CA", { timeZone: TIMEZONE });
     if (!sesionesPorDia[diaKey]) sesionesPorDia[diaKey] = [];
-    const mvd = toMVD(o.inicio);
-    sesionesPorDia[diaKey].push(mvd.getHours() + mvd.getMinutes() / 60);
+    const mvd   = toMVD(o.inicio);
+    const start = mvd.getHours() + mvd.getMinutes() / 60;
+    sesionesPorDia[diaKey].push(start);
+  }
+  // Ordenar cada día
+  for (const dia of Object.keys(sesionesPorDia)) {
+    sesionesPorDia[dia].sort((a, b) => a - b);
   }
 
   return slotsLibres.filter(slot => {
-    const sesionesDelDia = sesionesPorDia[slot.fecha];
-    // Si el día está vacío → dejar el slot libre (sin restricción)
-    if (!sesionesDelDia?.length) return true;
-    // Si el día ya tiene sesiones → solo mostrar slots dentro de maxGapHoras de alguna
-    const horaSlot = horaToFloat(slot.horaInicio);
-    return sesionesDelDia.some(h => Math.abs(horaSlot - h) <= maxGapHoras);
+    const sesiones = sesionesPorDia[slot.fecha];
+    // Día sin sesiones reales → cualquier slot es válido (sin restricción)
+    if (!sesiones?.length) return true;
+
+    const slotStart = horaToFloat(slot.horaInicio);
+    const slotEnd   = slotStart + durH;
+
+    // Sesiones que terminan antes de que empiece este slot (prev)
+    const prevStarts = sesiones.filter(s => s + durH <= slotStart);
+    // Sesiones que empiezan después de que termina este slot (next)
+    const nextStarts = sesiones.filter(s => s >= slotEnd);
+
+    // ── Reglas 2 y 4: gap entre sesión anterior y este slot ──────────────
+    if (prevStarts.length > 0) {
+      const lastPrevEnd = prevStarts[prevStarts.length - 1] + durH;
+      if (slotStart - lastPrevEnd > maxGapHoras) return false;
+    }
+
+    // ── Regla 3: gap entre este slot y la próxima sesión ─────────────────
+    if (nextStarts.length > 0) {
+      const firstNextStart = nextStarts[0];
+      if (firstNextStart - slotEnd > maxGapHoras) return false;
+    }
+
+    // Si hay sesiones pero ninguna antes ni después → el slot se solapa (no debería pasar,
+    // ya fue filtrado como "ocupado"). Permitir para no bloquear erróneamente.
+    return true;
   });
 }
 

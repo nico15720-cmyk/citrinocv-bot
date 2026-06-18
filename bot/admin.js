@@ -410,6 +410,77 @@ async function ejecutarAccionAdmin(accion, datos) {
         return `💰 Venta registrada: *${cliente.Nombre}* — *${producto}* (${numSes} ses.)${precioStr}`;
       }
 
+      // ── Envío masivo a clientas (bulk messaging) ─────────────
+      // filtro: "leads" | "activos" | "con_cuponera" | "todos" | "inactivos" | "hoy"
+      // mensaje: texto con {nombre} como variable opcional
+      case "enviar_masivo": {
+        const { readSheet, upsertCliente } = require("./sheets-crm");
+        const todasClientes = await readSheet("CLIENTES");
+        const filtro  = (accion.filtro || "leads").toLowerCase();
+        const mensaje = accion.mensaje || "";
+        const ownerId = process.env.OWNER_WHATSAPP;
+
+        if (!mensaje) return "⚠️ Falta el mensaje a enviar.";
+
+        const hoy = new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+
+        let destinatarias = todasClientes.filter(c => {
+          const id = c.ID_Cliente || c.Telefono;
+          if (!id || id === ownerId) return false; // no enviarse a sí mismo
+          switch (filtro) {
+            case "leads":
+              return !["vino", "confirmado", "cancelado"].includes(c.Estado);
+            case "activos":
+              return ["vino", "agendado", "confirmado"].includes(c.Estado);
+            case "con_cuponera":
+              return c.Cuponera === "si" || c.Cuponera === "true";
+            case "inactivos":
+              if (!c.Ultimo_Saludo) return true;
+              return (Date.now() - new Date(c.Ultimo_Saludo).getTime()) > 30 * 86400000;
+            case "hoy":
+              return c.Fecha_Turno?.startsWith(hoy);
+            case "todos":
+              return true;
+            default:
+              return false;
+          }
+        });
+
+        if (!destinatarias.length) {
+          return `⚠️ Ninguna clienta coincide con el filtro "${filtro}".`;
+        }
+
+        // Confirmación previa — enviar preview y pedir confirmación
+        const preview = destinatarias.slice(0, 5).map(c => c.Nombre || c.ID_Cliente).join(", ");
+        const masStr  = destinatarias.length > 5 ? ` y ${destinatarias.length - 5} más` : "";
+        const msgEjemplo = mensaje.replace("{nombre}", destinatarias[0]?.Nombre || "");
+
+        // Si no tiene flag de confirmado, enviar preview y esperar
+        if (!accion.confirmado) {
+          return (
+            `📤 *Envío masivo listo:* ${destinatarias.length} clientas\n` +
+            `Filtro: *${filtro}*\n` +
+            `Destinatarias: ${preview}${masStr}\n\n` +
+            `📝 Mensaje de ejemplo:\n"${msgEjemplo}"\n\n` +
+            `¿Confirmás el envío? Respondé *"sí, enviá"* o *"no, cancelá"*.`
+          );
+        }
+
+        // Envío real (cuando accion.confirmado = true)
+        let enviados = 0; let errores = 0;
+        for (const c of destinatarias) {
+          try {
+            const id  = c.ID_Cliente || c.Telefono;
+            const txt = mensaje.replace("{nombre}", c.Nombre || "");
+            await enviarMensaje(id, txt, c.Origen || "whatsapp");
+            await upsertCliente({ ID_Cliente: id, Ultimo_Remarketing: new Date().toISOString() });
+            enviados++;
+            await new Promise(r => setTimeout(r, 800)); // pausa entre envíos
+          } catch { errores++; }
+        }
+        return `✅ Envío masivo completado: *${enviados}* enviados, ${errores} errores.`;
+      }
+
       default:
         return null;
     }
@@ -597,6 +668,25 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 
 "Este es el número de Ana: 099 123 456"
 → buscar_cliente (telefono:"099123456") para ver quién es, luego podés ejecutar acciones sobre ella.
+
+═══ ENVÍO MASIVO ═══
+Cuando Nico quiere mandar un mensaje a un grupo de clientas:
+"Mándale a los leads el mensaje X"
+→ enviar_masivo(filtro:"leads", mensaje:"X con {nombre}")
+
+"Para el día de la madre mandá esto a todas las activas: Hola {nombre}! En Citrino..."
+→ enviar_masivo(filtro:"activos", mensaje:"Hola {nombre}! ...")
+
+"Avisale a las que vienen hoy que hay estacionamiento"
+→ enviar_masivo(filtro:"hoy", mensaje:"...")
+
+"Mandá a todas las que tienen cuponera que renovamos precios"
+→ enviar_masivo(filtro:"con_cuponera", mensaje:"...")
+
+Filtros disponibles: leads | activos | con_cuponera | inactivos | hoy | todos
+{nombre} en el mensaje se reemplaza por el nombre de cada clienta.
+Siempre mostrar PREVIEW (destinatarias + ejemplo) antes del envío real.
+Cuando Nico confirma con "sí, enviá" o "dale" → emitís la MISMA acción enviar_masivo con los MISMOS parámetros del turno anterior + confirmado:true. Leé el historial para saber cuál era el mensaje y filtro.
 
 ═══ CHECK-IN DIARIO ═══
 Cuando Nico responde al check-in del día (lista de sesiones), procesá TODOS los mencionados:

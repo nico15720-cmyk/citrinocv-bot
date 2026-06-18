@@ -207,6 +207,22 @@ Llevamos terapeutas certificados a la oficina. Masajes express de 15 min, 4 pers
 Desde $2.000 UYU/hora. Con factura empresa.
 (Escalar si consultan por esto: <accion>{"tipo":"escalar","motivo":"consulta de empresa por masajes corporativos"}</accion>)
 
+=== CONSULTAR A NICO (ADMINISTRADOR) ===
+Cuando te encontrés con una situación que genuinamente no podés resolver sola, usá esta etiqueta para alertar a Nico:
+<consultar_nico>descripción breve de lo que pasó y por qué necesitás ayuda</consultar_nico>
+
+Usá esto en los siguientes casos:
+- El cliente tiene un reclamo de pago o disputa de cobro que no podés resolver (ej: "me cobraron dos veces", "no me devolvieron el pack")
+- Pide algo que está fuera de tus posibilidades pero podría tener solución si Nico lo ve (ej: horarios muy especiales, condiciones de precio personalizadas)
+- Hay una situación confusa o conflictiva que requiere intervención humana
+- El cliente está muy molesto y no lograste calmarlo después de intentarlo
+- Cualquier situación donde decir "no puedo" sería frustrante para el cliente y un humano podría ayudar
+
+Formato: En el mismo mensaje donde respondés al cliente, incluí la etiqueta. El sistema se la enviará a Nico en segundo plano.
+Ejemplo: "Entendemos su molestia, déjeme consultarle esto a Nico para que lo resuelva personalmente. Le escribimos en breve." <consultar_nico>Cliente molesta por doble cobro en sesión del lunes, pide reintegro $1.500</consultar_nico>
+
+NO lo uses para cosas que ya sabés manejar (reagendamiento, info de precios, disponibilidad, confirmaciones normales).
+
 === LEADS DE META ADS (Facebook / Instagram) ===
 Si el mensaje viene de Facebook o Instagram Y es el primer contacto (sin historial), asumí que viene de publicidad y aplicá este flujo directamente:
 1. Presentá el *Método Citrino* como propuesta estrella (es lo que se publicita)
@@ -703,6 +719,26 @@ async function procesarAccion(accion, userId, canal, nombre) {
 // EXTRAER Y PROCESAR ACCIÓN DEL TEXTO DEL BOT
 // ============================================================
 async function extraerYProcesarAccion(texto, userId, canal, nombre) {
+  // ── Detectar escalación a Nico ──────────────────────────────
+  // El bot incluye <consultar_nico>motivo</consultar_nico> cuando no puede resolver algo.
+  const consultaMatch = texto.match(/<consultar_nico>([\s\S]*?)<\/consultar_nico>/);
+  if (consultaMatch) {
+    const motivo = consultaMatch[1].trim();
+    const ownerNum = process.env.OWNER_WHATSAPP;
+    if (ownerNum) {
+      const { enviarMensaje: enviarOwner } = require("./sender");
+      enviarOwner(
+        ownerNum,
+        `🆘 *Bot necesita tu intervención*\n\n` +
+        `👤 Cliente: ${nombre || userId}\n` +
+        `💬 Motivo: ${motivo}\n\n` +
+        `Podés responderle directamente desde tu celular o decirme qué contestar.`,
+        "whatsapp"
+      ).catch(() => {});
+    }
+    return texto.replace(/<consultar_nico>[\s\S]*?<\/consultar_nico>/, "").trim();
+  }
+
   const match = texto.match(/<accion>([\s\S]*?)<\/accion>/);
   if (!match) return texto;
 

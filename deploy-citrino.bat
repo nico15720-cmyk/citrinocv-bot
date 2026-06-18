@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: ghost notifications 9am + 2nd reminder 18hs + actualizarEstadoGhost; clustering; remarketing 3 etapas; autoReview6am; fix cuponera"
+git commit -m "feat: ghost notifications + 2nd reminder 18hs; clustering rules 2.5h; bulk messaging admin; consultar_nico escalation; CRM sort by last contact"
 git push origin main
 echo Push OK.
 echo.
