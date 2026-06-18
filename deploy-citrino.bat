@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: remarketing segmentado por tipo (lead tibio/frio/cuponera), fix autoReview6am (no mas falsa alarma 303 inactivos), comando /vino para marcar asistencia + confirmar proximo turno, cron seguimiento pendiente 3 dias, nuevo MENSAJES.remarketingLeadTibio"
+git commit -m "feat: flujo post-sesion completo — admin dice vino+compra+reagenda, bot registra todo y manda confirmacion a clienta; accion post_sesion_confirmar; system prompt flujo 4 pasos"
 git push origin main
 echo Push OK.
 echo.

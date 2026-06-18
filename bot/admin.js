@@ -376,6 +376,31 @@ async function ejecutarAccionAdmin(accion, datos) {
         return `💰 Venta registrada: *${cliente.Nombre}* — *${producto}* (${numSes} ses.)${precioStr}`;
       }
 
+      // ── Confirmación post-sesión a clienta (cuando se reagenda) ─
+      case "post_sesion_confirmar": {
+        const cliente = buscarClienteCRM(clientes, accion.nombre, accion.telefono);
+        if (!cliente) return `⚠️ No encontré a "${accion.nombre}" para enviar confirmación.`;
+
+        const telefono = normalizeTel(cliente.Teléfono || cliente.Telefono || cliente.ID || "");
+        if (!telefono || telefono.length < 7) return `⚠️ ${accion.nombre} no tiene teléfono — confirmación no enviada.`;
+
+        const dest = telefono.startsWith("598") ? telefono : `598${telefono.replace(/^0/, "")}`;
+        const nombre = cliente.Nombre || accion.nombre || "";
+        const fecha  = accion.fecha   || "próximamente";
+
+        const msg =
+          `¡Hola ${nombre}! 🌿 Muchas gracias por su visita a Citrino hoy 💆‍♀️\n\n` +
+          `Le queríamos confirmar que su próxima sesión está agendada para el *${fecha}*.\n\n` +
+          `¡Hasta pronto! 🌿`;
+
+        try {
+          await enviarMensaje(dest, msg, "whatsapp");
+          return `✅ Confirmación enviada a ${nombre}`;
+        } catch (e) {
+          return `⚠️ No se pudo enviar confirmación a ${nombre}: ${e.message}`;
+        }
+      }
+
       // ── Enviar mensaje a una clienta específica ──────────────
       case "enviar_individual": {
         const telefono = (accion.telefono || "").replace(/\D/g, "");
@@ -681,6 +706,40 @@ Filtros disponibles: leads | activos | con_cuponera | inactivos | hoy | todos
 Siempre mostrar PREVIEW (destinatarias + ejemplo) antes del envío real.
 Cuando Nico confirma con "sí, enviá" o "dale" → emitís la MISMA acción enviar_masivo con los MISMOS parámetros del turno anterior + confirmado:true. Leé el historial para saber cuál era el mensaje y filtro.
 
+═══ FLUJO POST-SESIÓN (prioridad alta) ═══
+Cuando Nico reporta que una clienta vino (texto libre, audio transcripto o respuesta al check-in):
+
+PASO 1 — SIEMPRE ejecutar:
+• marcar_sesion (vino:true)
+• registrar_venta si compró algo (pack, cuponera, sesión individual)
+
+PASO 2 — si mencionó cuándo se reagenda:
+• agendar_turno (fecha + hora + nombre)
+• post_sesion_confirmar (manda confirmación a la clienta por WA)
+
+PASO 3 — si NO mencionó próxima fecha:
+• Respondés con resumen de lo registrado y preguntás: "¿Se reagendó? ¿Para cuándo?"
+
+PASO 4 — cuando Nico responde con la fecha (contexto del turno anterior):
+• agendar_turno + post_sesion_confirmar
+
+Ejemplos:
+"Susana vino, compró cuponera de 4, pagó con Mercado Pago, se agenda para el martes a las 14"
+→ marcar_sesion(Susana,vino:true) + registrar_venta(Susana,Pack 4,MP) + agendar_turno(Susana,martes,14:00) + post_sesion_confirmar(nombre:Susana,fecha:"martes a las 14:00")
+
+"Susana vino, compró cuponera de 4, pagó con transferencia"
+→ marcar_sesion(Susana,vino:true) + registrar_venta(Susana,Pack 4,transferencia)
+Texto: "✅ Susana — cuponera de 4 registrada (transferencia). ¿Se reagendó? ¿Para cuándo?"
+
+"martes 24 a las 14" (respuesta al turno anterior sobre Susana)
+→ agendar_turno(Susana,martes 24,14:00) + post_sesion_confirmar(nombre:Susana,fecha:"martes 24 a las 14:00")
+
+"No se reagendó" → respondés: "✅ Registrado. Le llega un seguimiento automático en 48hs."
+
+Acción de confirmación:
+<admin_accion>{"tipo":"post_sesion_confirmar","nombre":"Susana","fecha":"martes 24 a las 14:00"}</admin_accion>
+→ Le manda a la clienta: "¡Hola Susana! Muchas gracias por su visita a Citrino hoy. Su próxima sesión está agendada para el martes 24 a las 14:00."
+
 ═══ CHECK-IN DIARIO ═══
 Cuando Nico responde al check-in del día (lista de sesiones), procesá TODOS los mencionados:
 "Silvia sí, María no, Laura sí y compró Pack 6 transferencia 7200"
@@ -689,6 +748,7 @@ Cuando Nico responde al check-in del día (lista de sesiones), procesá TODOS lo
 "Todas vinieron" → marcar_sesion vino:true para cada una de la lista del check-in
 "Ninguna vino" → marcar_sesion vino:false para todas
 Si no menciona monto de pack, usá monto:0 (se completa después en el CRM).
+Si Nico responde al check-in y menciona reagendamiento, aplicar flujo post-sesión completo.
 
 ═══ CLASIFICACIÓN DE CLIENTAS ═══
 VIP 🌟 cuponera activa + viene seguido | Regular 💚 cada 2-4 semanas
