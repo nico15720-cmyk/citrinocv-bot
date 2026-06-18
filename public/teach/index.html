@@ -427,6 +427,41 @@ header {
   background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;
   padding:10px 14px;font-size:13px;color:#92400E;text-align:center;display:none;
 }
+
+/* Auto-learn button */
+.btn-autolearn{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  border-radius:99px;color:#fff;padding:6px 12px;
+  font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:background .15s,transform .1s;white-space:nowrap;
+}
+.btn-autolearn:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+.btn-autolearn.loading{opacity:.6;cursor:not-allowed}
+
+/* Panel tabs */
+.p-tabs{
+  display:flex;border-bottom:2px solid var(--border);
+  padding:0 16px;flex-shrink:0;gap:0;
+}
+.tab-btn{
+  flex:1;padding:10px 0;font-size:13px;font-weight:600;
+  font-family:inherit;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-2px;transition:color .15s,border-color .15s;
+}
+.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange);}
+
+/* Flujo card */
+.flujo-card{
+  background:#fff;border:1px solid var(--border);border-radius:13px;padding:12px 14px;
+  transition:box-shadow .18s;
+}
+.flujo-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.07)}
+.flujo-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.flujo-cat{display:inline-block;background:var(--bg2);color:var(--orange);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:99px;padding:2px 8px;margin-bottom:6px}
+.flujo-desc{font-size:12px;color:var(--muted);margin-bottom:6px}
+.flujo-pasos{font-size:12px;color:var(--text);white-space:pre-wrap;background:var(--bg);border-radius:8px;padding:8px 10px;line-height:1.55}
+.flujo-acts{display:flex;gap:5px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -473,32 +508,64 @@ header {
 <div id="ov" onclick="closePanel()"></div>
 <div id="panel">
   <div class="ph">
-    <span class="ph-t">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      Conocimiento
-    </span>
+    <span class="ph-t">🧠 La Conciencia</span>
     <div class="ph-acts">
-      <button class="btn-add" onclick="toggleAdd()">+ Agregar</button>
+      <button class="btn-autolearn" id="btnAutoLearn" onclick="triggerAutoLearn()" title="Aprender de conversaciones de WhatsApp">⚡ Auto-aprender</button>
       <button class="btn-x" onclick="closePanel()">✕</button>
     </div>
   </div>
-  <div class="p-search"><input type="search" id="srch" placeholder="Buscar..." oninput="filterK(this.value)"></div>
-  <div class="p-stats" id="stats"><div class="chip">Total: <em id="stT">0</em></div><div class="chip">Categorías: <em id="stC">0</em></div></div>
-  <div id="pBody">
-    <div id="addF">
-      <select id="nCat">
-        <option>Clientas</option><option>Terapeutas</option><option>Precios y Productos</option>
-        <option>Reglas de Negocio</option><option>Contabilidad</option>
-        <option>Situaciones Especiales</option><option>Sistema</option>
-        <option>Identidad del Negocio</option><option>Horarios</option><option>General</option>
-      </select>
-      <textarea id="nCont" placeholder="Escribí lo que querés guardar..."></textarea>
-      <div class="add-acts">
-        <button class="btn-can" onclick="toggleAdd()">Cancelar</button>
-        <button class="btn-sv" onclick="saveNew()">Guardar</button>
+
+  <!-- Tabs -->
+  <div class="p-tabs">
+    <button class="tab-btn active" id="tabK" onclick="switchTab('k')">📚 Conocimiento</button>
+    <button class="tab-btn" id="tabF" onclick="switchTab('f')">🔄 Flujos</button>
+  </div>
+
+  <!-- Tab Conocimiento -->
+  <div id="tabBodyK">
+    <div class="p-search"><input type="search" id="srch" placeholder="Buscar en el conocimiento..." oninput="filterK(this.value)"></div>
+    <div class="p-stats" id="stats"><div class="chip">Total: <em id="stT">0</em></div><div class="chip">Categorías: <em id="stC">0</em></div></div>
+    <div id="pBody">
+      <div id="addF">
+        <select id="nCat">
+          <option>Clientas</option><option>Terapeutas</option><option>Precios y Productos</option>
+          <option>Reglas de Negocio</option><option>Flujos del Negocio</option><option>Contabilidad</option>
+          <option>Situaciones Especiales</option><option>Sistema</option>
+          <option>Identidad del Negocio</option><option>Horarios</option><option>General</option>
+        </select>
+        <textarea id="nCont" placeholder="Escribí lo que querés guardar..."></textarea>
+        <div class="add-acts">
+          <button class="btn-can" onclick="toggleAdd()">Cancelar</button>
+          <button class="btn-sv" onclick="saveNew()">Guardar</button>
+        </div>
       </div>
+      <div style="padding:8px 0 4px;display:flex;gap:6px">
+        <button class="btn-add" style="font-size:12px;padding:6px 12px;border-radius:8px;background:var(--bg2);color:var(--orange);border:1px solid var(--border);" onclick="toggleAdd()">+ Agregar</button>
+      </div>
+      <div id="pList"></div>
     </div>
-    <div id="pList"></div>
+  </div>
+
+  <!-- Tab Flujos -->
+  <div id="tabBodyF" style="display:none;flex:1;overflow-y:auto;display:none;flex-direction:column">
+    <div id="flujoBody" style="flex:1;overflow-y:auto;padding:10px 16px 20px;display:flex;flex-direction:column;gap:8px">
+      <div style="padding:8px 0 4px;display:flex;gap:6px">
+        <button class="btn-add" style="font-size:12px;padding:6px 12px;border-radius:8px;background:var(--bg2);color:var(--orange);border:1px solid var(--border);" onclick="toggleAddFlujo()">+ Nuevo flujo</button>
+      </div>
+      <div id="addFlujoF" style="display:none;background:#fff;border:1.5px dashed var(--lt);border-radius:14px;padding:13px;flex-direction:column;gap:9px;">
+        <input id="fNombre" type="text" placeholder="Nombre del flujo (ej: Proceso de venta de pack)" style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--bg);outline:none;">
+        <select id="fCat" style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--bg);">
+          <option>Ventas</option><option>Agenda</option><option>Cobro</option><option>Seguimiento</option><option>Gestión</option><option>General</option>
+        </select>
+        <textarea id="fDesc" rows="2" placeholder="Descripción breve del flujo..." style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--bg);resize:vertical;"></textarea>
+        <textarea id="fPasos" rows="5" placeholder="Pasos del flujo (uno por línea o numerado)..." style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;font-size:13px;font-family:inherit;background:var(--bg);resize:vertical;"></textarea>
+        <div style="display:flex;gap:7px">
+          <button onclick="toggleAddFlujo()" style="background:var(--bg2);color:var(--muted);border:none;border-radius:9px;padding:9px 13px;font-size:13px;font-family:inherit;cursor:pointer;">Cancelar</button>
+          <button onclick="saveFlujo()" style="flex:1;background:linear-gradient(135deg,var(--lt),var(--orange));color:#fff;border:none;border-radius:9px;padding:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;">Guardar flujo</button>
+        </div>
+      </div>
+      <div id="flujoList"></div>
+    </div>
   </div>
 </div>
 
@@ -799,8 +866,142 @@ async function saveNew() {
 
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 
+// ── Tabs ──────────────────────────────
+let activeTab = "k";
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById("tabBodyK").style.display = tab==="k" ? "flex" : "none";
+  document.getElementById("tabBodyF").style.display = tab==="f" ? "flex" : "none";
+  document.getElementById("tabK").classList.toggle("active", tab==="k");
+  document.getElementById("tabF").classList.toggle("active", tab==="f");
+  if (tab==="k" && !document.getElementById("pList").children.length) loadK();
+  if (tab==="f") loadFlujos();
+}
+// Fix: tabBodyK debe ser flex por defecto
+document.getElementById("tabBodyK").style.display = "flex";
+document.getElementById("tabBodyK").style.flexDirection = "column";
+document.getElementById("tabBodyK").style.flex = "1";
+document.getElementById("tabBodyK").style.overflow = "hidden";
+
+// ── Auto-learn ────────────────────────
+async function triggerAutoLearn() {
+  const btn = document.getElementById("btnAutoLearn");
+  btn.classList.add("loading");
+  btn.textContent = "⏳ Aprendiendo...";
+  try {
+    const r = await fetch("/api/teach/auto-learn", { method:"POST", headers:H() });
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = `✅ ${d.aprendidos} aprendidos`;
+      if (activeTab==="k") await loadK();
+      setTimeout(() => { btn.textContent="⚡ Auto-aprender"; btn.classList.remove("loading"); }, 3000);
+    } else {
+      btn.textContent = "⚠️ Sin novedades";
+      setTimeout(() => { btn.textContent="⚡ Auto-aprender"; btn.classList.remove("loading"); }, 2000);
+    }
+  } catch {
+    btn.textContent = "❌ Error";
+    setTimeout(() => { btn.textContent="⚡ Auto-aprender"; btn.classList.remove("loading"); }, 2000);
+  }
+}
+
+// ── Flujos ────────────────────────────
+let allFlujos = [];
+async function loadFlujos() {
+  const list = document.getElementById("flujoList");
+  list.innerHTML = '<div class="pmt"><div class="pmt-ico">⏳</div>Cargando flujos...</div>';
+  try {
+    const r = await fetch("/api/teach/flujos", { headers:H() });
+    allFlujos = await r.json();
+    renderFlujos(allFlujos);
+  } catch { list.innerHTML = '<div class="pmt"><div class="pmt-ico">❌</div>Error cargando flujos.</div>'; }
+}
+
+function renderFlujos(flujos) {
+  const list = document.getElementById("flujoList");
+  list.innerHTML = "";
+  if (!flujos.length) {
+    list.innerHTML = '<div class="pmt"><div class="pmt-ico">🔄</div>No hay flujos guardados.<br>Enseñale al bot cómo funciona el negocio.</div>';
+    return;
+  }
+  for (const f of flujos) {
+    const card = document.createElement("div"); card.className = "flujo-card";
+    card.innerHTML = `
+      <div class="flujo-title">${esc(f.Nombre)}</div>
+      <span class="flujo-cat">${esc(f.Categoria)}</span>
+      ${f.Descripcion ? `<div class="flujo-desc">${esc(f.Descripcion)}</div>` : ""}
+      ${f.Pasos ? `<div class="flujo-pasos">${esc(f.Pasos)}</div>` : ""}
+      <div class="flujo-acts">
+        <button class="btn-ke ke-edit" onclick="editFlujo(${f._rowIndex},this)">✏️ Editar</button>
+        <button class="btn-ke ke-del" onclick="delFlujo(${f._rowIndex},this)">🗑️</button>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+function toggleAddFlujo() {
+  const f = document.getElementById("addFlujoF");
+  f.style.display = f.style.display==="none"||!f.style.display ? "flex" : "none";
+  if (f.style.display==="flex") document.getElementById("fNombre").focus();
+}
+async function saveFlujo() {
+  const nombre = document.getElementById("fNombre").value.trim();
+  const cat    = document.getElementById("fCat").value;
+  const desc   = document.getElementById("fDesc").value.trim();
+  const pasos  = document.getElementById("fPasos").value.trim();
+  if (!nombre || !pasos) { alert("Completá al menos el nombre y los pasos."); return; }
+  try {
+    await fetch("/api/teach/flujos", { method:"POST", headers:H(), body:JSON.stringify({nombre,categoria:cat,descripcion:desc,pasos}) });
+    document.getElementById("fNombre").value="";
+    document.getElementById("fDesc").value="";
+    document.getElementById("fPasos").value="";
+    document.getElementById("addFlujoF").style.display="none";
+    await loadFlujos();
+    addBubble("sys", `✅ Flujo "${nombre}" guardado. El bot ahora lo conoce.`);
+  } catch { alert("Error al guardar el flujo."); }
+}
+async function delFlujo(idx, btn) {
+  if (!confirm("¿Borrar este flujo?")) return;
+  const card=btn.closest(".flujo-card"); card.style.opacity=".4";
+  try {
+    await fetch(`/api/teach/flujos/${idx}`,{method:"DELETE",headers:H()});
+    await loadFlujos();
+  } catch { card.style.opacity="1"; alert("Error."); }
+}
+function editFlujo(idx, btn) {
+  const card = btn.closest(".flujo-card");
+  const flujo = allFlujos.find(f=>f._rowIndex===idx);
+  if (!flujo) return;
+  card.innerHTML = `
+    <input id="ef_nombre" type="text" value="${esc(flujo.Nombre)}" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);outline:none;margin-bottom:7px">
+    <select id="ef_cat" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);margin-bottom:7px">
+      ${["Ventas","Agenda","Cobro","Seguimiento","Gestión","General"].map(c=>`<option${c===flujo.Categoria?" selected":""}>${c}</option>`).join("")}
+    </select>
+    <textarea id="ef_desc" rows="2" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);resize:vertical;margin-bottom:7px">${esc(flujo.Descripcion)}</textarea>
+    <textarea id="ef_pasos" rows="5" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:var(--bg);resize:vertical;margin-bottom:9px">${esc(flujo.Pasos)}</textarea>
+    <div style="display:flex;gap:6px">
+      <button onclick="loadFlujos()" style="background:var(--bg2);color:var(--muted);border:none;border-radius:7px;padding:7px 11px;font-size:12px;font-family:inherit;cursor:pointer">Cancelar</button>
+      <button onclick="saveEditFlujo(${idx},'${esc(flujo.ID)}')" style="flex:1;background:linear-gradient(135deg,var(--lt),var(--orange));color:#fff;border:none;border-radius:7px;padding:7px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">Guardar</button>
+    </div>`;
+}
+async function saveEditFlujo(idx, fid) {
+  const data = {
+    ID: fid,
+    nombre:      document.getElementById("ef_nombre").value.trim(),
+    categoria:   document.getElementById("ef_cat").value,
+    descripcion: document.getElementById("ef_desc").value.trim(),
+    pasos:       document.getElementById("ef_pasos").value.trim(),
+  };
+  if (!data.nombre||!data.pasos) { alert("Completá nombre y pasos."); return; }
+  try {
+    await fetch(`/api/teach/flujos/${idx}`,{method:"PUT",headers:H(),body:JSON.stringify(data)});
+    await loadFlujos();
+  } catch { alert("Error."); }
+}
+
 // ── Init ──────────────────────────────
-addBubble("bot","¡Hola! Soy el cerebro de Citrino.\nContame sobre el negocio, las clientas, las reglas. Al terminar guardamos todo. 🌿");
+addBubble("bot","¡Hola! Soy La Conciencia de Citrino 🧠\nContame sobre el negocio, las clientas, las reglas, los flujos. Yo pregunto, vos respondés, y vamos construyendo juntos el conocimiento del bot.");
+
 </script>
 </body>
 </html>

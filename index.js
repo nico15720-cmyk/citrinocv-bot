@@ -1309,6 +1309,47 @@ app.post("/api/teach/seed", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── FLUJOS ─────────────────────────────────────────────────
+app.get("/api/teach/flujos", async (req, res) => {
+  try {
+    const { readFlujos } = require("./bot/teach");
+    res.json(await readFlujos());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post("/api/teach/flujos", async (req, res) => {
+  try {
+    const { appendFlujo, rebuildFlujosMdCache } = require("./bot/teach");
+    const id = await appendFlujo(req.body);
+    await rebuildFlujosMdCache();
+    res.json({ ok: true, id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put("/api/teach/flujos/:rowIndex", async (req, res) => {
+  try {
+    const { updateFlujo, rebuildFlujosMdCache } = require("./bot/teach");
+    await updateFlujo(Number(req.params.rowIndex), req.body);
+    await rebuildFlujosMdCache();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete("/api/teach/flujos/:rowIndex", async (req, res) => {
+  try {
+    const { deleteFlujo, rebuildFlujosMdCache } = require("./bot/teach");
+    await deleteFlujo(Number(req.params.rowIndex));
+    await rebuildFlujosMdCache();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Auto-aprendizaje manual (trigger desde panel) ────────────
+app.post("/api/teach/auto-learn", async (req, res) => {
+  try {
+    const { autoAprendizajeDesdeConversaciones } = require("./bot/consciousness");
+    const result = await autoAprendizajeDesdeConversaciones();
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============================================================
 // API CRM — CRUD para las 4 hojas del React CRM
 // CLIENTES, SESIONES, VENTAS, GASTOS (hojas separadas del bot)
@@ -1573,13 +1614,12 @@ app.listen(PORT, async () => {
 
   startScheduler(); // recordatorios + remarketing
 
-  // Reconstruir cache de conocimiento desde Sheets al arrancar
-  // (Railway no persiste archivos entre deploys — hay que regenerar CONOCIMIENTO.md)
+  // Reconstruir caches al arrancar (Railway no persiste archivos entre deploys)
   try {
-    const { rebuildMdCache } = require("./bot/teach");
-    await rebuildMdCache();
-    console.log("🧠 Cache de conocimiento reconstruido al arrancar.");
+    const { rebuildMdCache, rebuildFlujosMdCache } = require("./bot/teach");
+    await Promise.all([rebuildMdCache(), rebuildFlujosMdCache()]);
+    console.log("🧠 Caches de Conocimiento y Flujos reconstruidos al arrancar.");
   } catch (err) {
-    console.warn("⚠️ No se pudo reconstruir cache de conocimiento:", err.message);
+    console.warn("⚠️ No se pudo reconstruir caches:", err.message);
   }
 });

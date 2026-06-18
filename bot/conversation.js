@@ -30,7 +30,7 @@ const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
 const { registrarUso } = require("./token-tracker");
 const { upsertCliente, appendRow: crmAppend, updateClienteEstado, getSaldoClienteBot } = require("./sheets-crm");
-const { getConocimiento } = require("./teach");
+const { getKnowledgeRelevantTo, getFlujos } = require("./teach");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -1011,14 +1011,27 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
 
   let respuestaBot;
   try {
-    // Cargar conocimiento acumulado (CONOCIMIENTO.md — reconstruido al arrancar desde Sheets)
-    const conocimientoBase = getConocimiento();
-    const conocimientoSection = conocimientoBase
-      ? `\n\n=== CONOCIMIENTO DEL NEGOCIO (lo que Nico te enseñó) ===\n${conocimientoBase}\n=== FIN DEL CONOCIMIENTO ===`
+    // Smart retrieval: solo los fragmentos de conocimiento relevantes al contexto actual
+    // Evita inyectar toda la base creciente en cada prompt — mejora velocidad y reduce costo
+    const contextoActual = [
+      mensaje,
+      contextoCliente || "",
+      (getHistorial(userId) || []).slice(-4).map(m => m.content).join(" "),
+    ].join(" ");
+    const conocimientoRelevante = getKnowledgeRelevantTo(contextoActual, 18);
+    const conocimientoSection = conocimientoRelevante
+      ? `\n\n=== CONOCIMIENTO DEL NEGOCIO (info relevante para esta conversación) ===\n${conocimientoRelevante}\n=== FIN ===`
+      : "";
+
+    // Inyectar flujos del negocio si existen (proceso de venta, cobro, etc.)
+    const flujosText = getFlujos();
+    const flujosSection = flujosText
+      ? `\n\n=== FLUJOS Y PROCESOS DEL NEGOCIO ===\n${flujosText}\n=== FIN FLUJOS ===`
       : "";
 
     const sistemaFinal = SYSTEM_PROMPT
       + conocimientoSection
+      + flujosSection
       + buildContextoDinamico()
       + `\n\n[Hora actual en Uruguay: ${horaUY}:00 — usar saludo: "${saludoHora}"]`
       + (yaAcordeSaludar ? `\n\n[Ya saludaste a esta clienta hoy. NO repitas el saludo inicial — continuá la conversación directamente sin "¡Buenas tardes!" ni presentarte de nuevo.]` : "")

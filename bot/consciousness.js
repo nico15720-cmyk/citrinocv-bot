@@ -246,4 +246,97 @@ Alertar solo si: cliente muy frustrado, consulta urgente médica, queja seria, o
   }
 }
 
-module.exports = { tomarDecisiones, analizarConversacion, estadoConciencia };
+// ============================================================
+// AUTO-APRENDIZAJE DESDE CONVERSACIONES DE CLIENTES
+// Corre periódicamente (ej: cada noche) y extrae patrones de
+// las conversaciones reales de WhatsApp para enriquecer La Conciencia.
+// ============================================================
+async function autoAprendizajeDesdeConversaciones() {
+  try {
+    const { appendConocimientoRows, rebuildMdCache, readConocimientoSheet } = require("./teach");
+    const { readSheet } = require("./sheets-crm");
+
+    // Leer clientes con historial de conversaciones
+    const clientes = await readSheet("CLIENTES");
+    const conHistorial = clientes.filter(c => c.Historial_JSON && c.Historial_JSON.length > 50);
+
+    if (!conHistorial.length) {
+      console.log("🧠 [auto-learn] Sin conversaciones para analizar.");
+      return { ok: true, aprendidos: 0 };
+    }
+
+    // Leer conocimiento existente para evitar duplicados
+    const yaConocido = await readConocimientoSheet();
+    const contenidosExistentes = new Set(yaConocido.map(r => r.Contenido.substring(0, 60).toLowerCase()));
+
+    // Construir muestra de conversaciones (últimas 20 con historial)
+    const muestra = conHistorial.slice(-20).map(c => {
+      let hist = [];
+      try { hist = JSON.parse(c.Historial_JSON); } catch {}
+      const resumen = hist.slice(-6).map(m => `${m.role === "user" ? "Cliente" : "Marta"}: ${m.content}`).join("\n");
+      return `=== ${c.Nombre || c.ID_Cliente || "Anónima"} ===\n${resumen}`;
+    }).join("\n\n");
+
+    if (!muestra.trim()) return { ok: true, aprendidos: 0 };
+
+    // Pedir a Claude que extraiga patrones aprendibles
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1200,
+      system: `Analizás conversaciones de WhatsApp entre el bot Marta (de Citrino, centro de estética en Uruguay) y clientas.
+
+Tu tarea: extraer PATRONES DE NEGOCIO útiles que el bot debería recordar. Buscás:
+- Preguntas frecuentes que hacen las clientas (y su respuesta correcta)
+- Objeciones o dudas recurrentes
+- Preferencias que mencionan las clientas
+- Situaciones que el bot manejó bien o mal
+- Info sobre clientas específicas relevante para futuras interacciones
+
+DEVOLVÉS SOLO JSON:
+[{"categoria":"...", "contenido":"...", "tipo":"patron|preferencia|faq|situacion"}]
+
+Categorías: "Clientas" | "Reglas de Negocio" | "Precios y Productos" | "Situaciones Especiales"
+Máx 8 patrones. Solo info CONCRETA y accionable. Ignorá saludos y conversación genérica.`,
+      messages: [{ role: "user", content: muestra }],
+    });
+
+    let patrones = [];
+    try {
+      const txt = response.content[0].text.trim().replace(/```json\n?|\n?```/g, "");
+      patrones = JSON.parse(txt);
+    } catch { return { ok: false, aprendidos: 0 }; }
+
+    // Filtrar duplicados contra lo ya conocido
+    const nuevos = patrones.filter(p => {
+      if (!p.contenido || p.contenido.length < 20) return false;
+      const key = p.contenido.substring(0, 60).toLowerCase();
+      return !contenidosExistentes.has(key);
+    });
+
+    if (!nuevos.length) {
+      console.log("🧠 [auto-learn] Sin patrones nuevos.");
+      return { ok: true, aprendidos: 0 };
+    }
+
+    // Guardar en CONOCIMIENTO
+    const fecha = new Date().toLocaleDateString("es-UY", {
+      day: "numeric", month: "long", year: "numeric", timeZone: "America/Montevideo",
+    });
+    const rows = nuevos.map(p => ({
+      Fecha:     fecha,
+      Categoria: p.categoria || "General",
+      Contenido: p.contenido,
+      Fuente:    "auto_wa",
+    }));
+    await appendConocimientoRows(rows);
+    await rebuildMdCache();
+
+    console.log(`🧠 [auto-learn] ${rows.length} patrones aprendidos de conversaciones de clientes.`);
+    return { ok: true, aprendidos: rows.length };
+  } catch (e) {
+    console.error("❌ [auto-learn] Error:", e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+module.exports = { tomarDecisiones, analizarConversacion, estadoConciencia, autoAprendizajeDesdeConversaciones };

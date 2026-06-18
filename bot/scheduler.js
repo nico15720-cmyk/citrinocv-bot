@@ -1143,6 +1143,19 @@ function startScheduler() {
   // ── No-shows: cierre automático — 23:30 (después del check-in de 21hs) ─
   cron.schedule("30 23 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
+  // ── Auto-aprendizaje nocturno — 02:00 (analiza conversaciones del día y extrae patrones) ─
+  cron.schedule("0 2 * * *", async () => {
+    try {
+      const { autoAprendizajeDesdeConversaciones } = require("./consciousness");
+      const resultado = await autoAprendizajeDesdeConversaciones();
+      if (resultado.aprendidos > 0) {
+        console.log(`🧠 [auto-learn] Noche: ${resultado.aprendidos} nuevos patrones guardados en La Conciencia.`);
+      }
+    } catch (e) {
+      console.error("❌ [auto-learn] Error en cron nocturno:", e.message);
+    }
+  }, { timezone: "America/Montevideo" });
+
   // ── Resumen semanal — lunes 8:00 ──────────────────────────
   cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
 
