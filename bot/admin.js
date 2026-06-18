@@ -21,7 +21,7 @@ const {
   marcarAsistencia,
   cancelarTurno,
 } = require("./calendar");
-const { appendRow: appendRowSheets } = require("./sheets-crm");
+const { appendRow: appendRowSheets, getSaldoClienteBot } = require("./sheets-crm");
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 const { construirContenidoConImagen } = require("./media");
@@ -176,41 +176,7 @@ function cantidadProducto(producto, cantHoja) {
   return m ? parseInt(m[0]) : 0;
 }
 
-async function getSaldoClienteBot(clienteId, clienteNombre) {
-  try {
-    const { readSheet } = require("./sheets-crm");
-    const [clientesSheet, ventas, sesiones] = await Promise.all([
-      readSheet("CLIENTES"),
-      readSheet("VENTAS"),
-      readSheet("SESIONES"),
-    ]);
-
-    // Resolver el ID hash real desde la hoja CLIENTES
-    // (el bot tiene el phone/WhatsApp ID; VENTAS/SESIONES usan el hash ID_Cliente)
-    const clienteRow = clientesSheet.find(c =>
-      c.ID_Cliente === clienteId ||                              // match exacto (si ya es hash)
-      phoneMatch(c.Telefono, clienteId) ||                      // match por teléfono (sufijo)
-      (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase()) // match por nombre
-    );
-    const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
-
-    // matchId: compara hash (CRM manual) O teléfono (bot agendó directo con phone)
-    const matchId = v => v === hashId || phoneMatch(v, clienteId);
-
-    const ventasCli = ventas.filter(v =>
-      matchId(v.ID_Cliente_Guardado) &&
-      PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k))
-    );
-    const sesionesCli = sesiones.filter(s =>
-      matchId(s.ID_Cliente_Guardado || s.ID_Cliente)
-    );
-    const compradas = ventasCli.reduce((a, v) => a + cantidadProducto(v.Producto, v.Cantidad_Calculada), 0);
-    const usadas    = sesionesCli.length;
-    return { compradas, usadas, saldo: compradas - usadas };
-  } catch {
-    return { compradas: 0, usadas: 0, saldo: 0 };
-  }
-}
+// getSaldoClienteBot importado desde sheets-crm.js (fuente centralizada)
 
 function formatSaldo({ compradas, usadas, saldo }) {
   if (compradas === 0) return "Sin cuponera activa";
@@ -408,6 +374,21 @@ async function ejecutarAccionAdmin(accion, datos) {
 
         const precioStr = monto ? ` — $${monto.toLocaleString("es-UY")} ${formaPago}` : " (monto a completar en CRM)";
         return `💰 Venta registrada: *${cliente.Nombre}* — *${producto}* (${numSes} ses.)${precioStr}`;
+      }
+
+      // ── Enviar mensaje a una clienta específica ──────────────
+      case "enviar_individual": {
+        const telefono = (accion.telefono || "").replace(/\D/g, "");
+        const mensajeInd = accion.mensaje || "";
+        if (!telefono || !mensajeInd) return "⚠️ Falta teléfono o mensaje.";
+        // Asegurar formato internacional (Uruguay)
+        const dest = telefono.startsWith("598") ? telefono : `598${telefono.replace(/^0/, "")}`;
+        try {
+          await enviarMensaje(dest, mensajeInd, "whatsapp");
+          return `✅ Mensaje enviado a ${dest}`;
+        } catch (e) {
+          return `❌ No se pudo enviar a ${dest}: ${e.message}`;
+        }
       }
 
       // ── Envío masivo a clientas (bulk messaging) ─────────────
@@ -668,6 +649,18 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 
 "Este es el número de Ana: 099 123 456"
 → buscar_cliente (telefono:"099123456") para ver quién es, luego podés ejecutar acciones sobre ella.
+
+═══ ENVIAR MENSAJE A UNA CLIENTA ═══
+Cuando Nico quiere mandar un mensaje a una clienta específica (por nombre o teléfono):
+"Mandále a Silvana que la sesión de mañana se posterga"
+→ enviar_individual(telefono:"59899XXXXXX", mensaje:"texto")
+
+"Mandále a este número: 098 123 456 → el turno es a las 10"
+→ enviar_individual(telefono:"59898123456", mensaje:"texto")
+
+Si Nico da solo un nombre, primero buscá el cliente para obtener el teléfono, después enviá.
+<admin_accion>{"tipo":"enviar_individual","telefono":"59899123456","mensaje":"Hola! Le avisamos que..."}</admin_accion>
+→ Envía el mensaje directamente a esa clienta por WhatsApp. SIEMPRE podés hacer esto.
 
 ═══ ENVÍO MASIVO ═══
 Cuando Nico quiere mandar un mensaje a un grupo de clientas:

@@ -152,14 +152,33 @@ app.post("/webhook", async (req, res) => {
         await enviarMensaje(msg.from, "✅ Alerta enviada", "whatsapp");
         return;
       }
-      // Comando /nollego — cliente no llegó aún
+      // Comando /nollego TELEFONO [NOMBRE] — avisa al cliente que lo esperamos
+      // Uso: /nollego 099123456   o   /nollego 099123456 María
       if (texto.toLowerCase().startsWith("/nollego") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
-        const nombreCliente = texto.substring(8).trim();
+        const partes = texto.substring(8).trim().split(/\s+/);
+        const telefonoRaw = partes[0] || "";
+        const nombreCliente = partes.slice(1).join(" ") || "";
         const { enviarMensaje: enviar } = require("./bot/sender");
+
+        if (!telefonoRaw) {
+          await enviar(msg.from, "⚠️ Uso: /nollego TELEFONO [NOMBRE]\nEj: /nollego 099123456 María", "whatsapp");
+          return;
+        }
+
+        // Normalizar teléfono a formato 598XXXXXXXX
+        const telLimpio = telefonoRaw.replace(/\D/g, "");
+        const dest = telLimpio.startsWith("598") ? telLimpio : `598${telLimpio.replace(/^0/, "")}`;
+
         const msgEspera = nombreCliente
-          ? `¡Hola ${nombreCliente}! 🌿 Te estamos esperando, ¿estás en camino? Cualquier cosa avisanos 😊`
-          : `¡Hola! 🌿 Te estamos esperando para tu turno. ¿Estás en camino? Avisanos si necesitás algo 😊`;
-        await enviar(msg.from, `¿A qué número le mando el "no llegó aún"? Respondeme con el número y el mensaje o usá /nollego NOMBRE NUMERO`, "whatsapp");
+          ? `¡Hola ${nombreCliente}! 🌿 Le estamos esperando, ¿está en camino? Si necesita algo, avísenos 😊`
+          : `¡Hola! 🌿 Le estamos esperando para su turno. ¿Está en camino? Avísenos si necesita algo 😊`;
+
+        try {
+          await enviar(dest, msgEspera, "whatsapp");
+          await enviar(msg.from, `✅ Mensaje enviado a ${dest}`, "whatsapp");
+        } catch (e) {
+          await enviar(msg.from, `❌ No pude enviar a ${dest}: ${e.message}`, "whatsapp");
+        }
         return;
       }
       if (texto.toLowerCase() === "/admin") {
@@ -500,7 +519,7 @@ app.get("/api/inbox", async (req, res) => {
     const inbox = clientes
       .map(c => {
         let chats = [];
-        try { chats = JSON.parse(c.Chats || "[]"); } catch {}
+        try { const parsed = JSON.parse(c.Chats || "[]"); chats = Array.isArray(parsed) ? parsed : []; } catch {}
         if (!chats.length) return null;
         const ultimo = chats[chats.length - 1];
         if (!ultimo?.fecha || new Date(ultimo.fecha) < corte) return null;

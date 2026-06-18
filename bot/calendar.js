@@ -63,8 +63,12 @@ function toMVD(date) {
 
 function horaToFloat(hhmm) {
   // "10:30" → 10.5
-  const [h, m] = hhmm.split(":").map(Number);
-  return h + (m || 0) / 60;
+  if (!hhmm || typeof hhmm !== "string") return NaN;
+  const parts = hhmm.split(":");
+  const h = Number(parts[0]);
+  const m = Number(parts[1] ?? 0);
+  if (isNaN(h)) return NaN;
+  return h + (isNaN(m) ? 0 : m) / 60;
 }
 
 function floatToHHMM(h) {
@@ -367,7 +371,7 @@ async function buscarTurnoCliente(telefono) {
 
   const futuros = sesiones
     .filter(f => {
-      const telOk = f[COL.ID_CLIENTE] === telefono || f[COL.TELEFONO] === telefono;
+      const telOk = f[COL.ID_CLIENTE] === telefono;
       const noCanc = f[COL.ESTADO] !== "cancelado";
       const futuro = f[COL.FECHA] && new Date(f[COL.FECHA]) > ahora;
       return telOk && noCanc && futuro;

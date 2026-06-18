@@ -94,11 +94,13 @@ Hablás en español rioplatense, de forma cálida, cercana y genuina.
 Usás emojis con moderación: en el primer mensaje de presentación está bien, en los mensajes de seguimiento casi no usás.
 
 === USTEDEO — REGLA CRÍTICA ===
-NUNCA mezcles "te/vos" y "le/usted" en el mismo mensaje. Elegí uno y mantené.
-- Primer mensaje de presentación (lead nuevo): podés usar "vos/te" para sonar cálido
-- TODO lo demás (coordinar horario, confirmar turno, reagendar, cancelar, seguimiento): usá SIEMPRE "le/su"
+SIEMPRE usá "usted/le/su" — en TODOS los mensajes, incluso el primero. NUNCA uses "vos/te/tu".
+El tono es cálido y cercano, como un amigo que te trata de usted — no frío ni rígido.
 INCORRECTO: "¿Para cuándo te gustaría reagendar?" → CORRECTO: "¿Para cuándo le quedaría bien reagendar?"
 INCORRECTO: "¿Qué día te viene bien?" → CORRECTO: "¿Qué día le viene bien?"
+INCORRECTO: "Te presento nuestra propuesta" → CORRECTO: "Le presento nuestra propuesta"
+INCORRECTO: "Vas a sentir el cambio" → CORRECTO: "Va a sentir el cambio"
+Cálido con usted: "¡Qué gusto que nos escriba! 💛", "La esperamos con mucho gusto", "Cualquier consulta nos avisa"
 
 === REGLA DE ACCIONES — CRÍTICA ===
 El tag <accion> va SIEMPRE al FINAL de tu respuesta, nunca en el medio.
@@ -358,6 +360,8 @@ Pack 8 sesiones → $9.600
 🌸 Vas a sentir el cambio desde la primera visita: más liviandad, menos retención y una piel renovada.
 
 ¿Te gustaría que te pase los horarios disponibles para comenzar tu tratamiento? 💆‍♀️"
+
+⚠️ REGLA: Usá los textos de presentación de los ejemplos de arriba LITERALMENTE — no los reescribas. Copiá el texto palabra por palabra. Esto garantiza consistencia de marca.
 
 === ACCIONES DEL SISTEMA ===
 Para cancelar: <accion>{"tipo":"cancelar"}</accion>
@@ -630,21 +634,26 @@ async function procesarAccion(accion, userId, canal, nombre) {
     case "guardar_nombre": {
       if (accion.nombre) {
         await registrarCliente({ userId, nombre: accion.nombre, canal });
-        // Sincronizar con CRM React (estado prospecto si es nuevo)
+        // Sincronizar con CRM React — NO incluir Estado para no retroceder clientes existentes
         try {
-          await upsertCliente({
-            ID_Cliente:  userId,
-            Nombre:      accion.nombre,
-            Telefono:    userId,
-            Origen:      canal || "whatsapp",
-            Fecha_Alta:  new Date().toISOString().split("T")[0],
-            Estado:      "prospecto",
-            NOTAS:       "",
-            Fecha_Nacimiento: "",
-          });
+          const { readSheet: leerCRM } = require("./sheets-crm");
+          const filasCRM = await leerCRM("CLIENTES").catch(() => []);
+          const yaExiste = filasCRM.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+          const datosBase = {
+            ID_Cliente: userId,
+            Nombre:     accion.nombre,
+            Telefono:   userId,
+            Origen:     canal || "whatsapp",
+          };
+          // Solo asignar "prospecto" si el cliente no existe aún en CRM
+          if (!yaExiste) {
+            datosBase.Estado    = "prospecto";
+            datosBase.Fecha_Alta = new Date().toISOString().split("T")[0];
+          }
+          await upsertCliente(datosBase);
         } catch {}
       }
-      return null; // sin respuesta visible
+      return null;
     }
 
     case "guardar_objecion": {
@@ -770,15 +779,14 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
   const resultado = await procesarAccion(accion, userId, canal, nombre);
 
   // Solo tomamos el texto ANTES del tag — el texto después del tag es contexto interno
-  // del AI y nunca debe llegar al cliente (evita mensajes contradictorios)
   const textoAntesTag = texto.substring(0, match.index).trim();
   const textoDespuesTag = texto.substring(match.index + match[0].length).trim();
-  const textoLimpio = textoAntesTag || textoDespuesTag; // fallback solo si no hay nada antes
+  const textoLimpio = sanitizarTexto(textoAntesTag || textoDespuesTag);
 
   if (resultado) {
     return textoLimpio ? `${textoLimpio}\n\n${resultado}` : resultado;
   }
-  return textoLimpio;
+  return textoLimpio || "";
 }
 
 // ============================================================
@@ -1085,7 +1093,8 @@ Campos posibles:
     });
 
     const texto = response.content[0].text.trim();
-    const insights = JSON.parse(texto);
+    const jsonMatch = texto.match(/\{[\s\S]*\}/);
+    const insights = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     if (Object.keys(insights).length > 0) {
       await actualizarPerfil(userId, insights);
       console.log(`🧠 Perfil actualizado para ${userId}:`, insights);
@@ -1153,10 +1162,20 @@ function formatearPerfilParaContexto(nombre, perfil, datosCliente = null, saldoC
 function sanitizarTexto(texto) {
   if (!texto) return texto;
   return texto
+    // Tags completos (con apertura y cierre)
     .replace(/<accion>[\s\S]*?<\/accion>/gi, "")
     .replace(/<consultar_nico>[\s\S]*?<\/consultar_nico>/gi, "")
-    .replace(/<\/?accion>/gi, "")        // tags malformados sin contenido
+    // Tags de apertura sin cierre (truncamiento por max_tokens): borrar desde el tag hasta el final
+    .replace(/<consultar_nico>[\s\S]*/gi, "")
+    .replace(/<accion>[\s\S]*/gi, "")
+    // Tags sueltos malformados
+    .replace(/<\/?accion>/gi, "")
     .replace(/<\/?consultar_nico>/gi, "")
+    // JSON crudo que escapó (ej: {"tipo":"..."} sin tags)
+    .replace(/\{"tipo":"[^"]+[\s\S]*?\}/g, (match) => {
+      // Solo borrar si parece una acción del bot (tiene "tipo" como primer campo)
+      try { JSON.parse(match); return ""; } catch { return match; }
+    })
     .trim();
 }
 

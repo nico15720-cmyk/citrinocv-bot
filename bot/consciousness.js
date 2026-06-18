@@ -230,7 +230,9 @@ Alertar solo si: cliente muy frustrado, consulta urgente médica, queja seria, o
       }],
     });
 
-    const resultado = JSON.parse(response.content[0].text);
+    const rawText = response.content[0].text.trim();
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const resultado = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     if (resultado.accion === "alertar_dueno" && OWNER) {
       await enviarMensaje(
         OWNER,

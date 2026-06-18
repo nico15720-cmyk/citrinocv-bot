@@ -24,83 +24,87 @@ const { verificarSalud } = require("./utils");
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const OWNER = process.env.OWNER_WHATSAPP;
 
+// Lock global para evitar que crons y el handler SÍ/NO actúen sobre el mismo usuario simultáneamente
+const confirmandoUsers = new Set();
+module.exports_confirmandoUsers = confirmandoUsers; // accesible desde conversation.js
+
 // ============================================================
 // MENSAJES
 // ============================================================
 const MENSAJES = {
   confirmacionTurno: (nombre, fecha, hora, servicio) =>
-    `¡Hola ${nombre}! 🌿 Tu turno en Citrino quedó confirmado.\n\n` +
+    `¡Hola ${nombre}! 🌿 Su turno en Citrino quedó confirmado.\n\n` +
     `📅 *${fecha} a las ${hora}*\n` +
     `💆 ${servicio}\n` +
     `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz, Ciudad Vieja\n\n` +
-    `Acordate de llegar 5 minutitos antes 🙏 Cualquier consulta por acá.`,
+    `Le pedimos llegar 5 minutitos antes 🙏 Cualquier consulta por acá.`,
 
   recordatorio24hs: (nombre, fecha, hora) =>
-    `¡Hola ${nombre}! 👋 Te recuerdo que mañana tenés turno en Citrino.\n\n` +
+    `¡Hola ${nombre}! 👋 Le recordamos que mañana tiene turno en Citrino.\n\n` +
     `📅 *${fecha} a las ${hora}*\n\n` +
-    `¿Confirmás que venís? Respondé *SÍ* para confirmar o *NO* si necesitás cancelar/reagendar.`,
+    `¿Confirma que viene? Responda *SÍ* para confirmar o *NO* si necesita cancelar/reagendar.`,
 
   // ── REMARKETING DIFERENCIADO POR OBJECIÓN ──────────────────
   remarketingPrecio: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
-    `Sabemos que el precio a veces es una barrera, así que te cuento: si pagás por transferencia o en efectivo tenés un *10% de descuento* 💛\n\n` +
-    `¿Querés que te busquemos un horario esta semana?`,
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino.\n\n` +
+    `Sabemos que el precio a veces es una barrera, por eso le contamos: si paga por transferencia o en efectivo tiene un *10% de descuento* 💛\n\n` +
+    `¿Le buscamos un horario esta semana?`,
 
   remarketingDuda: (nombre, servicio) =>
-    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
-    `Consultaste sobre ${servicio || "el Método Citrino"} y queremos contarte que muchas clientas vienen con las mismas dudas y después de la primera sesión se enamoran 💆‍♀️\n\n` +
-    `¿Querés que te cuente más o te buscamos un horario para que lo pruebes?`,
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino.\n\n` +
+    `Consultó sobre ${servicio || "el Método Citrino"} y queremos contarle que muchas clientas vienen con las mismas dudas y después de la primera sesión se enamoran 💆‍♀️\n\n` +
+    `¿Le contamos más o le buscamos un horario para que lo pruebe?`,
 
   remarketingTiempo: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
-    `Sabemos que el tiempo es lo que más escasea 😅 Por eso te avisamos: tenemos turnos disponibles de 50 min que podés encajar en cualquier parte del día.\n\n` +
-    `¿Cuál sería el mejor horario para vos esta semana?`,
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino.\n\n` +
+    `Sabemos que el tiempo es lo que más escasea 😅 Por eso le avisamos: tenemos turnos disponibles de 50 min que puede encajar en cualquier parte del día.\n\n` +
+    `¿Cuál sería el mejor horario para usted esta semana?`,
 
   remarketingLead: (nombre, servicio) =>
-    `¡Hola ${nombre || ""}! 🌿 Te escribimos de Citrino.\n\n` +
-    `Vimos que consultaste sobre ${servicio || "nuestros masajes"} y queríamos saber si pudimos ayudarte.\n\n` +
-    `Si todavía te interesa agendar, tenemos buenos horarios disponibles esta semana ✨\n` +
-    `¿Te cuento más?`,
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino.\n\n` +
+    `Vimos que consultó sobre ${servicio || "nuestros masajes"} y queríamos saber si pudimos ayudarle.\n\n` +
+    `Si todavía le interesa agendar, tenemos buenos horarios disponibles esta semana ✨\n` +
+    `¿Le contamos más?`,
 
   remarketingClientaVino: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 ¿Cómo andás?\n\n` +
-    `Hace un tiempo que no te vemos por Citrino y te extrañamos 💛\n\n` +
-    `Si necesitás un espacio para vos, tenemos turnos disponibles. ¿Agendamos?`,
+    `¡Hola ${nombre || ""}! 🌿 ¿Cómo está?\n\n` +
+    `Hace un tiempo que no la vemos por Citrino y la extrañamos 💛\n\n` +
+    `Si necesita un espacio para usted, tenemos turnos disponibles. ¿Agendamos?`,
 
   // ── UPSELL PACK POST-SESIÓN (24-48hs después de venir) ──────
   upsellPack: (nombre) =>
-    `¡Hola ${nombre}! 🌿 Esperamos que hayas disfrutado mucho tu sesión en Citrino 💆‍♀️\n\n` +
-    `Te cuento que si querés continuar con el tratamiento, los packs te salen mucho mejor:\n\n` +
-    `✨ *Pack 4 sesiones → $5.100* (te ahorras $900)\n` +
-    `✨ *Pack 6 sesiones → $7.400* (te ahorras $1.600)\n` +
-    `✨ *Pack 8 sesiones → $9.600* (te ahorras $2.400)\n\n` +
-    `Los resultados se notan mucho más cuando es constante 🌿 ¿Te interesa?`,
+    `¡Hola ${nombre}! 🌿 Esperamos que haya disfrutado mucho su sesión en Citrino 💆‍♀️\n\n` +
+    `Le contamos que si quiere continuar con el tratamiento, los packs le salen mucho mejor:\n\n` +
+    `✨ *Pack 4 sesiones → $5.100* (ahorra $900)\n` +
+    `✨ *Pack 6 sesiones → $7.400* (ahorra $1.600)\n` +
+    `✨ *Pack 8 sesiones → $9.600* (ahorra $2.400)\n\n` +
+    `Los resultados se notan mucho más cuando es constante 🌿 ¿Le interesa?`,
 
   seguimientoPostSesion: (nombre) =>
-    `¡Hola ${nombre}! 🌿 ¿Cómo te quedaste después de tu sesión en Citrino?\n\n` +
-    `Esperamos que hayas disfrutado mucho 💆 Si querés repetir o tenés algún comentario, acá estamos.\n\n` +
+    `¡Hola ${nombre}! 🌿 ¿Cómo quedó después de su sesión en Citrino?\n\n` +
+    `Esperamos que haya disfrutado mucho 💆 Si quiere repetir o tiene algún comentario, acá estamos.\n\n` +
     `¿Agendamos el próximo turno?`,
 
   seguimientoConCuponera: (nombre, sesRest) =>
-    `¡Hola ${nombre}! 🌿 ¿Cómo estás? Te recuerdo que tenés *${sesRest} ${sesRest === "1" ? "sesión" : "sesiones"} disponibles* en tu cuponera de Citrino.\n\n` +
+    `¡Hola ${nombre}! 🌿 ¿Cómo está? Le recordamos que tiene *${sesRest} ${sesRest === "1" ? "sesión" : "sesiones"} disponibles* en su cuponera de Citrino.\n\n` +
     `¿Cuándo agendamos? 🌿`,
 
   // ── REMARKETING ETAPA 2 — social proof + oferta ─────────────
   remarketingEtapa2: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 Volvemos a escribirte de Citrino.\n\n` +
-    `Una cosa que muchas clientas no saben: si pagás con transferencia o efectivo, tenés un *10% de descuento* 💛 Y las que empezaron con el pack de 4 sesiones notaron la diferencia mucho más rápido que viniendo de a una.\n\n` +
-    `¿Te buscamos un horario esta semana?`,
+    `¡Hola ${nombre || ""}! 🌿 Volvemos a escribirle de Citrino.\n\n` +
+    `Una cosa que muchas clientas no saben: si paga con transferencia o efectivo, tiene un *10% de descuento* 💛 Y las que empezaron con el pack de 4 sesiones notaron la diferencia mucho más rápido que viniendo de a una.\n\n` +
+    `¿Le buscamos un horario esta semana?`,
 
   // ── REMARKETING ETAPA 3 — cierre cálido ─────────────────────
   remarketingEtapa3: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 Te escribimos por última vez para no saturarte.\n\n` +
-    `Si en algún momento querés un espacio para cuidarte y desconectarte, en Citrino siempre hay lugar para vos 💛\n\n` +
-    `Cuando estés lista, acá estamos. ¡Que estés muy bien!`,
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos por última vez para no saturarle.\n\n` +
+    `Si en algún momento quiere un espacio para cuidarse y desconectarse, en Citrino siempre hay lugar para usted 💛\n\n` +
+    `Cuando esté lista, acá estamos. ¡Que esté muy bien!`,
 
   // ── RECUPERACIÓN DE NO-SHOW ──────────────────────────────────
   recuperacionNoShow: (nombre) =>
-    `¡Hola ${nombre || ""}! 🌿 Vimos que hoy no pudiste venir a tu turno en Citrino, esperamos que estés bien 🙏\n\n` +
-    `Cuando quieras reagendamos sin problema. ¿Cuándo te quedaría bien esta semana?`,
+    `¡Hola ${nombre || ""}! 🌿 Vimos que hoy no pudo venir a su turno en Citrino, esperamos que esté bien 🙏\n\n` +
+    `Cuando quiera reagendamos sin problema. ¿Cuándo le quedaría bien esta semana?`,
 };
 
 // ============================================================
@@ -231,10 +235,9 @@ async function enviarRemarketing() {
           mensaje = MENSAJES.remarketingEtapa3(nombre);
         }
 
-        // ── Enviar ─────────────────────────────────────────────────
+        // ── Enviar — solo avanzar etapa si el envío fue exitoso ────
         await enviarMensaje(userId, mensaje, c.Origen || "whatsapp");
-
-        // ── Actualizar etapa y timestamp ───────────────────────────
+        // Si enviarMensaje lanzó, el catch externo lo captura y no llega acá
         const nuevaEtapa = String(etapa + 1);
         await upsertCliente({
           ID_Cliente:           userId,
@@ -325,37 +328,6 @@ function cantidadProductoSch(producto, cantHoja) {
   return m ? parseInt(m[0]) : 0;
 }
 
-async function getSaldoClienteBotSch(clienteId, clienteNombre) {
-  try {
-    const { readSheet } = require("./sheets-crm");
-    const [clientesSheet, ventas, sesiones] = await Promise.all([
-      readSheet("CLIENTES"),
-      readSheet("VENTAS"),
-      readSheet("SESIONES"),
-    ]);
-    const clienteRow = clientesSheet.find(c =>
-      c.ID_Cliente === clienteId ||
-      phoneMatchSch(c.Telefono, clienteId) ||
-      (clienteNombre && c.Nombre?.toLowerCase() === clienteNombre?.toLowerCase())
-    );
-    const hashId = clienteRow ? clienteRow.ID_Cliente : clienteId;
-    const matchId = v => v === hashId || phoneMatchSch(v, clienteId);
-
-    const ventasCli = ventas.filter(v =>
-      matchId(v.ID_Cliente_Guardado) &&
-      PACK_KW_SCH.some(k => (v.Producto || "").toLowerCase().includes(k))
-    );
-    const sesionesCli = sesiones.filter(s =>
-      matchId(s.ID_Cliente_Guardado || s.ID_Cliente)
-    );
-    const compradas = ventasCli.reduce((a, v) => a + cantidadProductoSch(v.Producto, v.Cantidad_Calculada), 0);
-    const usadas    = sesionesCli.length;
-    return { compradas, usadas, saldo: compradas - usadas };
-  } catch {
-    return { compradas: 0, usadas: 0, saldo: 0 };
-  }
-}
-
 // ============================================================
 // CHECK-IN DIARIO — 21hs
 // Envía al admin la lista de sesiones del día y pregunta quién vino
@@ -397,7 +369,8 @@ async function enviarCheckInDiario() {
     for (const s of sesionesHoy) {
       const cid = s.ID_Cliente_Guardado || s.ID_Cliente;
       if (!cid) continue;
-      const saldo = await getSaldoClienteBotSch(cid, s.Cliente);
+      const { getSaldoClienteBot } = require("./sheets-crm");
+      const saldo = await getSaldoClienteBot(cid, s.Cliente);
       if (saldo.compradas > 0 && saldo.saldo <= 1) {
         const iconoSaldo = saldo.saldo === 0 ? "⛔" : "⚠️";
         const textoSaldo = saldo.saldo === 0
@@ -434,7 +407,7 @@ async function cerrarNoShows() {
     const clientes = await readSheet("CLIENTES");
     const ahora = new Date();
     const inicioHoy = new Date(ahora); inicioHoy.setHours(0, 0, 0, 0);
-    const finHoy = new Date(ahora); finHoy.setHours(20, 0, 0, 0); // cron corre 20:05, cerramos hasta 20:00
+    const finHoy = new Date(ahora); finHoy.setHours(23, 0, 0, 0); // cron corre 23:30, cerramos hasta 23:00
 
     for (const c of clientes) {
       try {
@@ -877,7 +850,9 @@ async function procesarMensajeTerapeuta(ter, texto) {
       messages: [{ role: "user", content: texto }],
     });
 
-    const parsed = JSON.parse(resp.content[0].text.trim());
+    const rawText = resp.content[0].text.trim();
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     if (!parsed.fecha) {
       await enviarMensaje(ter.whatsapp, "No pude entender el horario a bloquear. Escribí algo como: _El martes 10 no puedo de 9 a 12_", "whatsapp");
       return;
@@ -916,10 +891,13 @@ async function enviarConfirmacion15hs() {
     const clientes = await getClientesParaConfirmar();
 
     for (const cliente of clientes) {
+      const userId = cliente.ID_Cliente || cliente.Telefono;
+      if (!userId) continue;
+      // Lock: no enviar si el handler ya está procesando a este usuario
+      if (confirmandoUsers.has(userId)) continue;
       try {
         const nombre = cliente.Nombre || "cliente";
-        const userId = cliente.ID_Cliente || cliente.Telefono;
-        if (!userId) continue;
+        confirmandoUsers.add(userId);
 
         const fechaTurno = new Date(cliente.Fecha_Turno);
         const hora = fechaTurno.toLocaleTimeString("es-UY", {
@@ -927,17 +905,18 @@ async function enviarConfirmacion15hs() {
         });
 
         const msg =
-          `¡Hola ${nombre}! 👋 Te confirmo que mañana tenés turno en Citrino.\n\n` +
+          `Hola ${nombre}! 👋 Le confirmamos que mañana tiene turno en Citrino.\n\n` +
           `🕐 *${hora} hs*\n` +
           `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz\n\n` +
-          `¿Confirmás que venís? Respondé *SÍ* para confirmar o *NO* si necesitás cancelar 🙏`;
+          `¿Confirma que viene? Responda *SÍ* para confirmar o *NO* si necesita cancelar 🙏`;
 
         await enviarMensaje(userId, msg, cliente.Origen || "whatsapp");
-        // Marcar como pendiente de confirmación
         await updateClienteEstado(userId, "pendiente_confirmacion");
         console.log(`✅ Confirmación 15hs enviada a ${userId} (${nombre})`);
       } catch (err) {
-        console.error(`❌ Error confirmación 15hs a ${cliente.ID_Cliente}:`, err.message);
+        console.error(`❌ Error confirmación 15hs a ${userId}:`, err.message);
+      } finally {
+        confirmandoUsers.delete(userId);
       }
     }
   } catch (err) {
@@ -1095,8 +1074,8 @@ function startScheduler() {
   // ── Check-in diario — 21:00 ────────────────────────────────
   cron.schedule("0 21 * * *", enviarCheckInDiario, { timezone: "America/Montevideo" });
 
-  // ── No-shows: cierre automático — 20:05 (después de agenda) ─
-  cron.schedule("5 20 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
+  // ── No-shows: cierre automático — 23:30 (después del check-in de 21hs) ─
+  cron.schedule("30 23 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
   // ── Resumen semanal — lunes 8:00 ──────────────────────────
   cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });

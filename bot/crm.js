@@ -390,16 +390,19 @@ async function getLeadsParaRemarketing() {
     // Leads que no se agendaron en 7 días → remarketing
     if (estado === "lead") {
       if (fila[COL.REMARKETING]) return false;
-      const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
+      const ultimoContacto = fila[COL.ULTIMO_CONT] ? new Date(fila[COL.ULTIMO_CONT]) : null;
+      // Sin ULTIMO_CONT = lead sin actividad reciente → incluir en remarketing
+      if (!ultimoContacto || isNaN(ultimoContacto.getTime())) return true;
       return ahora - ultimoContacto > limite7d;
     }
     // Clientas que vinieron pero no volvieron en 30 días
     if (estado === "vino") {
       if (fila[COL.REMARKETING]) {
         const ultimoRemark = new Date(fila[COL.REMARKETING]);
-        if (ahora - ultimoRemark < limite30d) return false;
+        if (!isNaN(ultimoRemark.getTime()) && ahora - ultimoRemark < limite30d) return false;
       }
-      const ultimoContacto = new Date(fila[COL.ULTIMO_CONT]);
+      const ultimoContacto = fila[COL.ULTIMO_CONT] ? new Date(fila[COL.ULTIMO_CONT]) : null;
+      if (!ultimoContacto || isNaN(ultimoContacto.getTime())) return true;
       return ahora - ultimoContacto > limite30d;
     }
     return false;
