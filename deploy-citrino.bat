@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "fix: eximir /api/teach/seed del auth (tiene guard propio); ready para correr seed"
+git commit -m "feat: rediseno teach UI + Marta lee CONOCIMIENTO.md en cada conversacion + rebuild cache al arrancar"
 git push origin main
 echo Push OK.
 echo.

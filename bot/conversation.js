@@ -30,6 +30,7 @@ const { analizarConversacion } = require("./consciousness");
 const { buildContextoDinamico } = require("./self-fix");
 const { registrarUso } = require("./token-tracker");
 const { upsertCliente, appendRow: crmAppend, updateClienteEstado, getSaldoClienteBot } = require("./sheets-crm");
+const { getConocimiento } = require("./teach");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -1010,7 +1011,14 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
 
   let respuestaBot;
   try {
+    // Cargar conocimiento acumulado (CONOCIMIENTO.md — reconstruido al arrancar desde Sheets)
+    const conocimientoBase = getConocimiento();
+    const conocimientoSection = conocimientoBase
+      ? `\n\n=== CONOCIMIENTO DEL NEGOCIO (lo que Nico te enseñó) ===\n${conocimientoBase}\n=== FIN DEL CONOCIMIENTO ===`
+      : "";
+
     const sistemaFinal = SYSTEM_PROMPT
+      + conocimientoSection
       + buildContextoDinamico()
       + `\n\n[Hora actual en Uruguay: ${horaUY}:00 — usar saludo: "${saludoHora}"]`
       + (yaAcordeSaludar ? `\n\n[Ya saludaste a esta clienta hoy. NO repitas el saludo inicial — continuá la conversación directamente sin "¡Buenas tardes!" ni presentarte de nuevo.]` : "")

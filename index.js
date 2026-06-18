@@ -1572,4 +1572,14 @@ app.listen(PORT, async () => {
   }
 
   startScheduler(); // recordatorios + remarketing
+
+  // Reconstruir cache de conocimiento desde Sheets al arrancar
+  // (Railway no persiste archivos entre deploys — hay que regenerar CONOCIMIENTO.md)
+  try {
+    const { rebuildMdCache } = require("./bot/teach");
+    await rebuildMdCache();
+    console.log("🧠 Cache de conocimiento reconstruido al arrancar.");
+  } catch (err) {
+    console.warn("⚠️ No se pudo reconstruir cache de conocimiento:", err.message);
+  }
 });
