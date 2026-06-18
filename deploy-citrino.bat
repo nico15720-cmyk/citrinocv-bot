@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: El Cerebro v2 — push-to-talk, Google Sheets como knowledge store, panel editable; CRUD /api/teach/conocimiento; teach.js con Sheets CRUD"
+git commit -m "feat: seed-conocimiento.js — pre-carga toda la info de Citrino en el knowledge store; endpoint POST /api/teach/seed"
 git push origin main
 echo Push OK.
 echo.

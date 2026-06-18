@@ -1300,6 +1300,15 @@ app.delete("/api/teach/conocimiento/:rowIndex", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Seed inicial de conocimiento ─────────────────────────────
+app.post("/api/teach/seed", async (req, res) => {
+  try {
+    const { seedConocimiento } = require("./bot/seed-conocimiento");
+    const result = await seedConocimiento();
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============================================================
 // API CRM — CRUD para las 4 hojas del React CRM
 // CLIENTES, SESIONES, VENTAS, GASTOS (hojas separadas del bot)
