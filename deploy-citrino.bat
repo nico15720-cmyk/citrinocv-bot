@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: seed-conocimiento.js — pre-carga toda la info de Citrino en el knowledge store; endpoint POST /api/teach/seed"
+git commit -m "fix: eximir /api/teach/seed del auth (tiene guard propio); ready para correr seed"
 git push origin main
 echo Push OK.
 echo.

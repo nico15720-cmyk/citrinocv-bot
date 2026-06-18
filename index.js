@@ -106,7 +106,7 @@ const RUTAS_PROTEGIDAS = ['/api/', '/agenda', '/dashboard', '/inbox', '/finanzas
 
 function adminAuth(req, res, next) {
   // Webhook y health siempre públicos (Meta y Railway los necesitan)
-  if (req.path.startsWith('/webhook') || req.path.startsWith('/health')) return next();
+  if (req.path.startsWith('/webhook') || req.path.startsWith('/health') || req.path === '/api/teach/seed') return next();
 
   // Solo aplicar auth a rutas admin
   if (!RUTAS_PROTEGIDAS.some(r => req.path.startsWith(r))) return next();
