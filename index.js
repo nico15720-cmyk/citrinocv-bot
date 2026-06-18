@@ -1224,7 +1224,13 @@ app.post("/api/teach/audio", async (req, res) => {
     const Groq = require("groq-sdk");
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const buf = Buffer.from(req.body.audio, "base64");
-    const tmpPath = require("os").tmpdir() + "/teach_audio_" + Date.now() + ".webm";
+    // Determinar extensión según mimeType enviado por el cliente
+    const mimeType = req.body.mimeType || "audio/webm";
+    const ext = mimeType.includes("mp4") ? "mp4"
+              : mimeType.includes("ogg") ? "ogg"
+              : mimeType.includes("wav") ? "wav"
+              : "webm";
+    const tmpPath = require("os").tmpdir() + "/teach_audio_" + Date.now() + "." + ext;
     fs.writeFileSync(tmpPath, buf);
     const transcripcion = await groq.audio.transcriptions.create({
       file: fs.createReadStream(tmpPath),
@@ -1233,6 +1239,7 @@ app.post("/api/teach/audio", async (req, res) => {
     });
     fs.unlinkSync(tmpPath);
     const text = transcripcion.text.trim();
+    if (!text) return res.json({ transcripcion: "", reply: "No escuché nada. ¿Podés repetir?" });
     const reply = await chat(text);
     res.json({ transcripcion: text, reply });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1253,6 +1260,43 @@ app.post("/api/teach/end", async (req, res) => {
     const { endSession } = require("./bot/teach");
     const result = await endSession();
     res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CRUD de conocimiento (Google Sheets) ──────────────────────
+app.get("/api/teach/conocimiento", async (req, res) => {
+  try {
+    const { readConocimientoSheet } = require("./bot/teach");
+    res.json(await readConocimientoSheet());
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/teach/conocimiento", async (req, res) => {
+  try {
+    const { appendConocimientoRows, rebuildMdCache } = require("./bot/teach");
+    const { categoria, contenido } = req.body;
+    const fecha = new Date().toLocaleDateString("es-UY", { day:"numeric", month:"long", year:"numeric", timeZone:"America/Montevideo" });
+    await appendConocimientoRows([{ Fecha: fecha, Categoria: categoria || "General", Contenido: contenido, Fuente: "manual" }]);
+    await rebuildMdCache();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/teach/conocimiento/:rowIndex", async (req, res) => {
+  try {
+    const { updateConocimientoRow, rebuildMdCache } = require("./bot/teach");
+    await updateConocimientoRow(parseInt(req.params.rowIndex), req.body);
+    await rebuildMdCache();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/teach/conocimiento/:rowIndex", async (req, res) => {
+  try {
+    const { deleteConocimientoRow, rebuildMdCache } = require("./bot/teach");
+    await deleteConocimientoRow(parseInt(req.params.rowIndex));
+    await rebuildMdCache();
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -2,599 +2,512 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>El Cerebro — Citrino</title>
 <style>
-  :root {
-    --bg:      #FFF8F3;
-    --orange:  #EA580C;
-    --red:     #991B1B;
-    --card:    #FFFFFF;
-    --border:  #FDDCCC;
-    --text:    #1C1917;
-    --muted:   #78716C;
-    --bubble-nico: #FFF0E8;
-    --bubble-bot:  #F5F5F4;
-  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #FFF8F3; height: 100dvh; display: flex; flex-direction: column;
+         overflow: hidden; }
 
-  /* ─── Header ──────────────────────────────── */
   header {
-    background: linear-gradient(135deg, var(--red), var(--orange));
-    color: white;
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 12px rgba(150,60,0,.25);
+    background: linear-gradient(135deg, #991B1B, #C2410C);
+    color: white; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.2);
   }
   .header-left { display: flex; align-items: center; gap: 10px; }
-  .logo { font-size: 22px; }
-  .header-title { font-size: 17px; font-weight: 700; line-height: 1.2; }
-  .header-sub { font-size: 12px; opacity: .8; }
-  #session-badge {
-    background: rgba(255,255,255,.2);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 12px;
-    display: none;
+  .header-icon { font-size: 24px; }
+  .header-title { font-size: 17px; font-weight: 700; }
+  .header-sub { font-size: 12px; opacity: .75; }
+  .btn-hdr {
+    background: rgba(255,255,255,.2); border: none; border-radius: 20px;
+    color: white; padding: 6px 14px; font-size: 13px; cursor: pointer;
   }
-  #btn-end {
-    background: rgba(255,255,255,.9);
-    color: var(--red);
-    border: none;
-    border-radius: 20px;
-    padding: 7px 14px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    display: none;
-    transition: transform .1s;
-  }
-  #btn-end:active { transform: scale(.95); }
+  .btn-hdr:hover { background: rgba(255,255,255,.3); }
 
-  /* ─── Chat área ───────────────────────────── */
   #chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px 16px 120px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-width: 640px;
-    width: 100%;
-    margin: 0 auto;
+    flex: 1; overflow-y: auto; padding: 16px 12px; display: flex;
+    flex-direction: column; gap: 10px;
   }
-
   .bubble {
-    max-width: 85%;
-    padding: 10px 14px;
-    border-radius: 16px;
-    font-size: 15px;
-    line-height: 1.55;
-    word-wrap: break-word;
+    max-width: 82%; padding: 10px 13px; border-radius: 16px;
+    font-size: 14px; line-height: 1.5; white-space: pre-wrap;
   }
   .bubble.nico {
-    background: var(--bubble-nico);
-    border: 1px solid var(--border);
-    align-self: flex-end;
+    align-self: flex-end; background: #EA580C; color: white;
     border-bottom-right-radius: 4px;
   }
   .bubble.bot {
-    background: var(--bubble-bot);
-    border: 1px solid #E7E5E4;
-    align-self: flex-start;
-    border-bottom-left-radius: 4px;
+    align-self: flex-start; background: white; color: #222;
+    border: 1px solid #F3D5C0; border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
   }
   .bubble.system {
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    align-self: center;
-    text-align: center;
-    padding: 4px 10px;
-    border: none;
+    align-self: center; background: #FEF3C7; color: #92400E;
+    font-size: 12px; border-radius: 12px; padding: 6px 12px;
+    border: 1px solid #FDE68A;
   }
-  .bubble.file {
-    background: #EDF4FF;
-    border: 1px solid #C3D8FF;
-    align-self: flex-end;
-    font-size: 13px;
-    color: #1E40AF;
-    border-bottom-right-radius: 4px;
-  }
-  .bubble.error {
-    background: #FEE2E2;
-    border: 1px solid #FCA5A5;
-    color: #991B1B;
-    align-self: center;
-    font-size: 13px;
-    text-align: center;
+  .typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+  .dot { width: 7px; height: 7px; background: #C2410C; border-radius: 50%;
+         animation: bounce .9s infinite; }
+  .dot:nth-child(2) { animation-delay: .15s; }
+  .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  .input-bar {
+    flex-shrink: 0; background: white; border-top: 1px solid #F3D5C0;
+    padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;
   }
 
-  .typing {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--bubble-bot);
-    border: 1px solid #E7E5E4;
-    border-radius: 16px;
-    border-bottom-left-radius: 4px;
-    align-self: flex-start;
-    width: 60px;
+  /* Push-to-talk */
+  #micBtn {
+    border: none; border-radius: 14px; padding: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all .15s; user-select: none; -webkit-user-select: none;
+    touch-action: none;
+    background: #EA580C; color: white;
   }
-  .typing span {
-    width: 7px; height: 7px;
-    background: var(--muted);
-    border-radius: 50%;
-    animation: bounce .9s infinite;
+  #micBtn.listening { background: #991B1B; animation: pulse 1s infinite; }
+  #micBtn.processing { background: #78716C; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.025)} }
+
+  .text-row { display: flex; gap: 8px; align-items: flex-end; }
+  #msgInput {
+    flex: 1; border: 1px solid #E5D6CB; border-radius: 20px;
+    padding: 9px 14px; font-size: 14px; background: #FFF8F3;
+    outline: none; resize: none; max-height: 100px; min-height: 38px;
+    font-family: inherit; line-height: 1.4;
   }
-  .typing span:nth-child(2) { animation-delay: .15s; }
-  .typing span:nth-child(3) { animation-delay: .3s; }
-  @keyframes bounce {
-    0%,60%,100% { transform: translateY(0); }
-    30%          { transform: translateY(-7px); }
+  #msgInput:focus { border-color: #EA580C; }
+  .btn-send {
+    background: #EA580C; color: white; border: none; border-radius: 50%;
+    width: 38px; height: 38px; font-size: 18px; cursor: pointer;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .btn-end {
+    background: #FFF8F3; color: #991B1B; border: 1px solid #991B1B;
+    border-radius: 20px; padding: 8px 14px; font-size: 13px;
+    font-weight: 600; cursor: pointer;
   }
 
-  /* ─── Barra inferior ──────────────────────── */
-  #toolbar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 12px 16px 20px;
-    max-width: 640px;
-    margin: 0 auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
+  /* Panel lateral */
+  #panelOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 10;
   }
-  #input-row {
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 100vw);
+    background: white; z-index: 11; display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform .25s ease;
+    box-shadow: -4px 0 20px rgba(0,0,0,.15);
   }
-  #txt-input {
-    flex: 1;
-    border: 1.5px solid var(--border);
-    border-radius: 22px;
-    padding: 10px 16px;
-    font-size: 15px;
-    font-family: inherit;
-    resize: none;
-    min-height: 44px;
-    max-height: 120px;
-    outline: none;
-    background: var(--bg);
-    transition: border-color .2s;
-  }
-  #txt-input:focus { border-color: var(--orange); }
-  #txt-input::placeholder { color: var(--muted); }
-
-  .icon-btn {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    transition: transform .15s, background .15s;
+  #panel.open { transform: translateX(0); }
+  .panel-hdr {
+    background: linear-gradient(135deg, #991B1B, #C2410C);
+    color: white; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
     flex-shrink: 0;
   }
-  .icon-btn:active { transform: scale(.9); }
+  .panel-hdr-title { font-size: 16px; font-weight: 700; }
+  .btn-close { background: none; border: none; color: white; font-size: 22px; cursor: pointer; }
+  .btn-add-k {
+    background: rgba(255,255,255,.25); border: none; border-radius: 14px;
+    color: white; padding: 5px 12px; font-size: 13px; cursor: pointer;
+  }
+  #panelBody { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 
-  #btn-mic {
-    background: var(--orange);
-    color: white;
-    box-shadow: 0 2px 8px rgba(234,88,12,.4);
+  .k-card {
+    background: #FFF8F3; border: 1px solid #F3D5C0; border-radius: 12px; padding: 10px 12px;
   }
-  #btn-mic.recording {
-    background: #DC2626;
-    animation: pulse-mic 1s infinite;
-    box-shadow: 0 0 0 0 rgba(220,38,38,.5);
+  .k-cat-label { font-size: 11px; font-weight: 700; color: #C2410C;
+                 text-transform: uppercase; letter-spacing: .5px; margin-top:8px; padding: 0 2px; }
+  .k-content { font-size: 13px; color: #333; line-height: 1.4; }
+  .k-meta { font-size: 11px; color: #999; margin-top: 4px; }
+  .k-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-k { border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .btn-k.edit { background: #FEF3C7; color: #92400E; }
+  .btn-k.del  { background: #FEE2E2; color: #991B1B; }
+  .k-edit-area { display: none; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .k-edit-area select, .k-edit-area textarea {
+    width: 100%; border: 1px solid #E5D6CB; border-radius: 8px;
+    padding: 7px; font-size: 13px; font-family: inherit; background: white;
   }
-  @keyframes pulse-mic {
-    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,.5); }
-    70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0); }
-    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
-  }
-  #btn-send {
-    background: var(--orange);
-    color: white;
-    box-shadow: 0 2px 8px rgba(234,88,12,.4);
-    display: none;
-  }
-  #btn-attach {
-    background: #F5F5F4;
-    color: var(--muted);
-    border: 1px solid var(--border);
-  }
-  #file-input { display: none; }
+  .k-edit-area textarea { min-height: 60px; resize: vertical; }
+  .btn-save-edit { background: #EA580C; color: white; border: none; border-radius: 8px;
+                   padding: 5px 14px; font-size: 13px; cursor: pointer; }
 
-  /* ─── Pantalla de bienvenida ──────────────── */
-  #welcome {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 40px 24px;
-    text-align: center;
-    flex: 1;
-    min-height: 60vh;
+  #addForm {
+    background: #FFF8F3; border: 1px dashed #EA580C; border-radius: 12px;
+    padding: 12px; display: none; flex-direction: column; gap: 8px;
   }
-  #welcome .brain { font-size: 64px; }
-  #welcome h2 { font-size: 22px; font-weight: 700; }
-  #welcome p { color: var(--muted); font-size: 15px; max-width: 320px; line-height: 1.6; }
-  #btn-start {
-    background: linear-gradient(135deg, var(--red), var(--orange));
-    color: white;
-    border: none;
-    border-radius: 24px;
-    padding: 14px 32px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(234,88,12,.4);
-    transition: transform .15s;
-    margin-top: 8px;
+  #addForm select, #addForm textarea {
+    width: 100%; border: 1px solid #E5D6CB; border-radius: 8px;
+    padding: 7px; font-size: 13px; font-family: inherit; background: white;
   }
-  #btn-start:active { transform: scale(.97); }
+  #addForm textarea { min-height: 70px; resize: vertical; }
+  .add-actions { display: flex; gap: 8px; }
+  .btn-save-new { background: #EA580C; color: white; border: none; border-radius: 8px;
+                  padding: 7px 18px; font-size: 13px; cursor: pointer; flex: 1; }
+  .btn-cancel { background: #F3D5C0; color: #991B1B; border: none; border-radius: 8px;
+                padding: 7px 14px; font-size: 13px; cursor: pointer; }
 
-  /* ─── Modal fin de sesión ─────────────────── */
-  #modal-bg {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.55);
-    z-index: 200;
-    align-items: flex-end;
-    justify-content: center;
+  .panel-empty { text-align: center; padding: 32px; color: #999; font-size: 14px; }
+
+  /* Modal */
+  #modalOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    z-index: 20; align-items: center; justify-content: center; padding: 16px;
   }
-  #modal-bg.show { display: flex; }
-  #modal {
-    background: var(--card);
-    border-radius: 24px 24px 0 0;
-    padding: 24px;
-    max-width: 640px;
-    width: 100%;
-    max-height: 75vh;
-    overflow-y: auto;
-    animation: slide-up .3s ease;
+  #modalOverlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 20px; padding: 24px;
+    max-width: 360px; width: 100%; max-height: 80vh; overflow-y: auto;
   }
-  @keyframes slide-up {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+  .modal h3 { font-size: 18px; color: #991B1B; margin-bottom: 12px; }
+  .ap-item {
+    background: #FFF8F3; border-left: 3px solid #EA580C;
+    border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 8px; font-size: 13px;
   }
-  #modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
-  #modal pre {
-    white-space: pre-wrap;
-    font-size: 13px;
-    line-height: 1.6;
-    background: var(--bg);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 16px;
-    font-family: inherit;
+  .ap-cat { font-size: 11px; color: #C2410C; font-weight: 700; }
+  .btn-modal-ok {
+    width: 100%; background: #EA580C; color: white; border: none;
+    border-radius: 12px; padding: 12px; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 16px;
   }
-  .modal-btns { display: flex; gap: 10px; }
-  .modal-btns button {
-    flex: 1;
-    padding: 12px;
-    border-radius: 20px;
-    border: none;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  #btn-new-session { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
-  #btn-close-modal { background: var(--orange); color: white; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-left">
-    <span class="logo">🧠</span>
+    <span class="header-icon">🧠</span>
     <div>
       <div class="header-title">El Cerebro</div>
       <div class="header-sub">Enseñale al bot sobre Citrino</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span id="session-badge">0 turnos</span>
-    <button id="btn-end">Finalizar clase ✓</button>
-  </div>
+  <button class="btn-hdr" onclick="openPanel()">📋 Conocimiento</button>
 </header>
 
-<!-- Pantalla de bienvenida (se oculta al iniciar) -->
-<div id="welcome">
-  <div class="brain">🧠</div>
-  <h2>El Cerebro de Citrino</h2>
-  <p>Hablá con el bot como si fuera una clase. Contale reglas del negocio, casos especiales, datos de clientas. Al terminar indexa todo y lo recuerda para siempre.</p>
-  <p style="font-size:13px;color:#A8A29E">Podés usar voz, texto o subir archivos.</p>
-  <button id="btn-start">Empezar clase</button>
-</div>
+<div id="chat"></div>
 
-<!-- Chat (oculto al inicio) -->
-<div id="chat" style="display:none"></div>
-
-<!-- Input bar (oculta al inicio) -->
-<div id="toolbar" style="display:none">
-  <div id="input-row">
-    <button id="btn-attach" class="icon-btn" title="Subir archivo">📎</button>
-    <input type="file" id="file-input" accept=".txt,.md,.csv,.json,.pdf">
-    <textarea id="txt-input" placeholder="Escribí o tocá el micrófono…" rows="1"></textarea>
-    <button id="btn-send" class="icon-btn" title="Enviar">➤</button>
-    <button id="btn-mic" class="icon-btn" title="Grabar voz">🎤</button>
+<div class="input-bar">
+  <button id="micBtn">🎙️ Mantené presionado para hablar</button>
+  <div class="text-row">
+    <textarea id="msgInput" placeholder="O escribí acá..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"
+      oninput="autoResize(this)"></textarea>
+    <button class="btn-send" onclick="sendText()">↑</button>
+    <button class="btn-end" onclick="confirmarFin()">Finalizar</button>
   </div>
 </div>
 
-<!-- Modal de cierre de sesión -->
-<div id="modal-bg">
-  <div id="modal">
-    <h3>✅ Clase guardada en el cerebro</h3>
-    <pre id="modal-content">Procesando...</pre>
-    <div class="modal-btns">
-      <button id="btn-new-session">Nueva clase</button>
-      <button id="btn-close-modal">Listo</button>
+<!-- Panel Conocimiento -->
+<div id="panelOverlay" onclick="closePanel()"></div>
+<div id="panel">
+  <div class="panel-hdr">
+    <span class="panel-hdr-title">🧠 Conocimiento guardado</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-add-k" onclick="toggleAddForm()">+ Agregar</button>
+      <button class="btn-close" onclick="closePanel()">✕</button>
     </div>
+  </div>
+  <div id="panelBody">
+    <div id="addForm">
+      <select id="newCat">
+        <option>Clientas</option><option>Terapeutas</option>
+        <option>Precios y Productos</option><option>Reglas de Negocio</option>
+        <option>Contabilidad</option><option>Situaciones Especiales</option>
+        <option>Sistema</option><option>General</option>
+      </select>
+      <textarea id="newContent" placeholder="Escribí el conocimiento que querés guardar..."></textarea>
+      <div class="add-actions">
+        <button class="btn-cancel" onclick="toggleAddForm()">Cancelar</button>
+        <button class="btn-save-new" onclick="saveNewKnowledge()">Guardar</button>
+      </div>
+    </div>
+    <div id="panelList" style="display:flex;flex-direction:column;gap:8px;padding:12px;"></div>
+  </div>
+</div>
+
+<!-- Modal fin -->
+<div id="modalOverlay">
+  <div class="modal">
+    <h3>✅ Clase guardada</h3>
+    <div id="modalContent"></div>
+    <button class="btn-modal-ok" onclick="closeModal()">Perfecto</button>
   </div>
 </div>
 
 <script>
-// ── Estado ───────────────────────────────────────────────────
-let turnos = 0;
-let mediaRecorder = null;
-let audioChunks  = [];
-let recording    = false;
-let sending      = false;
-
-// ── Refs ─────────────────────────────────────────────────────
-const chat       = document.getElementById("chat");
-const welcome    = document.getElementById("welcome");
-const toolbar    = document.getElementById("toolbar");
-const txtInput   = document.getElementById("txt-input");
-const btnMic     = document.getElementById("btn-mic");
-const btnSend    = document.getElementById("btn-send");
-const btnAttach  = document.getElementById("btn-attach");
-const fileInput  = document.getElementById("file-input");
-const btnEnd     = document.getElementById("btn-end");
-const btnStart   = document.getElementById("btn-start");
-const sessionBadge = document.getElementById("session-badge");
-const modalBg    = document.getElementById("modal-bg");
-const modalContent = document.getElementById("modal-content");
-const btnNewSession = document.getElementById("btn-new-session");
-const btnCloseModal = document.getElementById("btn-close-modal");
-
-// ── Auth header ───────────────────────────────────────────────
-function authHeader() {
-  const u = sessionStorage.getItem("teach_user") || prompt("Usuario:");
-  const p = sessionStorage.getItem("teach_pass") || prompt("Contraseña:");
-  sessionStorage.setItem("teach_user", u);
-  sessionStorage.setItem("teach_pass", p);
-  return "Basic " + btoa(u + ":" + p);
+// ── Auth ──────────────────────────────────────────────────────
+if (!sessionStorage.getItem("teach_auth")) {
+  const u = prompt("Usuario:") || "";
+  const p = prompt("Contraseña:") || "";
+  sessionStorage.setItem("teach_auth", btoa(u + ":" + p));
+}
+function hdrs() {
+  return { "Authorization": "Basic " + sessionStorage.getItem("teach_auth"),
+           "Content-Type": "application/json" };
 }
 
-async function apiFetch(path, options = {}) {
-  if (!options.headers) options.headers = {};
-  options.headers["Authorization"] = authHeader();
-  const r = await fetch(path, options);
-  if (r.status === 401) {
-    sessionStorage.removeItem("teach_user");
-    sessionStorage.removeItem("teach_pass");
-    throw new Error("Credenciales incorrectas");
-  }
-  return r;
-}
+// ── Estado ────────────────────────────────────────────────────
+let isListening = false, isProcessing = false;
+let mediaRecorder = null, audioChunks = [];
+const micBtn = document.getElementById("micBtn");
 
-// ── UI helpers ────────────────────────────────────────────────
-function addBubble(text, type = "bot") {
-  const div = document.createElement("div");
-  div.className = `bubble ${type}`;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-  return div;
-}
+// ── Bienvenida ────────────────────────────────────────────────
+addBubble("bot", "¡Hola! Soy el cerebro de Citrino.\nContame sobre el negocio, las clientas, las reglas. Al terminar guardamos todo. 🌿");
 
-function addTyping() {
-  const el = document.createElement("div");
-  el.className = "typing";
-  el.innerHTML = "<span></span><span></span><span></span>";
-  chat.appendChild(el);
-  chat.scrollTop = chat.scrollHeight;
-  return el;
-}
+// ── Push-to-talk ──────────────────────────────────────────────
+micBtn.addEventListener("mousedown",   startListen);
+micBtn.addEventListener("touchstart",  startListen, { passive: false });
+micBtn.addEventListener("mouseup",     stopListen);
+micBtn.addEventListener("touchend",    stopListen);
+micBtn.addEventListener("mouseleave",  e => { if (isListening) stopListen(e); });
+document.addEventListener("touchcancel", e => { if (isListening) stopListen(e); });
 
-function updateBadge() {
-  sessionBadge.textContent = `${turnos} turno${turnos !== 1 ? "s" : ""}`;
-  sessionBadge.style.display = turnos > 0 ? "block" : "none";
-  btnEnd.style.display = turnos > 0 ? "block" : "none";
-}
-
-// Autoexpand textarea
-txtInput.addEventListener("input", () => {
-  txtInput.style.height = "auto";
-  txtInput.style.height = Math.min(txtInput.scrollHeight, 120) + "px";
-  btnSend.style.display = txtInput.value.trim() ? "flex" : "none";
-  btnMic.style.display  = txtInput.value.trim() ? "none" : "flex";
-});
-
-// ── Iniciar sesión ────────────────────────────────────────────
-btnStart.addEventListener("click", () => {
-  welcome.style.display = "none";
-  chat.style.display = "flex";
-  toolbar.style.display = "block";
-  addBubble("¡Hola! Soy el cerebro de Citrino. Contame sobre el negocio, las clientas, las reglas. Te voy haciendo preguntas para entender bien. Al terminar guardamos todo. 🌿", "bot");
-});
-
-// ── Enviar texto ──────────────────────────────────────────────
-async function sendText(text) {
-  if (!text.trim() || sending) return;
-  sending = true;
-  addBubble(text, "nico");
-  txtInput.value = "";
-  txtInput.style.height = "auto";
-  btnSend.style.display = "none";
-  btnMic.style.display  = "flex";
-
-  const typing = addTyping();
-  try {
-    const r = await apiFetch("/api/teach/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text }),
-    });
-    const data = await r.json();
-    typing.remove();
-    addBubble(data.reply || "...", "bot");
-    turnos++;
-    updateBadge();
-  } catch (e) {
-    typing.remove();
-    addBubble("Error al enviar: " + e.message, "error");
-  }
-  sending = false;
-}
-
-btnSend.addEventListener("click", () => sendText(txtInput.value));
-txtInput.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(txtInput.value); }
-});
-
-// ── Micrófono (voz → transcripción → chat) ───────────────────
-btnMic.addEventListener("click", async () => {
-  if (recording) {
-    mediaRecorder.stop();
-    return;
-  }
+async function startListen(e) {
+  e.preventDefault();
+  if (isProcessing || isListening) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      btnMic.classList.remove("recording");
-      btnMic.textContent = "🎤";
-      recording = false;
-
-      if (!audioChunks.length) return;
-      const blob = new Blob(audioChunks, { type: "audio/webm" });
-      const base64 = await blobToBase64(blob);
-
-      const typing = addTyping();
-      try {
-        const r = await apiFetch("/api/teach/audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ audio: base64 }),
-        });
-        const data = await r.json();
-        typing.remove();
-        if (data.transcripcion) addBubble(data.transcripcion, "nico");
-        if (data.reply) addBubble(data.reply, "bot");
-        if (data.transcripcion || data.reply) { turnos++; updateBadge(); }
-      } catch (e) {
-        typing.remove();
-        addBubble("Error en audio: " + e.message, "error");
-      }
-    };
-    mediaRecorder.start();
-    recording = true;
-    btnMic.classList.add("recording");
-    btnMic.textContent = "⏹";
-  } catch (e) {
-    addBubble("No se pudo acceder al micrófono: " + e.message, "error");
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    mediaRecorder.addEventListener("dataavailable", e => { if (e.data.size > 0) audioChunks.push(e.data); });
+    mediaRecorder.start(100); // chunk cada 100ms
+    isListening = true;
+    micBtn.textContent = "🔴 Escuchando... (soltá para enviar)";
+    micBtn.classList.add("listening");
+  } catch {
+    addBubble("system", "⚠️ Sin acceso al micrófono. Revisá los permisos del navegador.");
   }
-});
-
-function blobToBase64(blob) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload  = () => res(reader.result.split(",")[1]);
-    reader.onerror = rej;
-    reader.readAsDataURL(blob);
-  });
 }
 
-// ── Subir archivo ─────────────────────────────────────────────
-btnAttach.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  fileInput.value = "";
+async function stopListen(e) {
+  if (!isListening || !mediaRecorder) return;
+  isListening = false;
+  isProcessing = true;
+  micBtn.textContent = "⏳ Procesando...";
+  micBtn.classList.remove("listening");
+  micBtn.classList.add("processing");
+  micBtn.disabled = true;
 
-  addBubble(`📄 ${file.name}`, "file");
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
 
-  const base64 = await new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload  = () => res(r.result.split(",")[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+  mediaRecorder.addEventListener("stop", async () => {
+    try {
+      const mimeUsed = mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(audioChunks, { type: mimeUsed });
+      if (blob.size < 500) throw new Error("corto");
 
-  const typing = addTyping();
+      const base64 = await new Promise(res => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.readAsDataURL(blob);
+      });
+
+      const resp = await fetch("/api/teach/audio", {
+        method: "POST", headers: hdrs(),
+        body: JSON.stringify({ audio: base64.split(",")[1], mimeType: mimeUsed }),
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      if (data.transcripcion) addBubble("nico", data.transcripcion);
+      showTyping();
+      await new Promise(r => setTimeout(r, 0)); // allow DOM to update
+      removeTyping();
+      addBubble("bot", data.reply || "Sin respuesta.");
+    } catch (err) {
+      const msg = err.message === "corto"
+        ? "Mantené presionado mientras hablás."
+        : "No pude procesar el audio. Intentá de nuevo o escribí.";
+      addBubble("system", "⚠️ " + msg);
+    } finally {
+      isProcessing = false;
+      micBtn.disabled = false;
+      micBtn.textContent = "🎙️ Mantené presionado para hablar";
+      micBtn.classList.remove("processing");
+    }
+  }, { once: true });
+}
+
+// ── Texto ─────────────────────────────────────────────────────
+async function sendText() {
+  const input = document.getElementById("msgInput");
+  const msg = input.value.trim();
+  if (!msg || isProcessing) return;
+  input.value = ""; input.style.height = "";
+  addBubble("nico", msg);
+  showTyping();
   try {
-    const r = await apiFetch("/api/teach/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: file.name, content: base64, type: file.type }),
+    const resp = await fetch("/api/teach/chat", {
+      method: "POST", headers: hdrs(), body: JSON.stringify({ message: msg }),
     });
-    const data = await r.json();
-    typing.remove();
-    addBubble(data.message || "Archivo recibido.", "bot");
-  } catch (e) {
-    typing.remove();
-    addBubble("Error subiendo archivo: " + e.message, "error");
-  }
-});
+    const data = await resp.json();
+    removeTyping();
+    addBubble("bot", data.reply || "Error.");
+  } catch { removeTyping(); addBubble("system", "⚠️ Error de conexión."); }
+}
 
-// ── Finalizar clase ───────────────────────────────────────────
-btnEnd.addEventListener("click", async () => {
-  if (!confirm("¿Finalizar la clase y guardar todo en el cerebro?")) return;
-  addBubble("Procesando y guardando lo que aprendí…", "system");
-  btnEnd.disabled = true;
+// ── UI helpers ────────────────────────────────────────────────
+function addBubble(type, text) {
+  const chat = document.getElementById("chat");
+  const d = document.createElement("div");
+  d.className = "bubble " + type;
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+let typingEl = null;
+function showTyping() {
+  const chat = document.getElementById("chat");
+  typingEl = document.createElement("div");
+  typingEl.className = "bubble bot typing";
+  typingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chat.appendChild(typingEl);
+  chat.scrollTop = chat.scrollHeight;
+}
+function removeTyping() { if (typingEl) { typingEl.remove(); typingEl = null; } }
+function autoResize(el) { el.style.height = ""; el.style.height = Math.min(el.scrollHeight,100)+"px"; }
 
+// ── Finalizar ─────────────────────────────────────────────────
+async function confirmarFin() {
+  if (!confirm("¿Terminamos la clase y guardamos lo aprendido?")) return;
+  addBubble("system", "⏳ Guardando conocimiento...");
   try {
-    const r = await apiFetch("/api/teach/end", { method: "POST" });
-    const data = await r.json();
-    modalContent.textContent = data.aprendizajes || "Sin contenido.";
-    modalBg.classList.add("show");
-    turnos = 0;
-    updateBadge();
-  } catch (e) {
-    addBubble("Error al finalizar: " + e.message, "error");
-  }
-  btnEnd.disabled = false;
-});
+    const resp = await fetch("/api/teach/end", { method: "POST", headers: hdrs() });
+    const data = await resp.json();
+    if (data.ok && data.aprendizajes?.length) {
+      showModal(data.aprendizajes);
+    } else {
+      addBubble("system", "La clase fue corta. No había suficiente para guardar.");
+    }
+  } catch { addBubble("system", "⚠️ Error al guardar."); }
+}
+function showModal(aps) {
+  document.getElementById("modalContent").innerHTML =
+    `<p style="color:#555;font-size:13px;margin-bottom:12px">Se guardaron ${aps.length} aprendizaje(s):</p>` +
+    aps.map(a=>`<div class="ap-item"><div class="ap-cat">${esc(a.Categoria)}</div>${esc(a.Contenido)}</div>`).join("");
+  document.getElementById("modalOverlay").classList.add("open");
+}
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("open");
+  addBubble("system", "✅ Guardado en el Cerebro. Podés empezar otra clase cuando quieras.");
+}
 
-// ── Modal ─────────────────────────────────────────────────────
-btnNewSession.addEventListener("click", () => {
-  modalBg.classList.remove("show");
-  while (chat.firstChild) chat.removeChild(chat.firstChild);
-  addBubble("¡Nueva clase! Contame qué más quieras enseñarme 🌿", "bot");
-});
+// ── Panel de conocimiento ─────────────────────────────────────
+async function openPanel() {
+  document.getElementById("panelOverlay").style.display = "block";
+  document.getElementById("panel").classList.add("open");
+  await loadKnowledge();
+}
+function closePanel() {
+  document.getElementById("panelOverlay").style.display = "none";
+  document.getElementById("panel").classList.remove("open");
+}
 
-btnCloseModal.addEventListener("click", () => {
-  modalBg.classList.remove("show");
-  addBubble("Perfecto, guardé todo. Cada vez que hablés con el bot va a usar ese conocimiento 🧠", "system");
-});
+async function loadKnowledge() {
+  const list = document.getElementById("panelList");
+  list.innerHTML = '<div class="panel-empty">Cargando...</div>';
+  try {
+    const resp = await fetch("/api/teach/conocimiento", { headers: hdrs() });
+    const rows = await resp.json();
+    list.innerHTML = "";
+    if (!rows.length) {
+      list.innerHTML = '<div class="panel-empty">Todavía no hay conocimiento guardado.<br>¡Empezá una clase!</div>';
+      return;
+    }
+    const grouped = {};
+    for (const r of rows) {
+      if (!r.Contenido) continue;
+      const c = r.Categoria || "General";
+      if (!grouped[c]) grouped[c] = [];
+      grouped[c].push(r);
+    }
+    for (const [cat, items] of Object.entries(grouped)) {
+      const catEl = document.createElement("div");
+      catEl.className = "k-cat-label";
+      catEl.textContent = cat;
+      list.appendChild(catEl);
+      for (const row of items) {
+        list.appendChild(makeCard(row));
+      }
+    }
+  } catch { list.innerHTML = '<div class="panel-empty">❌ Error cargando.</div>'; }
+}
+
+function makeCard(row) {
+  const card = document.createElement("div");
+  card.className = "k-card";
+  const cats = ["Clientas","Terapeutas","Precios y Productos","Reglas de Negocio","Contabilidad","Situaciones Especiales","Sistema","General"];
+  card.innerHTML = `
+    <div class="k-content">${esc(row.Contenido)}</div>
+    <div class="k-meta">${row.Fuente==="manual"?"✍️ manual":"📚 clase"} · ${row.Fecha}</div>
+    <div class="k-actions">
+      <button class="btn-k edit" onclick="this.closest('.k-card').querySelector('.k-edit-area').style.display='flex'">✏️ Editar</button>
+      <button class="btn-k del"  onclick="delK(${row._rowIndex},this)">🗑️ Borrar</button>
+    </div>
+    <div class="k-edit-area">
+      <select>${cats.map(c=>`<option${c===row.Categoria?" selected":""}>${c}</option>`).join("")}</select>
+      <textarea>${esc(row.Contenido)}</textarea>
+      <button class="btn-save-edit" onclick="saveEdit(${row._rowIndex},'${esc(row.Fecha)}',this)">Guardar</button>
+    </div>`;
+  return card;
+}
+
+async function saveEdit(rowIndex, fecha, btn) {
+  const area = btn.closest(".k-edit-area");
+  const contenido = area.querySelector("textarea").value.trim();
+  const categoria = area.querySelector("select").value;
+  if (!contenido) return;
+  btn.textContent = "...";
+  try {
+    await fetch(`/api/teach/conocimiento/${rowIndex}`, {
+      method: "PUT", headers: hdrs(),
+      body: JSON.stringify({ Fecha: fecha, Categoria: categoria, Contenido: contenido, Fuente: "manual" }),
+    });
+    await loadKnowledge();
+  } catch { alert("Error al guardar."); btn.textContent = "Guardar"; }
+}
+
+async function delK(rowIndex, btn) {
+  if (!confirm("¿Borrar este conocimiento?")) return;
+  btn.textContent = "...";
+  try {
+    await fetch(`/api/teach/conocimiento/${rowIndex}`, { method: "DELETE", headers: hdrs() });
+    await loadKnowledge();
+  } catch { alert("Error."); }
+}
+
+function toggleAddForm() {
+  const f = document.getElementById("addForm");
+  const isOpen = f.style.display === "flex";
+  f.style.display = isOpen ? "none" : "flex";
+  f.style.flexDirection = "column";
+  if (!isOpen) document.getElementById("newContent").focus();
+}
+async function saveNewKnowledge() {
+  const cat = document.getElementById("newCat").value;
+  const cont = document.getElementById("newContent").value.trim();
+  if (!cont) return;
+  try {
+    await fetch("/api/teach/conocimiento", {
+      method: "POST", headers: hdrs(), body: JSON.stringify({ categoria: cat, contenido: cont }),
+    });
+    document.getElementById("newContent").value = "";
+    document.getElementById("addForm").style.display = "none";
+    await loadKnowledge();
+  } catch { alert("Error al guardar."); }
+}
+
+function esc(str) {
+  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 </script>
 </body>
 </html>
