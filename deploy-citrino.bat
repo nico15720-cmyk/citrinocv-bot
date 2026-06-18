@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: teach routes + cerebro admin; fix duplicados agenda; fix /vino fecha_turno ISO; fix seguimiento_pendiente repetido; momento filter en slots"
+git commit -m "feat: El Cerebro v2 — push-to-talk, Google Sheets como knowledge store, panel editable; CRUD /api/teach/conocimiento; teach.js con Sheets CRUD"
 git push origin main
 echo Push OK.
 echo.
