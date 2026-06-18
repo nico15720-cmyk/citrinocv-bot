@@ -238,42 +238,48 @@ function invalidarCacheSlots() {
 }
 
 // ─── FORMATEAR DISPONIBILIDAD para el cliente ─────────────────
-function formatearDisponibilidad(slots) {
+function formatearDisponibilidad(slots, maxSlots = 3) {
   if (!slots?.length) {
-    return "No tengo turnos disponibles en los próximos 7 días 😔\n¿Querés que busquemos para más adelante?";
+    return "No tenemos turnos disponibles en los próximos 7 días.\n\nSi quiere le buscamos para la semana que viene, solo dígame qué día le queda mejor.";
   }
 
-  const terapeutasUnicos = [...new Set(slots.map(s => s.terapeutaNombre).filter(Boolean))];
-  const hayMultiples = terapeutasUnicos.length > 1;
-
-  // Agrupar por fecha
+  // Agrupar por fecha, deduplicar por hora+terapeuta
   const porFecha = {};
   for (const slot of slots) {
-    if (!porFecha[slot.fecha]) {
-      porFecha[slot.fecha] = { label: slot.fechaLabel, terapeutas: {} };
-    }
-    const t = slot.terapeutaNombre || "Citrino";
-    if (!porFecha[slot.fecha].terapeutas[t]) porFecha[slot.fecha].terapeutas[t] = [];
-    if (!porFecha[slot.fecha].terapeutas[t].includes(slot.horaInicio)) {
-      porFecha[slot.fecha].terapeutas[t].push(slot.horaInicio);
-    }
+    if (!porFecha[slot.fecha]) porFecha[slot.fecha] = { label: slot.fechaLabel, slots: [] };
+    const ya = porFecha[slot.fecha].slots.find(s => s.hora === slot.horaInicio && s.ter === (slot.terapeutaNombre || "Citrino"));
+    if (!ya) porFecha[slot.fecha].slots.push({ hora: slot.horaInicio, ter: slot.terapeutaNombre || "Citrino" });
   }
 
-  let texto = "📅 *Turnos disponibles:*\n\n";
-  for (const [, info] of Object.entries(porFecha)) {
-    const cap = info.label.charAt(0).toUpperCase() + info.label.slice(1);
-    texto += `*${cap}*\n`;
-    if (hayMultiples) {
-      for (const [terNombre, horarios] of Object.entries(info.terapeutas)) {
-        texto += `_${terNombre}_: ${horarios.map(h => `${h}hs`).join(", ")}\n`;
-      }
-    } else {
-      const horarios = Object.values(info.terapeutas).flat();
-      texto += horarios.map(h => `• ${h} hs`).join("\n");
+  const fechas = Object.keys(porFecha);
+
+  // Mostrar solo el primer día, limitar a maxSlots horarios
+  const primerDia = fechas[0];
+  const info = porFecha[primerDia];
+  const slotsDelDia = info.slots.slice(0, maxSlots);
+
+  const terapeutasUnicos = [...new Set(slotsDelDia.map(s => s.ter))];
+  const hayMultiples = terapeutasUnicos.length > 1;
+
+  const cap = info.label.charAt(0).toUpperCase() + info.label.slice(1);
+  let texto = `Tenemos disponible el *${cap}*:\n`;
+
+  if (hayMultiples) {
+    for (const ter of terapeutasUnicos) {
+      const horas = slotsDelDia.filter(s => s.ter === ter).map(s => `${s.hora} hs`).join(", ");
+      texto += `_${ter}_: ${horas}\n`;
     }
-    texto += "\n\n";
+  } else {
+    texto += slotsDelDia.map(s => `• ${s.hora} hs`).join("\n");
   }
-  return (texto + "¿Cuál te queda mejor?").trim();
+
+  // Mencionar otros días si los hay, sin listar todos los horarios
+  if (fechas.length > 1) {
+    const otrosDias = fechas.slice(1, 3).map(f => porFecha[f].label).join(" y ");
+    texto += `\n\n_(Si ninguno le queda bien, también tenemos el ${otrosDias})_`;
+  }
+
+  return (texto + "\n\n¿Cuál le queda mejor?").trim();
 }
 
 // ─── CREAR TURNO ──────────────────────────────────────────────

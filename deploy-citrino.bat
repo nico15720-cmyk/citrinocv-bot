@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "fix: 20 bugs auditoria — sanitizarTexto 3 capas, guardar_nombre no retrocede estado, cerrarNoShows 23:30, lock confirmacion, remarketing etapa solo si envio ok, JSON.parse con regex (conversation+scheduler+consciousness), horaToFloat NaN, getSaldoClienteBot centralizado (elimina duplicado scheduler), enviar_individual admin, ustedeo en recordatorios, horario bot 6:30-21:30, /nollego envia al cliente no al dueno, leads sin ULTIMO_CONT entran en remarketing, inbox 500 con Chats=null"
+git commit -m "fix: horarios disponibles max 3 slots (era ilimitado), ustedeo en formatearDisponibilidad, regla SYSTEM_PROMPT horarios; fix 20 bugs auditoria — sanitizarTexto 3 capas, cerrarNoShows 23:30, /nollego envia al cliente, leads sin ULTIMO_CONT en remarketing, inbox 500 Chats=null, getSaldoClienteBot centralizado, consciousness JSON.parse regex"
 git push origin main
 echo Push OK.
 echo.
