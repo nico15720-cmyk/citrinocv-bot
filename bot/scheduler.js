@@ -18,6 +18,7 @@ const {
 } = require("./crm");
 const { getDisponibilidad, formatearDisponibilidad, crearReservasFantasma, liberarGhostExpiradas, getEventosAgenda } = require("./calendar");
 const { tomarDecisiones } = require("./consciousness");
+const { procesarMensajesPendientes } = require("./conversation");
 const { verificarSalud } = require("./utils");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -1106,6 +1107,16 @@ function startScheduler() {
   // ── Auto-review silencioso — 6:00 (token + sistema + liberar ghosts) ───────
   cron.schedule("0 6 * * *", autoReview6am, { timezone: "America/Montevideo" });
 
+  // ── Mensajes fuera de horario — 6:30 (responder consultas overnight) ────
+  cron.schedule("30 6 * * 1-6", async () => {
+    console.log("🌅 [pendientes] Procesando mensajes fuera de horario...");
+    try {
+      await procesarMensajesPendientes();
+    } catch (err) {
+      console.error("❌ [pendientes] Error:", err.message);
+    }
+  }, { timezone: "America/Montevideo" });
+
   // ── Ghost bookings — lunes 7:00 (detectar patrones y crear reservas fantasma)
   cron.schedule("0 7 * * 1", async () => {
     console.log("👻 Analizando patrones para ghost bookings...");
@@ -1130,6 +1141,7 @@ function startScheduler() {
   console.log("  • 21:00 check-in diario + alertas cuponera");
   console.log("  • lunes 08:00 resumen semanal");
   console.log("  • día 1 09:00 resumen mensual");
+  console.log("  • 06:30 (Lun-Sab) responder mensajes overnight (fuera de horario)");
   console.log("  • */4hs verificar salud del sistema");
 }
 

@@ -42,6 +42,7 @@ const slotsPendientes = new Map(); // userId → slots disponibles
 const chatsBloqueados = new Set(); // chats donde Nico tomó el control con /nicolas
 const intentosAgendamiento = new Map(); // userId → número de intercambios fallidos de horario
 const nadiaNotificada = new Set(); // userId → ya se notificó a Nadia para este cliente
+const mensajesPendientes = new Map(); // userId → { text, platform, timestamp } — mensajes fuera de horario
 
 function getHistorial(userId) {
   if (!conversaciones.has(userId)) {
@@ -89,8 +90,25 @@ async function cargarHistorialDeSheets(userId) {
 // ============================================================
 const SYSTEM_PROMPT = `Sos Marta, asesora de bienestar de Citrino, un centro de bienestar y estética en Montevideo, Uruguay.
 No sos un bot — sos una persona real, empática y apasionada por ayudar a las personas a sentirse mejor.
-Hablás en español rioplatense, de forma cálida, cercana y genuina. En los mensajes de presentación inicial podés usar "vos/te" — es el tono natural de los textos de Citrino. En los mensajes cortos de seguimiento (coordinar horario, confirmar turno) usás "le", como el equipo real de Citrino.
+Hablás en español rioplatense, de forma cálida, cercana y genuina.
 Usás emojis con moderación: en el primer mensaje de presentación está bien, en los mensajes de seguimiento casi no usás.
+
+=== USTEDEO — REGLA CRÍTICA ===
+NUNCA mezcles "te/vos" y "le/usted" en el mismo mensaje. Elegí uno y mantené.
+- Primer mensaje de presentación (lead nuevo): podés usar "vos/te" para sonar cálido
+- TODO lo demás (coordinar horario, confirmar turno, reagendar, cancelar, seguimiento): usá SIEMPRE "le/su"
+INCORRECTO: "¿Para cuándo te gustaría reagendar?" → CORRECTO: "¿Para cuándo le quedaría bien reagendar?"
+INCORRECTO: "¿Qué día te viene bien?" → CORRECTO: "¿Qué día le viene bien?"
+
+=== REGLA DE ACCIONES — CRÍTICA ===
+El tag <accion> va SIEMPRE al FINAL de tu respuesta, nunca en el medio.
+Primero escribís el mensaje completo que va a ver el cliente. Después, al final, el tag.
+INCORRECTO:
+  "Tranqui, reagendamos. <accion>...</accion> Cancelamos el turno sin problema."
+CORRECTO:
+  "Tranqui, cancelamos el turno sin problema. ¿Le buscamos otro horario?"
+  <accion>{"tipo":"guardar_objecion","objecion":"cancelacion","intencion":"masaje"}</accion>
+No generes texto después del tag <accion>. Solo una acción por respuesta.
 
 === SALUDO POR HORA ===
 Siempre usá el saludo correcto según la hora del día (Uruguay):
@@ -750,7 +768,12 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
   }
 
   const resultado = await procesarAccion(accion, userId, canal, nombre);
-  const textoLimpio = texto.replace(/<accion>[\s\S]*?<\/accion>/, "").trim();
+
+  // Solo tomamos el texto ANTES del tag — el texto después del tag es contexto interno
+  // del AI y nunca debe llegar al cliente (evita mensajes contradictorios)
+  const textoAntesTag = texto.substring(0, match.index).trim();
+  const textoDespuesTag = texto.substring(match.index + match[0].length).trim();
+  const textoLimpio = textoAntesTag || textoDespuesTag; // fallback solo si no hay nada antes
 
   if (resultado) {
     return textoLimpio ? `${textoLimpio}\n\n${resultado}` : resultado;
@@ -761,9 +784,33 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
 // ============================================================
 // HORARIO DEL BOT — 7:30 a 21:30 (Uruguay)
 // ============================================================
+const TIMEZONE = "America/Montevideo";
+
 function dentroDeHorario() {
-  // TEMPORAL: sin restricción de horario para pruebas
-  return true;
+  const ahora = new Date();
+  const local = new Date(ahora.toLocaleString("en-US", { timeZone: TIMEZONE }));
+  const dia = local.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+  const hora = local.getHours() + local.getMinutes() / 60;
+
+  if (dia === 0) return false; // Domingo cerrado
+  if (dia >= 1 && dia <= 6) return hora >= 6.5 && hora < 21.5; // Lun-Sab 6:30–21:30
+  return false;
+}
+
+// Procesa los mensajes que llegaron fuera de horario y los responde ahora
+async function procesarMensajesPendientes() {
+  if (!mensajesPendientes.size) return;
+  console.log(`🌅 [pendientes] Procesando ${mensajesPendientes.size} mensajes fuera de horario...`);
+  for (const [userId, pendiente] of mensajesPendientes.entries()) {
+    mensajesPendientes.delete(userId);
+    try {
+      await handleIncomingMessage({ userId, text: pendiente.text, platform: pendiente.platform });
+      await new Promise(r => setTimeout(r, 800)); // pausa entre envíos
+    } catch (e) {
+      console.error(`[pendientes] Error procesando ${userId}: ${e.message}`);
+    }
+  }
+  console.log("✅ [pendientes] Todos los mensajes procesados.");
 }
 
 // ============================================================
@@ -773,18 +820,18 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   const canal = platform;
   console.log(`📩 [${canal.toUpperCase()}] De ${userId}: ${text}`);
 
-  // Fuera de horario — respuesta automática y registro
+  // Fuera de horario — aviso corto + encolar para responder al abrir
   if (!dentroDeHorario()) {
-    // Solo responder una vez por período nocturno (evitar spam)
-    const historial = getHistorial(userId);
-    const ultimoMsg = historial[historial.length - 1];
-    const fueraDeHorarioYaAvisado = ultimoMsg?.content?.includes("fuera de horario") || ultimoMsg?.content?.includes("mañana a partir");
-    if (!fueraDeHorarioYaAvisado) {
+    const yaAvisado = mensajesPendientes.has(userId);
+    // Guardar/actualizar el mensaje en la cola (sobreescribe con el más reciente)
+    mensajesPendientes.set(userId, { text, platform: canal, timestamp: Date.now() });
+    console.log(`🌙 [fuera de horario] Mensaje de ${userId} encolado para cuando abramos.`);
+    // Solo avisar una vez por período nocturno
+    if (!yaAvisado) {
       await enviarMensaje(userId,
-        "¡Hola! 🌙 Recibimos tu mensaje pero en este momento estamos fuera de horario.\n\nNuestro horario de atención es de lunes a sábado de 7:30 a 21:30 hs.\n\nTe respondemos a la mañana 🌿",
+        "¡Hola! 🌙 Recibimos tu consulta. Nuestro horario es de lunes a sábado de 6:30 a 21:30 hs.\n\nApenas abramos te respondemos. 🌿",
         canal
       );
-      agregarMensaje(userId, "assistant", "[fuera de horario - respuesta automática enviada]");
     }
     return;
   }
@@ -1100,13 +1147,31 @@ function formatearPerfilParaContexto(nombre, perfil, datosCliente = null, saldoC
 }
 
 // ============================================================
+// SANITIZAR — última línea de defensa antes de enviar al cliente
+// Elimina cualquier tag <accion> o <consultar_nico> que haya escapado
+// ============================================================
+function sanitizarTexto(texto) {
+  if (!texto) return texto;
+  return texto
+    .replace(/<accion>[\s\S]*?<\/accion>/gi, "")
+    .replace(/<consultar_nico>[\s\S]*?<\/consultar_nico>/gi, "")
+    .replace(/<\/?accion>/gi, "")        // tags malformados sin contenido
+    .replace(/<\/?consultar_nico>/gi, "")
+    .trim();
+}
+
+// ============================================================
 // ENVIAR EN PARTES — divide respuestas largas en mensajes naturales
 // ============================================================
 async function enviarEnPartes(userId, texto, canal) {
+  // Sanitización defensiva: nunca llega un tag al cliente
+  const textoSeguro = sanitizarTexto(texto);
+  if (!textoSeguro) return;
+
   // Si el texto es corto o no tiene párrafos → enviar directo
-  const parrafos = texto.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  if (parrafos.length <= 1 || texto.length < 250) {
-    await enviarMensaje(userId, texto, canal);
+  const parrafos = textoSeguro.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+  if (parrafos.length <= 1 || textoSeguro.length < 250) {
+    await enviarMensaje(userId, textoSeguro, canal);
     return;
   }
 
@@ -1126,11 +1191,10 @@ async function enviarEnPartes(userId, texto, canal) {
 
   for (let i = 0; i < mensajes.length; i++) {
     if (i > 0) {
-      // Pequeña pausa entre mensajes para simular escritura natural
       await new Promise(r => setTimeout(r, 1000 + Math.random() * 700));
     }
     await enviarMensaje(userId, mensajes[i], canal);
   }
 }
 
-module.exports = { handleIncomingMessage, chatsBloqueados, SYSTEM_PROMPT };
+module.exports = { handleIncomingMessage, chatsBloqueados, SYSTEM_PROMPT, procesarMensajesPendientes };
