@@ -4,1135 +4,803 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>El Cerebro — Citrino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
-  --brand:    #C2410C;
-  --brand-dk: #991B1B;
-  --brand-lt: #EA580C;
-  --amber:    #D97706;
-  --bg:       #FFF8F3;
-  --bg2:      #FEF2E8;
-  --border:   #F3D5C0;
-  --text:     #1C1917;
-  --muted:    #78716C;
-  --radius:   20px;
-  --shadow:   0 4px 24px rgba(0,0,0,.09);
+  --red:    #991B1B;
+  --orange: #C2410C;
+  --lt:     #EA580C;
+  --amber:  #D97706;
+  --bg:     #FFF8F3;
+  --bg2:    #FEF2E8;
+  --border: #F3D5C0;
+  --text:   #1C1917;
+  --muted:  #78716C;
+  --r:      18px;
+  --sh:     0 2px 12px rgba(0,0,0,.08);
 }
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  color:var(--text);
 }
 
-/* ── Header ─────────────────────────────────────────────────── */
+/* ── Header ─────────────────────────── */
 header {
-  background: linear-gradient(135deg, var(--brand-dk) 0%, var(--brand-lt) 100%);
-  color: white;
-  padding: 0 20px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  position: relative;
-  box-shadow: 0 2px 20px rgba(153,27,27,.35);
-  z-index: 5;
+  background:linear-gradient(135deg,var(--red) 0%,var(--lt) 100%);
+  color:#fff;
+  padding:0 18px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:0 2px 16px rgba(153,27,27,.3);
+  position:relative;
+  z-index:5;
 }
-header::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(255,255,255,.07), transparent);
-  pointer-events: none;
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-logo{
+  width:38px;height:38px;
+  background:rgba(255,255,255,.18);
+  border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;flex-shrink:0;
 }
-.header-left { display: flex; align-items: center; gap: 12px; }
-.header-logo {
-  width: 40px; height: 40px;
-  background: rgba(255,255,255,.18);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  backdrop-filter: blur(4px);
-  flex-shrink: 0;
-}
-.header-title  { font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
-.header-sub    { font-size: 11px; opacity: .7; font-weight: 500; margin-top: 1px; }
-.btn-knowledge {
-  display: flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,.18);
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 99px;
-  color: white;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .2s, transform .1s;
-  font-family: inherit;
-  backdrop-filter: blur(4px);
-}
-.btn-knowledge:hover { background: rgba(255,255,255,.28); transform: translateY(-1px); }
-.btn-knowledge:active { transform: translateY(0); }
+.hdr-title{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.hdr-sub{font-size:11px;opacity:.7;margin-top:1px}
 
-/* ── Session badge ──────────────────────────────────────────── */
-#sessionBadge {
-  position: absolute;
-  top: 50%; right: 140px;
-  transform: translateY(-50%);
-  display: none;
-  align-items: center;
-  gap: 5px;
-  background: rgba(255,255,255,.15);
-  border-radius: 99px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255,255,255,.85);
+#badge{
+  display:none;align-items:center;gap:5px;
+  background:rgba(255,255,255,.14);
+  border-radius:99px;padding:4px 10px;
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.85);
 }
-#sessionBadge.visible { display: flex; }
-.badge-dot {
-  width: 6px; height: 6px;
-  background: #4ADE80;
-  border-radius: 50%;
-  animation: livePulse 2s infinite;
-}
-@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+#badge.on{display:flex}
+.bdot{width:6px;height:6px;background:#4ADE80;border-radius:50%;animation:lp 2s infinite}
+@keyframes lp{0%,100%{opacity:1}50%{opacity:.35}}
 
-/* ── Chat area ──────────────────────────────────────────────── */
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  scroll-behavior: smooth;
+.btn-k{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:99px;color:#fff;
+  padding:7px 14px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  transition:background .15s,transform .1s;
 }
-#chat::-webkit-scrollbar { width: 4px; }
-#chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+.btn-k:hover{background:rgba(255,255,255,.26);transform:translateY(-1px)}
+.btn-k:active{transform:none}
 
-/* ── Bubbles ────────────────────────────────────────────────── */
-.bubble-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  animation: bubbleIn .28s cubic-bezier(.34,1.56,.64,1) both;
+/* ── Chat ───────────────────────────── */
+#chat{
+  flex:1;overflow-y:auto;
+  padding:20px 16px 6px;
+  display:flex;flex-direction:column;gap:8px;
+  scroll-behavior:smooth;
+  max-width:760px;width:100%;
+  margin:0 auto;
+  align-self:center;
 }
-.bubble-row.nico-row { flex-direction: row-reverse; }
-.bubble-row.system-row { justify-content: center; }
-@keyframes bubbleIn {
-  from { opacity: 0; transform: translateY(14px) scale(.96); }
-  to   { opacity: 1; transform: translateY(0)  scale(1); }
+#chat::-webkit-scrollbar{width:4px}
+#chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* Wrapper para centrar chat con ancho max */
+.chat-wrap{
+  flex:1;overflow:hidden;display:flex;flex-direction:column;width:100%;
 }
 
-.avatar {
-  width: 28px; height: 28px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-  margin-bottom: 2px;
+/* ── Bubbles ────────────────────────── */
+.brow{
+  display:flex;align-items:flex-end;gap:8px;
+  animation:bIn .25s cubic-bezier(.34,1.45,.64,1) both;
 }
-.avatar.bot-av  { background: linear-gradient(135deg, var(--brand-dk), var(--brand-lt)); }
-.avatar.nico-av { background: linear-gradient(135deg, var(--amber), #F59E0B); }
+.brow.me{flex-direction:row-reverse}
+.brow.sys{justify-content:center}
+@keyframes bIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
 
-.bubble {
-  max-width: min(75%, 420px);
-  padding: 10px 14px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
+.av{
+  width:30px;height:30px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;margin-bottom:2px;
 }
-.bubble.bot {
-  background: white;
-  color: var(--text);
-  border-radius: 4px 18px 18px 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.07);
-  border: 1px solid var(--border);
+.av.bot-av{background:linear-gradient(135deg,var(--red),var(--lt))}
+.av.me-av{background:linear-gradient(135deg,var(--amber),#F59E0B)}
+
+.bubble{
+  max-width:min(72%,440px);
+  padding:10px 14px;
+  font-size:14px;line-height:1.55;
+  word-break:break-word;white-space:pre-wrap;
 }
-.bubble.nico {
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  border-radius: 18px 4px 18px 18px;
-  box-shadow: 0 2px 10px rgba(194,65,12,.3);
+.bubble.bot{
+  background:#fff;color:var(--text);
+  border-radius:4px 18px 18px 18px;
+  box-shadow:var(--sh);
+  border:1px solid var(--border);
 }
-.bubble.system {
-  background: #FFFBEB;
-  color: #92400E;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 99px;
-  padding: 6px 14px;
-  border: 1px solid #FDE68A;
-  box-shadow: none;
+.bubble.me{
+  background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;
+  border-radius:18px 4px 18px 18px;
+  box-shadow:0 2px 10px rgba(194,65,12,.28);
+}
+.bubble.sys{
+  background:#FFFBEB;color:#92400E;
+  font-size:12px;font-weight:500;
+  border-radius:99px;padding:6px 14px;
+  border:1px solid #FDE68A;
 }
 
-/* ── Typing indicator ───────────────────────────────────────── */
-.typing-wrap { display: flex; align-items: center; gap: 5px; padding: 11px 14px; }
-.dot {
-  width: 7px; height: 7px;
-  background: var(--brand);
-  border-radius: 50%;
-  animation: dotBounce .9s cubic-bezier(.4,0,.6,1) infinite;
-  opacity: .7;
-}
-.dot:nth-child(2) { animation-delay: .16s; }
-.dot:nth-child(3) { animation-delay: .32s; }
-@keyframes dotBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px);opacity:1} }
+/* Typing dots */
+.typing{display:flex;align-items:center;gap:4px;padding:12px 14px}
+.dot{width:7px;height:7px;background:var(--orange);border-radius:50%;opacity:.6;animation:db .85s cubic-bezier(.4,0,.6,1) infinite}
+.dot:nth-child(2){animation-delay:.15s}
+.dot:nth-child(3){animation-delay:.3s}
+@keyframes db{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px);opacity:1}}
 
-/* ── Input area ─────────────────────────────────────────────── */
-.input-area {
-  flex-shrink: 0;
-  background: white;
-  border-top: 1px solid var(--border);
-  padding: 12px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ── Input ──────────────────────────── */
+.inp-area{
+  flex-shrink:0;
+  background:#fff;
+  border-top:1px solid var(--border);
+  padding:12px 16px 14px;
+  display:flex;flex-direction:column;gap:9px;
+  max-width:760px;width:100%;
+  margin:0 auto;
+  /* visual width trick: extend bg full width */
+  position:relative;
+}
+/* extend white bg full width */
+.inp-area::before{
+  content:'';position:absolute;
+  left:-100vw;right:-100vw;top:0;bottom:0;
+  background:#fff;border-top:1px solid var(--border);
+  z-index:-1;
 }
 
-/* Push-to-talk */
-#micBtn {
-  width: 100%;
-  border: none;
-  border-radius: 16px;
-  padding: 15px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
-  transition: transform .12s, box-shadow .2s, background .2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  box-shadow: 0 4px 16px rgba(194,65,12,.35);
-  letter-spacing: .1px;
+/* Mic button */
+#micBtn{
+  width:100%;border:none;border-radius:14px;
+  padding:14px 20px;font-size:15px;font-weight:600;
+  font-family:inherit;cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;
+  box-shadow:0 4px 14px rgba(194,65,12,.32);
+  transition:transform .12s,box-shadow .2s,background .2s;
 }
-#micBtn:active { transform: scale(.98); box-shadow: 0 2px 8px rgba(194,65,12,.3); }
-#micBtn.listening {
-  background: linear-gradient(135deg, var(--brand-dk), #7F1D1D);
-  box-shadow: 0 0 0 4px rgba(153,27,27,.2), 0 4px 16px rgba(153,27,27,.4);
-  animation: micPulse 1.2s ease-in-out infinite;
+#micBtn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(194,65,12,.38)}
+#micBtn:active{transform:scale(.98)}
+#micBtn.rec{
+  background:linear-gradient(135deg,var(--red),#7F1D1D);
+  animation:rPulse 1.2s ease-in-out infinite;
 }
-#micBtn.processing {
-  background: linear-gradient(135deg, #57534E, #44403C);
-  box-shadow: 0 4px 12px rgba(0,0,0,.2);
-  animation: none;
-  cursor: not-allowed;
+#micBtn.proc{
+  background:linear-gradient(135deg,#57534E,#3D3935);
+  box-shadow:none;cursor:not-allowed;animation:none;
 }
-@keyframes micPulse {
-  0%,100% { box-shadow: 0 0 0 4px rgba(153,27,27,.2), 0 4px 16px rgba(153,27,27,.4); }
-  50%     { box-shadow: 0 0 0 10px rgba(153,27,27,.08), 0 4px 20px rgba(153,27,27,.5); }
+@keyframes rPulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(153,27,27,.18),0 4px 14px rgba(153,27,27,.35)}
+  50%{box-shadow:0 0 0 10px rgba(153,27,27,.07),0 4px 20px rgba(153,27,27,.45)}
 }
-.mic-icon {
-  font-size: 18px;
-  transition: transform .2s;
+.mic-ico{font-size:17px;transition:transform .2s}
+#micBtn.rec .mic-ico{transform:scale(1.2)}
+.mic-wave{display:none;align-items:center;gap:3px;height:18px}
+#micBtn.rec .mic-wave{display:flex}
+.mic-wave span{
+  display:block;width:3px;background:rgba(255,255,255,.8);
+  border-radius:99px;
+  animation:wb .55s ease-in-out infinite alternate;
 }
-#micBtn.listening .mic-icon { transform: scale(1.2); }
-.mic-wave {
-  display: none;
-  align-items: center;
-  gap: 3px;
-  height: 18px;
+.mic-wave span:nth-child(1){height:8px;animation-delay:0s}
+.mic-wave span:nth-child(2){height:14px;animation-delay:.1s}
+.mic-wave span:nth-child(3){height:18px;animation-delay:.2s}
+.mic-wave span:nth-child(4){height:14px;animation-delay:.3s}
+.mic-wave span:nth-child(5){height:8px;animation-delay:.4s}
+@keyframes wb{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+
+/* No-speech warning */
+#speechWarn{
+  display:none;font-size:12px;text-align:center;
+  color:var(--muted);padding:2px 0;
 }
-#micBtn.listening .mic-wave { display: flex; }
-.mic-wave span {
-  display: block;
-  width: 3px;
-  background: rgba(255,255,255,.8);
-  border-radius: 99px;
-  animation: waveBar .6s ease-in-out infinite alternate;
-}
-.mic-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
-.mic-wave span:nth-child(2) { height: 14px; animation-delay: .1s; }
-.mic-wave span:nth-child(3) { height: 18px; animation-delay: .2s; }
-.mic-wave span:nth-child(4) { height: 14px; animation-delay: .3s; }
-.mic-wave span:nth-child(5) { height: 8px;  animation-delay: .4s; }
-@keyframes waveBar { from { transform: scaleY(.4); } to { transform: scaleY(1); } }
 
 /* Text row */
-.text-row {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
+.txt-row{display:flex;gap:8px;align-items:flex-end}
+#msgIn{
+  flex:1;border:1.5px solid var(--border);border-radius:13px;
+  padding:10px 14px;font-size:14px;font-family:inherit;
+  background:var(--bg);color:var(--text);
+  outline:none;resize:none;max-height:100px;min-height:40px;line-height:1.45;
+  transition:border-color .18s,box-shadow .18s;
 }
-#msgInput {
-  flex: 1;
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-family: inherit;
-  background: var(--bg);
-  outline: none;
-  resize: none;
-  max-height: 100px;
-  min-height: 40px;
-  line-height: 1.45;
-  color: var(--text);
-  transition: border-color .18s, box-shadow .18s;
-}
-#msgInput:focus {
-  border-color: var(--brand-lt);
-  box-shadow: 0 0 0 3px rgba(234,88,12,.12);
-}
-#msgInput::placeholder { color: #A8A29E; }
+#msgIn:focus{border-color:var(--lt);box-shadow:0 0 0 3px rgba(234,88,12,.1)}
+#msgIn::placeholder{color:#B8AFA8}
 
-.btn-send {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform .12s, box-shadow .2s;
-  box-shadow: 0 3px 10px rgba(194,65,12,.3);
+.btn-send{
+  width:40px;height:40px;
+  background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;border:none;border-radius:12px;
+  font-size:16px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(194,65,12,.28);
+  transition:transform .12s,box-shadow .18s;
 }
-.btn-send:hover  { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(194,65,12,.4); }
-.btn-send:active { transform: scale(.93); }
+.btn-send:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(194,65,12,.38)}
+.btn-send:active{transform:scale(.92)}
 
-.btn-end {
-  height: 40px;
-  background: white;
-  color: var(--brand-dk);
-  border: 1.5px solid var(--brand-dk);
-  border-radius: 12px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s, transform .1s;
+.btn-end{
+  height:40px;background:#fff;color:var(--red);
+  border:1.5px solid var(--red);border-radius:12px;
+  padding:0 14px;font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;white-space:nowrap;
+  transition:background .15s,transform .1s;
 }
-.btn-end:hover  { background: #FFF1EF; transform: translateY(-1px); }
-.btn-end:active { transform: scale(.95); }
+.btn-end:hover{background:#FFF1EF;transform:translateY(-1px)}
+.btn-end:active{transform:scale(.95)}
 
-/* ── Side panel ─────────────────────────────────────────────── */
-#panelOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 30;
-  backdrop-filter: blur(2px);
-  animation: fadeIn .2s ease;
+/* ── Panel ──────────────────────────── */
+#ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.42);backdrop-filter:blur(2px);
+  z-index:30;animation:fi .18s ease;
 }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-#panel {
-  position: fixed;
-  top: 0; right: 0; bottom: 0;
-  width: min(400px, 100vw);
-  background: var(--bg);
-  z-index: 31;
-  display: flex;
-  flex-direction: column;
-  transform: translateX(100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 40px rgba(0,0,0,.15);
+@keyframes fi{from{opacity:0}to{opacity:1}}
+#panel{
+  position:fixed;top:0;right:0;bottom:0;
+  width:min(420px,100vw);
+  background:var(--bg);z-index:31;
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:-6px 0 36px rgba(0,0,0,.14);
 }
-#panel.open { transform: translateX(0); }
+#panel.open{transform:none}
 
-.panel-hdr {
-  background: linear-gradient(135deg, var(--brand-dk), var(--brand-lt));
-  color: white;
-  padding: 0 20px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
+.ph{
+  background:linear-gradient(135deg,var(--red),var(--lt));
+  color:#fff;padding:0 18px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
 }
-.panel-hdr-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.panel-hdr-actions { display: flex; gap: 8px; align-items: center; }
-.btn-add-k {
-  background: rgba(255,255,255,.2);
-  border: 1px solid rgba(255,255,255,.3);
-  border-radius: 99px;
-  color: white;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background .15s;
+.ph-t{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px}
+.ph-acts{display:flex;gap:7px;align-items:center}
+.btn-add{
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);
+  border-radius:99px;color:#fff;padding:6px 13px;
+  font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:background .15s;
 }
-.btn-add-k:hover { background: rgba(255,255,255,.3); }
-.btn-close {
-  width: 32px; height: 32px;
-  background: rgba(255,255,255,.15);
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+.btn-add:hover{background:rgba(255,255,255,.28)}
+.btn-x{
+  width:30px;height:30px;background:rgba(255,255,255,.14);
+  border:none;border-radius:9px;color:#fff;font-size:15px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
 }
-.btn-close:hover { background: rgba(255,255,255,.25); }
+.btn-x:hover{background:rgba(255,255,255,.24)}
 
-.panel-search {
-  padding: 12px 16px 0;
-  flex-shrink: 0;
+.p-search{padding:12px 16px 0;flex-shrink:0}
+.p-search input{
+  width:100%;border:1.5px solid var(--border);border-radius:11px;
+  padding:9px 12px 9px 34px;font-size:13px;font-family:inherit;
+  background:#fff;color:var(--text);outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23B8AFA8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:10px center;
+  transition:border-color .18s;
 }
-.panel-search input {
-  width: 100%;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 9px 14px 9px 36px;
-  font-size: 13px;
-  font-family: inherit;
-  background: white;
-  outline: none;
-  color: var(--text);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A8A29E' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 10px center;
-  transition: border-color .18s;
-}
-.panel-search input:focus { border-color: var(--brand-lt); }
+.p-search input:focus{border-color:var(--lt)}
 
-.panel-stats {
-  padding: 10px 16px 0;
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+.p-stats{padding:8px 16px 0;display:none;gap:7px;flex-shrink:0}
+.p-stats.on{display:flex}
+.chip{
+  background:#fff;border:1px solid var(--border);
+  border-radius:99px;padding:3px 10px;
+  font-size:11px;font-weight:600;color:var(--muted);
 }
-.stat-chip {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.stat-chip span { color: var(--brand); }
+.chip em{color:var(--orange);font-style:normal}
 
-#panelBody {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-#panelBody::-webkit-scrollbar { width: 4px; }
-#panelBody::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+#pBody{flex:1;overflow-y:auto;padding:10px 16px 20px;display:flex;flex-direction:column;gap:5px}
+#pBody::-webkit-scrollbar{width:4px}
+#pBody::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
 
 /* Add form */
-#addForm {
-  background: white;
-  border: 1.5px dashed var(--brand-lt);
-  border-radius: 16px;
-  padding: 14px;
-  display: none;
-  flex-direction: column;
-  gap: 10px;
-  animation: slideDown .2s ease;
-  margin-bottom: 4px;
+#addF{
+  background:#fff;border:1.5px dashed var(--lt);
+  border-radius:14px;padding:13px;
+  display:none;flex-direction:column;gap:9px;
+  animation:sd .18s ease;margin-bottom:4px;
 }
-@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
-#addForm.visible { display: flex; }
-#addForm select, #addForm textarea {
-  width: 100%;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
-  outline: none;
-  transition: border-color .18s;
+@keyframes sd{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+#addF.on{display:flex}
+#addF select,#addF textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:9px;
+  padding:8px 11px;font-size:13px;font-family:inherit;
+  background:var(--bg);color:var(--text);outline:none;
+  transition:border-color .18s;
 }
-#addForm select:focus, #addForm textarea:focus { border-color: var(--brand-lt); }
-#addForm textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
-.add-actions { display: flex; gap: 8px; }
-.btn-save-new {
-  flex: 1;
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity .15s;
+#addF select:focus,#addF textarea:focus{border-color:var(--lt)}
+#addF textarea{min-height:76px;resize:vertical;line-height:1.5}
+.add-acts{display:flex;gap:7px}
+.btn-sv{
+  flex:1;background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;border:none;border-radius:9px;padding:9px;
+  font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;opacity:1;transition:opacity .15s;
 }
-.btn-save-new:hover { opacity: .9; }
-.btn-cancel-add {
-  background: var(--bg2);
-  color: var(--muted);
-  border: none;
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-}
+.btn-sv:hover{opacity:.9}
+.btn-can{background:var(--bg2);color:var(--muted);border:none;border-radius:9px;padding:9px 13px;font-size:13px;font-family:inherit;cursor:pointer}
 
 /* Category label */
-.k-cat-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--brand);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 8px 2px 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.kcat{
+  font-size:10px;font-weight:700;color:var(--orange);
+  text-transform:uppercase;letter-spacing:.9px;
+  padding:8px 2px 3px;display:flex;align-items:center;gap:6px;
 }
-.k-cat-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
+.kcat::after{content:'';flex:1;height:1px;background:var(--border)}
 
 /* Knowledge card */
-.k-card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 14px;
-  transition: box-shadow .18s, transform .12s;
+.kcard{
+  background:#fff;border:1px solid var(--border);border-radius:13px;padding:11px 13px;
+  transition:box-shadow .18s,transform .12s;
 }
-.k-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); transform: translateY(-1px); }
-.k-content { font-size: 13px; color: var(--text); line-height: 1.5; }
-.k-meta { font-size: 11px; color: #A8A29E; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
-.k-meta-dot { width: 3px; height: 3px; background: var(--border); border-radius: 50%; }
-.k-actions { display: flex; gap: 6px; margin-top: 10px; }
-.btn-k {
-  border: none;
-  border-radius: 8px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity .15s;
+.kcard:hover{box-shadow:0 4px 14px rgba(0,0,0,.07);transform:translateY(-1px)}
+.kc{font-size:13px;color:var(--text);line-height:1.5}
+.km{font-size:11px;color:#B8AFA8;margin-top:5px;display:flex;align-items:center;gap:5px}
+.kdot{width:3px;height:3px;background:var(--border);border-radius:50%}
+.kacts{display:flex;gap:5px;margin-top:9px}
+.btn-ke{
+  border:none;border-radius:7px;padding:5px 11px;
+  font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;transition:opacity .15s;
 }
-.btn-k:hover { opacity: .8; }
-.btn-k.edit { background: #FEF3C7; color: #92400E; }
-.btn-k.del  { background: #FEE2E2; color: #991B1B; }
+.btn-ke:hover{opacity:.8}
+.ke-edit{background:#FEF3C7;color:#92400E}
+.ke-del{background:#FEE2E2;color:#991B1B}
 
-.k-edit-area {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  animation: slideDown .2s ease;
+.kedit{
+  display:none;flex-direction:column;gap:7px;
+  margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--border);animation:sd .18s ease;
 }
-.k-edit-area.open { display: flex; }
-.k-edit-area select, .k-edit-area textarea {
-  width: 100%;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
-  outline: none;
-  transition: border-color .18s;
+.kedit.on{display:flex}
+.kedit select,.kedit textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:8px;
+  padding:7px 11px;font-size:13px;font-family:inherit;
+  background:var(--bg);color:var(--text);outline:none;transition:border-color .18s;
 }
-.k-edit-area select:focus, .k-edit-area textarea:focus { border-color: var(--brand-lt); }
-.k-edit-area textarea { min-height: 60px; resize: vertical; }
-.k-edit-actions { display: flex; gap: 6px; }
-.btn-save-edit {
-  flex: 1;
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 7px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
+.kedit select:focus,.kedit textarea:focus{border-color:var(--lt)}
+.kedit textarea{min-height:56px;resize:vertical}
+.kedit-acts{display:flex;gap:5px}
+.btn-kse{
+  flex:1;background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;border:none;border-radius:7px;padding:7px;
+  font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;
 }
-.btn-cancel-edit {
-  background: var(--bg2);
-  color: var(--muted);
-  border: none;
-  border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-}
+.btn-kce{background:var(--bg2);color:var(--muted);border:none;border-radius:7px;padding:7px 11px;font-size:12px;font-family:inherit;cursor:pointer}
 
-.panel-empty {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
-.panel-empty-icon { font-size: 32px; margin-bottom: 8px; }
+.pmt{text-align:center;padding:44px 20px;color:var(--muted);font-size:13px;line-height:1.65}
+.pmt-ico{font-size:30px;margin-bottom:6px}
 
-/* ── Modal ──────────────────────────────────────────────────── */
-#modalOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.5);
-  backdrop-filter: blur(4px);
-  z-index: 50;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  animation: fadeIn .2s ease;
+/* ── Modal ──────────────────────────── */
+#mOv{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.48);backdrop-filter:blur(4px);
+  z-index:50;align-items:center;justify-content:center;padding:20px;
 }
-#modalOverlay.open { display: flex; }
-.modal {
-  background: white;
-  border-radius: 24px;
-  padding: 28px;
-  max-width: 380px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,.25);
-  animation: modalIn .3s cubic-bezier(.34,1.56,.64,1);
+#mOv.on{display:flex}
+.modal{
+  background:#fff;border-radius:22px;padding:26px;
+  max-width:380px;width:100%;max-height:80vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.22);
+  animation:mi .28s cubic-bezier(.34,1.45,.64,1);
 }
-@keyframes modalIn {
-  from { opacity:0; transform: scale(.9) translateY(20px); }
-  to   { opacity:1; transform: scale(1) translateY(0); }
+@keyframes mi{from{opacity:0;transform:scale(.9) translateY(18px)}to{opacity:1;transform:none}}
+.m-ico{font-size:38px;text-align:center;margin-bottom:10px}
+.modal h3{font-size:18px;font-weight:700;text-align:center;margin-bottom:4px}
+.m-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px}
+.ap-item{
+  background:var(--bg);border-left:3px solid var(--lt);
+  border-radius:0 11px 11px 0;padding:9px 13px;margin-bottom:7px;
 }
-.modal-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
-.modal h3 {
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--text);
-  text-align: center;
-  margin-bottom: 4px;
+.ap-cat{font-size:10px;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.ap-ct{font-size:13px;color:var(--text);line-height:1.5}
+.btn-mok{
+  width:100%;background:linear-gradient(135deg,var(--lt),var(--orange));
+  color:#fff;border:none;border-radius:13px;padding:13px;
+  font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+  margin-top:14px;box-shadow:0 4px 12px rgba(194,65,12,.3);
+  transition:opacity .15s,transform .1s;
 }
-.modal-sub {
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
-.ap-item {
-  background: var(--bg);
-  border-left: 3px solid var(--brand-lt);
-  border-radius: 0 12px 12px 0;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-}
-.ap-cat { font-size: 10px; color: var(--brand); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
-.ap-content { font-size: 13px; color: var(--text); line-height: 1.5; }
-.btn-modal-ok {
-  width: 100%;
-  background: linear-gradient(135deg, var(--brand-lt), var(--brand));
-  color: white;
-  border: none;
-  border-radius: 14px;
-  padding: 14px;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  margin-top: 16px;
-  transition: opacity .15s, transform .1s;
-  box-shadow: 0 4px 14px rgba(194,65,12,.35);
-}
-.btn-modal-ok:hover { opacity: .92; transform: translateY(-1px); }
-.btn-modal-ok:active { transform: scale(.97); }
+.btn-mok:hover{opacity:.92;transform:translateY(-1px)}
+.btn-mok:active{transform:scale(.97)}
 
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (min-width: 640px) {
-  #chat { padding: 24px 20%; }
-  .input-area { padding: 14px 20% 20px; }
-}
-@media (min-width: 1024px) {
-  #chat { padding: 28px 28%; }
-  .input-area { padding: 14px 28% 20px; }
+/* Speech not supported warning */
+#noSpeech{
+  background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;
+  padding:10px 14px;font-size:13px;color:#92400E;text-align:center;display:none;
 }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <div class="header-logo">🧠</div>
+  <div class="hdr-left">
+    <div class="hdr-logo">🧠</div>
     <div>
-      <div class="header-title">El Cerebro</div>
-      <div class="header-sub">Enseñale al bot sobre Citrino</div>
+      <div class="hdr-title">El Cerebro</div>
+      <div class="hdr-sub">Enseñale al bot sobre Citrino</div>
     </div>
   </div>
-  <div id="sessionBadge">
-    <div class="badge-dot"></div>
-    <span id="sessionTurns">0 turnos</span>
-  </div>
-  <button class="btn-knowledge" onclick="openPanel()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+  <div id="badge"><div class="bdot"></div><span id="bTxt">0 turnos</span></div>
+  <button class="btn-k" onclick="openPanel()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
     Conocimiento
   </button>
 </header>
 
-<div id="chat"></div>
+<div class="chat-wrap">
+  <div id="chat"></div>
+</div>
 
-<div class="input-area">
-  <button id="micBtn" aria-label="Mantené presionado para hablar">
-    <span class="mic-icon">🎙️</span>
-    <span id="micLabel">Mantené presionado para hablar</span>
-    <span class="mic-wave">
-      <span></span><span></span><span></span><span></span><span></span>
-    </span>
+<div class="inp-area">
+  <div id="noSpeech">Tu navegador no soporta reconocimiento de voz. Usá el campo de texto. ✍️</div>
+  <button id="micBtn" aria-label="Presioná para hablar" onclick="toggleSpeech()">
+    <span class="mic-ico">🎙️</span>
+    <span id="micLbl">Presioná para hablar</span>
+    <span class="mic-wave"><span></span><span></span><span></span><span></span><span></span></span>
   </button>
-  <div class="text-row">
-    <textarea id="msgInput" placeholder="O escribí acá..." rows="1"
+  <div id="speechWarn">Habla claramente cerca del micrófono...</div>
+  <div class="txt-row">
+    <textarea id="msgIn" placeholder="O escribí acá..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText()}"
       oninput="autoResize(this)"></textarea>
-    <button class="btn-send" onclick="sendText()" aria-label="Enviar">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+    <button class="btn-send" onclick="sendText()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
     </button>
     <button class="btn-end" onclick="confirmarFin()">Finalizar ✓</button>
   </div>
 </div>
 
-<!-- Panel Conocimiento -->
-<div id="panelOverlay" onclick="closePanel()"></div>
-<div id="panel" role="dialog" aria-label="Base de conocimiento">
-  <div class="panel-hdr">
-    <span class="panel-hdr-title">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+<!-- Panel -->
+<div id="ov" onclick="closePanel()"></div>
+<div id="panel">
+  <div class="ph">
+    <span class="ph-t">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
       Conocimiento
     </span>
-    <div class="panel-hdr-actions">
-      <button class="btn-add-k" onclick="toggleAddForm()">+ Agregar</button>
-      <button class="btn-close" onclick="closePanel()" aria-label="Cerrar">✕</button>
+    <div class="ph-acts">
+      <button class="btn-add" onclick="toggleAdd()">+ Agregar</button>
+      <button class="btn-x" onclick="closePanel()">✕</button>
     </div>
   </div>
-  <div class="panel-search">
-    <input type="search" id="searchInput" placeholder="Buscar en el conocimiento..." oninput="filterKnowledge(this.value)">
-  </div>
-  <div class="panel-stats" id="panelStats" style="display:none">
-    <div class="stat-chip">Total: <span id="statTotal">0</span></div>
-    <div class="stat-chip">Categorías: <span id="statCats">0</span></div>
-  </div>
-  <div id="panelBody">
-    <div id="addForm">
-      <select id="newCat">
-        <option>Clientas</option><option>Terapeutas</option>
-        <option>Precios y Productos</option><option>Reglas de Negocio</option>
-        <option>Contabilidad</option><option>Situaciones Especiales</option>
-        <option>Sistema</option><option>Identidad del Negocio</option>
-        <option>Horarios</option><option>General</option>
+  <div class="p-search"><input type="search" id="srch" placeholder="Buscar..." oninput="filterK(this.value)"></div>
+  <div class="p-stats" id="stats"><div class="chip">Total: <em id="stT">0</em></div><div class="chip">Categorías: <em id="stC">0</em></div></div>
+  <div id="pBody">
+    <div id="addF">
+      <select id="nCat">
+        <option>Clientas</option><option>Terapeutas</option><option>Precios y Productos</option>
+        <option>Reglas de Negocio</option><option>Contabilidad</option>
+        <option>Situaciones Especiales</option><option>Sistema</option>
+        <option>Identidad del Negocio</option><option>Horarios</option><option>General</option>
       </select>
-      <textarea id="newContent" placeholder="Escribí el conocimiento que querés guardar..."></textarea>
-      <div class="add-actions">
-        <button class="btn-cancel-add" onclick="toggleAddForm()">Cancelar</button>
-        <button class="btn-save-new" onclick="saveNewKnowledge()">Guardar</button>
+      <textarea id="nCont" placeholder="Escribí lo que querés guardar..."></textarea>
+      <div class="add-acts">
+        <button class="btn-can" onclick="toggleAdd()">Cancelar</button>
+        <button class="btn-sv" onclick="saveNew()">Guardar</button>
       </div>
     </div>
-    <div id="panelList"></div>
+    <div id="pList"></div>
   </div>
 </div>
 
-<!-- Modal fin de sesión -->
-<div id="modalOverlay">
+<!-- Modal -->
+<div id="mOv">
   <div class="modal">
-    <div class="modal-icon">🎉</div>
+    <div class="m-ico">🎉</div>
     <h3>¡Clase guardada!</h3>
-    <p class="modal-sub" id="modalSub"></p>
-    <div id="modalContent"></div>
-    <button class="btn-modal-ok" onclick="closeModal()">Perfecto</button>
+    <p class="m-sub" id="mSub"></p>
+    <div id="mCont"></div>
+    <button class="btn-mok" onclick="closeModal()">Perfecto</button>
   </div>
 </div>
 
 <script>
-// ── Auth ──────────────────────────────────────────────────────
-if (!sessionStorage.getItem("teach_auth")) {
+// ── Auth ──────────────────────────────
+if (!sessionStorage.getItem("ta")) {
   const u = prompt("Usuario:") || "";
   const p = prompt("Contraseña:") || "";
-  sessionStorage.setItem("teach_auth", btoa(u + ":" + p));
+  sessionStorage.setItem("ta", btoa(u + ":" + p));
 }
-function hdrs() {
-  return { "Authorization": "Basic " + sessionStorage.getItem("teach_auth"),
-           "Content-Type": "application/json" };
-}
+function H() { return { "Authorization":"Basic "+sessionStorage.getItem("ta"), "Content-Type":"application/json" } }
 
-// ── Estado ────────────────────────────────────────────────────
-let isListening = false, isProcessing = false;
-let mediaRecorder = null, audioChunks = [];
-let sessionTurns = 0;
-let allKnowledge = []; // cache para búsqueda
+// ── Web Speech API ────────────────────
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, isListening = false;
 
-const micBtn   = document.getElementById("micBtn");
-const micLabel = document.getElementById("micLabel");
+if (!SpeechRec) {
+  document.getElementById("noSpeech").style.display = "block";
+  document.getElementById("micBtn").style.display = "none";
+} else {
+  recog = new SpeechRec();
+  recog.lang = "es-UY";
+  recog.continuous = false;
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
 
-// ── Bienvenida ────────────────────────────────────────────────
-addBubble("bot", "¡Hola! Soy el cerebro de Citrino.\nContame sobre el negocio, las clientas, las reglas. Al terminar guardamos todo. 🌿");
-
-// ── Push-to-talk ──────────────────────────────────────────────
-micBtn.addEventListener("mousedown",   startListen);
-micBtn.addEventListener("touchstart",  startListen, { passive: false });
-micBtn.addEventListener("mouseup",     stopListen);
-micBtn.addEventListener("touchend",    stopListen);
-micBtn.addEventListener("mouseleave",  e => { if (isListening) stopListen(e); });
-document.addEventListener("touchcancel", e => { if (isListening) stopListen(e); });
-
-async function startListen(e) {
-  e.preventDefault();
-  if (isProcessing || isListening) return;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunks = [];
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
-    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-    mediaRecorder.addEventListener("dataavailable", e => { if (e.data.size > 0) audioChunks.push(e.data); });
-    mediaRecorder.start(100);
+  recog.onstart = () => {
     isListening = true;
-    micLabel.textContent = "Soltá para enviar";
-    micBtn.classList.add("listening");
-  } catch {
-    addBubble("system", "⚠️ Sin acceso al micrófono. Revisá los permisos del navegador.");
-  }
+    micBtn.classList.add("rec");
+    micLbl.textContent = "Escuchando... (clic para detener)";
+    document.getElementById("speechWarn").style.display = "block";
+  };
+
+  recog.onresult = async (e) => {
+    const text = e.results[0][0].transcript.trim();
+    stopSpeech();
+    if (!text) return;
+    addBubble("me", text);
+    await sendToBot(text);
+  };
+
+  recog.onerror = (e) => {
+    stopSpeech();
+    const msgs = {
+      "not-allowed": "Permisos de micrófono denegados. Habilitá el mic en el navegador.",
+      "no-speech":   "No se escuchó nada. Intentá de nuevo.",
+      "network":     "Error de red. Chequeá tu conexión.",
+    };
+    addBubble("sys", "⚠️ " + (msgs[e.error] || "Error de voz: " + e.error));
+  };
+
+  recog.onend = () => { if (isListening) stopSpeech(); };
 }
 
-async function stopListen(e) {
-  if (!isListening || !mediaRecorder) return;
+const micBtn = document.getElementById("micBtn");
+const micLbl = document.getElementById("micLbl");
+
+function toggleSpeech() {
+  if (!recog) return;
+  if (isListening) stopSpeech();
+  else startSpeech();
+}
+function startSpeech() { try { recog.start(); } catch(e) { console.warn(e) } }
+function stopSpeech() {
   isListening = false;
-  isProcessing = true;
-  micLabel.textContent = "Procesando...";
-  micBtn.classList.remove("listening");
-  micBtn.classList.add("processing");
-  micBtn.disabled = true;
-
-  mediaRecorder.stop();
-  mediaRecorder.stream.getTracks().forEach(t => t.stop());
-
-  mediaRecorder.addEventListener("stop", async () => {
-    try {
-      const mimeUsed = mediaRecorder.mimeType || "audio/webm";
-      const blob = new Blob(audioChunks, { type: mimeUsed });
-      if (blob.size < 500) throw new Error("corto");
-
-      const base64 = await new Promise(res => {
-        const fr = new FileReader();
-        fr.onload = () => res(fr.result);
-        fr.readAsDataURL(blob);
-      });
-
-      const resp = await fetch("/api/teach/audio", {
-        method: "POST", headers: hdrs(),
-        body: JSON.stringify({ audio: base64.split(",")[1], mimeType: mimeUsed }),
-      });
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error);
-      if (data.transcripcion) addBubble("nico", data.transcripcion);
-      showTyping();
-      await new Promise(r => setTimeout(r, 0));
-      removeTyping();
-      if (data.reply) { addBubble("bot", data.reply); incTurns(); }
-    } catch (err) {
-      const msg = err.message === "corto"
-        ? "Mantené presionado mientras hablás."
-        : "No pude procesar el audio. Intentá de nuevo o escribí.";
-      addBubble("system", "⚠️ " + msg);
-    } finally {
-      isProcessing = false;
-      micBtn.disabled = false;
-      micLabel.textContent = "Mantené presionado para hablar";
-      micBtn.classList.remove("processing");
-    }
-  }, { once: true });
+  try { recog.stop(); } catch(e) {}
+  micBtn.classList.remove("rec","proc");
+  micLbl.textContent = "Presioná para hablar";
+  document.getElementById("speechWarn").style.display = "none";
 }
 
-// ── Texto ─────────────────────────────────────────────────────
+// ── Turnos ────────────────────────────
+let turns = 0;
+function incTurn() {
+  turns++;
+  const b = document.getElementById("badge");
+  b.classList.add("on");
+  document.getElementById("bTxt").textContent = turns + (turns===1?" turno":" turnos");
+}
+
+// ── Chat ──────────────────────────────
 async function sendText() {
-  const input = document.getElementById("msgInput");
-  const msg = input.value.trim();
-  if (!msg || isProcessing) return;
-  input.value = ""; input.style.height = "";
-  addBubble("nico", msg);
+  const el = document.getElementById("msgIn");
+  const txt = el.value.trim();
+  if (!txt) return;
+  el.value = ""; el.style.height = "";
+  addBubble("me", txt);
+  await sendToBot(txt);
+}
+
+async function sendToBot(msg) {
   showTyping();
   try {
-    const resp = await fetch("/api/teach/chat", {
-      method: "POST", headers: hdrs(), body: JSON.stringify({ message: msg }),
-    });
-    const data = await resp.json();
+    const r = await fetch("/api/teach/chat", { method:"POST", headers:H(), body:JSON.stringify({message:msg}) });
+    const d = await r.json();
     removeTyping();
-    addBubble("bot", data.reply || "Error.");
-    incTurns();
-  } catch { removeTyping(); addBubble("system", "⚠️ Error de conexión."); }
+    addBubble("bot", d.reply || "Error.");
+    incTurn();
+  } catch { removeTyping(); addBubble("sys","⚠️ Error de conexión."); }
 }
 
-// ── Turnos ────────────────────────────────────────────────────
-function incTurns() {
-  sessionTurns++;
-  const badge = document.getElementById("sessionBadge");
-  badge.classList.add("visible");
-  document.getElementById("sessionTurns").textContent = sessionTurns + (sessionTurns===1?" turno":" turnos");
-}
-
-// ── UI helpers ────────────────────────────────────────────────
-const CATS_EMOJI = {
-  "Clientas":"👤","Terapeutas":"💆","Precios y Productos":"💰",
-  "Reglas de Negocio":"📋","Contabilidad":"📊","Situaciones Especiales":"⚡",
-  "Sistema":"⚙️","Identidad del Negocio":"🌿","Horarios":"🕐","General":"📝"
-};
+// ── Bubble helpers ────────────────────
+const CATS_E = {"Clientas":"👤","Terapeutas":"💆","Precios y Productos":"💰","Reglas de Negocio":"📋","Contabilidad":"📊","Situaciones Especiales":"⚡","Sistema":"⚙️","Identidad del Negocio":"🌿","Horarios":"🕐","General":"📝"};
 
 function addBubble(type, text) {
   const chat = document.getElementById("chat");
   const row = document.createElement("div");
-  row.className = "bubble-row " + (type === "nico" ? "nico-row" : type === "system" ? "system-row" : "");
+  row.className = "brow" + (type==="me"?" me":type==="sys"?" sys":"");
 
-  if (type === "system") {
+  if (type==="sys") {
     const b = document.createElement("div");
-    b.className = "bubble system";
-    b.textContent = text;
+    b.className = "bubble sys"; b.textContent = text;
     row.appendChild(b);
   } else {
     const av = document.createElement("div");
-    av.className = "avatar " + (type === "bot" ? "bot-av" : "nico-av");
-    av.textContent = type === "bot" ? "🧠" : "N";
-
+    av.className = "av " + (type==="bot"?"bot-av":"me-av");
+    av.textContent = type==="bot"?"🧠":"N";
     const b = document.createElement("div");
     b.className = "bubble " + type;
     b.textContent = text;
-
-    if (type === "bot") { row.appendChild(av); row.appendChild(b); }
+    if (type==="bot") { row.appendChild(av); row.appendChild(b); }
     else { row.appendChild(b); row.appendChild(av); }
   }
-
   chat.appendChild(row);
   chat.scrollTop = chat.scrollHeight;
 }
 
-let typingEl = null;
+let typEl = null;
 function showTyping() {
   const chat = document.getElementById("chat");
   const row = document.createElement("div");
-  row.className = "bubble-row";
-  const av = document.createElement("div");
-  av.className = "avatar bot-av";
-  av.textContent = "🧠";
-  const b = document.createElement("div");
-  b.className = "bubble bot";
-  b.innerHTML = '<div class="typing-wrap"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  row.className = "brow";
+  const av = document.createElement("div"); av.className="av bot-av"; av.textContent="🧠";
+  const b = document.createElement("div"); b.className="bubble bot";
+  b.innerHTML='<div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
   row.appendChild(av); row.appendChild(b);
-  typingEl = row;
-  chat.appendChild(row);
+  typEl = row; chat.appendChild(row);
   chat.scrollTop = chat.scrollHeight;
 }
-function removeTyping() { if (typingEl) { typingEl.remove(); typingEl = null; } }
-function autoResize(el) { el.style.height = ""; el.style.height = Math.min(el.scrollHeight,100)+"px"; }
+function removeTyping() { if(typEl){typEl.remove();typEl=null;} }
+function autoResize(el) { el.style.height=""; el.style.height=Math.min(el.scrollHeight,100)+"px"; }
 
-// ── Finalizar ─────────────────────────────────────────────────
+// ── Finalizar ─────────────────────────
 async function confirmarFin() {
   if (!confirm("¿Terminamos la clase y guardamos lo aprendido?")) return;
-  addBubble("system", "⏳ Analizando y guardando...");
+  addBubble("sys","⏳ Analizando y guardando...");
   try {
-    const resp = await fetch("/api/teach/end", { method: "POST", headers: hdrs() });
-    const data = await resp.json();
-    if (data.ok && data.aprendizajes?.length) {
-      showModal(data.aprendizajes);
-    } else {
-      addBubble("system", "La clase fue corta. No había suficiente para guardar.");
-    }
-  } catch { addBubble("system", "⚠️ Error al guardar."); }
-}
-function showModal(aps) {
-  document.getElementById("modalSub").textContent = `Se guardaron ${aps.length} aprendizaje${aps.length!==1?"s":""} en el Cerebro`;
-  document.getElementById("modalContent").innerHTML = aps.map(a =>
-    `<div class="ap-item">
-       <div class="ap-cat">${esc(a.Categoria)}</div>
-       <div class="ap-content">${esc(a.Contenido)}</div>
-     </div>`).join("");
-  document.getElementById("modalOverlay").classList.add("open");
-  sessionTurns = 0;
-  document.getElementById("sessionBadge").classList.remove("visible");
-}
-function closeModal() {
-  document.getElementById("modalOverlay").classList.remove("open");
-  addBubble("system", "✅ ¡Guardado en el Cerebro! Podés empezar otra clase cuando quieras.");
+    const r = await fetch("/api/teach/end", { method:"POST", headers:H() });
+    const d = await r.json();
+    if (d.ok && d.aprendizajes?.length) showModal(d.aprendizajes);
+    else addBubble("sys","La clase fue muy corta. No había suficiente para guardar.");
+  } catch { addBubble("sys","⚠️ Error al guardar."); }
 }
 
-// ── Panel de conocimiento ─────────────────────────────────────
+function showModal(aps) {
+  document.getElementById("mSub").textContent = `Se guardaron ${aps.length} aprendizaje${aps.length!==1?"s":""} en el Cerebro`;
+  document.getElementById("mCont").innerHTML = aps.map(a=>
+    `<div class="ap-item"><div class="ap-cat">${esc(a.Categoria)}</div><div class="ap-ct">${esc(a.Contenido)}</div></div>`
+  ).join("");
+  document.getElementById("mOv").classList.add("on");
+  turns = 0;
+  document.getElementById("badge").classList.remove("on");
+}
+function closeModal() {
+  document.getElementById("mOv").classList.remove("on");
+  addBubble("sys","✅ ¡Guardado en el Cerebro! Podés empezar otra clase cuando quieras.");
+}
+
+// ── Panel ─────────────────────────────
+let allK = [];
 async function openPanel() {
-  document.getElementById("panelOverlay").style.display = "block";
-  setTimeout(() => document.getElementById("panel").classList.add("open"), 10);
-  await loadKnowledge();
+  document.getElementById("ov").style.display="block";
+  setTimeout(()=>document.getElementById("panel").classList.add("open"),10);
+  await loadK();
 }
 function closePanel() {
   document.getElementById("panel").classList.remove("open");
-  setTimeout(() => document.getElementById("panelOverlay").style.display = "none", 280);
+  setTimeout(()=>document.getElementById("ov").style.display="none",280);
 }
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closePanel()});
 
-async function loadKnowledge() {
-  const list = document.getElementById("panelList");
-  list.innerHTML = '<div class="panel-empty"><div class="panel-empty-icon">⏳</div>Cargando...</div>';
+async function loadK() {
+  const list = document.getElementById("pList");
+  list.innerHTML='<div class="pmt"><div class="pmt-ico">⏳</div>Cargando...</div>';
   try {
-    const resp = await fetch("/api/teach/conocimiento", { headers: hdrs() });
-    allKnowledge = await resp.json();
-    renderKnowledge(allKnowledge);
-  } catch { list.innerHTML = '<div class="panel-empty"><div class="panel-empty-icon">❌</div>Error cargando el conocimiento.</div>'; }
+    const r = await fetch("/api/teach/conocimiento",{headers:H()});
+    allK = await r.json();
+    renderK(allK);
+  } catch { list.innerHTML='<div class="pmt"><div class="pmt-ico">❌</div>Error cargando.</div>'; }
 }
 
-function renderKnowledge(rows) {
-  const list = document.getElementById("panelList");
-  const stats = document.getElementById("panelStats");
-  list.innerHTML = "";
-  const valid = rows.filter(r => r.Contenido);
-
+function renderK(rows) {
+  const list = document.getElementById("pList");
+  const stats = document.getElementById("stats");
+  list.innerHTML="";
+  const valid = rows.filter(r=>r.Contenido);
   if (!valid.length) {
-    list.innerHTML = '<div class="panel-empty"><div class="panel-empty-icon">📭</div>Todavía no hay conocimiento guardado.<br>¡Empezá una clase!</div>';
-    stats.style.display = "none";
-    return;
+    list.innerHTML='<div class="pmt"><div class="pmt-ico">📭</div>Todavía no hay conocimiento.<br>¡Empezá una clase!</div>';
+    stats.classList.remove("on"); return;
   }
-
-  const grouped = {};
-  for (const r of valid) {
-    const c = r.Categoria || "General";
-    if (!grouped[c]) grouped[c] = [];
-    grouped[c].push(r);
-  }
-
-  // Stats
-  document.getElementById("statTotal").textContent = valid.length;
-  document.getElementById("statCats").textContent = Object.keys(grouped).length;
-  stats.style.display = "flex";
-
-  for (const [cat, items] of Object.entries(grouped)) {
-    const catEl = document.createElement("div");
-    catEl.className = "k-cat-label";
-    catEl.textContent = (CATS_EMOJI[cat] || "📌") + " " + cat;
-    list.appendChild(catEl);
+  const g = {};
+  for (const r of valid) { const c=r.Categoria||"General"; if(!g[c])g[c]=[]; g[c].push(r); }
+  document.getElementById("stT").textContent = valid.length;
+  document.getElementById("stC").textContent = Object.keys(g).length;
+  stats.classList.add("on");
+  for (const [cat,items] of Object.entries(g)) {
+    const lbl = document.createElement("div");
+    lbl.className="kcat";
+    lbl.textContent=(CATS_E[cat]||"📌")+" "+cat;
+    list.appendChild(lbl);
     for (const row of items) list.appendChild(makeCard(row));
   }
 }
 
-function filterKnowledge(q) {
-  if (!q.trim()) { renderKnowledge(allKnowledge); return; }
-  const lq = q.toLowerCase();
-  const filtered = allKnowledge.filter(r =>
-    (r.Contenido||"").toLowerCase().includes(lq) ||
-    (r.Categoria||"").toLowerCase().includes(lq)
-  );
-  renderKnowledge(filtered);
+function filterK(q) {
+  if (!q.trim()){renderK(allK);return}
+  const lq=q.toLowerCase();
+  renderK(allK.filter(r=>(r.Contenido||"").toLowerCase().includes(lq)||(r.Categoria||"").toLowerCase().includes(lq)));
 }
 
-const CATS_LIST = ["Clientas","Terapeutas","Precios y Productos","Reglas de Negocio","Contabilidad","Situaciones Especiales","Sistema","Identidad del Negocio","Horarios","General"];
+const CATS_L=["Clientas","Terapeutas","Precios y Productos","Reglas de Negocio","Contabilidad","Situaciones Especiales","Sistema","Identidad del Negocio","Horarios","General"];
 
 function makeCard(row) {
-  const card = document.createElement("div");
-  card.className = "k-card";
-  card.innerHTML = `
-    <div class="k-content">${esc(row.Contenido)}</div>
-    <div class="k-meta">
+  const card = document.createElement("div"); card.className="kcard";
+  card.innerHTML=`
+    <div class="kc">${esc(row.Contenido)}</div>
+    <div class="km">
       <span>${row.Fuente==="seed_inicial"?"🌱 seed":row.Fuente==="manual"?"✍️ manual":"📚 clase"}</span>
-      <div class="k-meta-dot"></div>
-      <span>${row.Fecha}</span>
+      <div class="kdot"></div><span>${row.Fecha}</span>
     </div>
-    <div class="k-actions">
-      <button class="btn-k edit" onclick="toggleEdit(this)">✏️ Editar</button>
-      <button class="btn-k del" onclick="delK(${row._rowIndex},this)">🗑️</button>
+    <div class="kacts">
+      <button class="btn-ke ke-edit" onclick="toggleEdit(this)">✏️ Editar</button>
+      <button class="btn-ke ke-del" onclick="delK(${row._rowIndex},this)">🗑️</button>
     </div>
-    <div class="k-edit-area">
-      <select>${CATS_LIST.map(c=>`<option${c===row.Categoria?" selected":""}>${c}</option>`).join("")}</select>
+    <div class="kedit">
+      <select>${CATS_L.map(c=>`<option${c===row.Categoria?" selected":""}>${c}</option>`).join("")}</select>
       <textarea rows="3">${esc(row.Contenido)}</textarea>
-      <div class="k-edit-actions">
-        <button class="btn-cancel-edit" onclick="toggleEdit(this.closest('.k-card').querySelector('.btn-k.edit'))">Cancelar</button>
-        <button class="btn-save-edit" onclick="saveEdit(${row._rowIndex},'${esc(row.Fecha)}',this)">Guardar</button>
+      <div class="kedit-acts">
+        <button class="btn-kce" onclick="toggleEdit(this.closest('.kcard').querySelector('.ke-edit'))">Cancelar</button>
+        <button class="btn-kse" onclick="saveEdit(${row._rowIndex},'${esc(row.Fecha)}',this)">Guardar</button>
       </div>
     </div>`;
   return card;
 }
 
-function toggleEdit(editBtn) {
-  const card = editBtn.closest(".k-card");
-  const area = card.querySelector(".k-edit-area");
-  area.classList.toggle("open");
-}
+function toggleEdit(btn) { btn.closest(".kcard").querySelector(".kedit").classList.toggle("on") }
 
-async function saveEdit(rowIndex, fecha, btn) {
-  const area = btn.closest(".k-edit-area");
-  const contenido = area.querySelector("textarea").value.trim();
-  const categoria = area.querySelector("select").value;
-  if (!contenido) return;
-  btn.textContent = "...";
-  try {
-    await fetch(`/api/teach/conocimiento/${rowIndex}`, {
-      method: "PUT", headers: hdrs(),
-      body: JSON.stringify({ Fecha: fecha, Categoria: categoria, Contenido: contenido, Fuente: "manual" }),
-    });
-    await loadKnowledge();
-  } catch { btn.textContent = "Guardar"; alert("Error al guardar."); }
-}
-
-async function delK(rowIndex, btn) {
-  if (!confirm("¿Borrar este conocimiento?")) return;
-  const card = btn.closest(".k-card");
-  card.style.opacity = ".4";
-  try {
-    await fetch(`/api/teach/conocimiento/${rowIndex}`, { method: "DELETE", headers: hdrs() });
-    await loadKnowledge();
-  } catch { card.style.opacity = "1"; alert("Error."); }
-}
-
-function toggleAddForm() {
-  const f = document.getElementById("addForm");
-  f.classList.toggle("visible");
-  if (f.classList.contains("visible")) document.getElementById("newContent").focus();
-}
-
-async function saveNewKnowledge() {
-  const cat  = document.getElementById("newCat").value;
-  const cont = document.getElementById("newContent").value.trim();
+async function saveEdit(idx, fecha, btn) {
+  const area=btn.closest(".kedit");
+  const cont=area.querySelector("textarea").value.trim();
+  const cat=area.querySelector("select").value;
   if (!cont) return;
-  const btn = document.querySelector(".btn-save-new");
-  btn.textContent = "Guardando...";
+  btn.textContent="...";
   try {
-    await fetch("/api/teach/conocimiento", {
-      method: "POST", headers: hdrs(), body: JSON.stringify({ categoria: cat, contenido: cont }),
-    });
-    document.getElementById("newContent").value = "";
-    document.getElementById("addForm").classList.remove("visible");
-    await loadKnowledge();
-  } catch { alert("Error al guardar."); }
-  finally { btn.textContent = "Guardar"; }
+    await fetch(`/api/teach/conocimiento/${idx}`,{method:"PUT",headers:H(),body:JSON.stringify({Fecha:fecha,Categoria:cat,Contenido:cont,Fuente:"manual"})});
+    await loadK();
+  } catch { btn.textContent="Guardar"; alert("Error."); }
 }
 
-function esc(str) {
-  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+async function delK(idx, btn) {
+  if (!confirm("¿Borrar este conocimiento?")) return;
+  const card=btn.closest(".kcard"); card.style.opacity=".4";
+  try {
+    await fetch(`/api/teach/conocimiento/${idx}`,{method:"DELETE",headers:H()});
+    await loadK();
+  } catch { card.style.opacity="1"; alert("Error."); }
 }
 
-// Cerrar panel con Escape
-document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
+function toggleAdd() {
+  const f=document.getElementById("addF");
+  f.classList.toggle("on");
+  if (f.classList.contains("on")) document.getElementById("nCont").focus();
+}
+async function saveNew() {
+  const cat=document.getElementById("nCat").value;
+  const cont=document.getElementById("nCont").value.trim();
+  if (!cont) return;
+  const btn=document.querySelector(".btn-sv"); btn.textContent="...";
+  try {
+    await fetch("/api/teach/conocimiento",{method:"POST",headers:H(),body:JSON.stringify({categoria:cat,contenido:cont})});
+    document.getElementById("nCont").value="";
+    document.getElementById("addF").classList.remove("on");
+    await loadK();
+  } catch { alert("Error."); }
+  finally { btn.textContent="Guardar"; }
+}
+
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+// ── Init ──────────────────────────────
+addBubble("bot","¡Hola! Soy el cerebro de Citrino.\nContame sobre el negocio, las clientas, las reglas. Al terminar guardamos todo. 🌿");
 </script>
 </body>
 </html>

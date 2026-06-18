@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: rediseno teach UI + Marta lee CONOCIMIENTO.md en cada conversacion + rebuild cache al arrancar"
+git commit -m "fix: teach usa Web Speech API (sin Groq) + UI mejorada + layout max-width centrado"
 git push origin main
 echo Push OK.
 echo.
