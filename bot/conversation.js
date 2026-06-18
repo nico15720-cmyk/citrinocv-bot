@@ -262,10 +262,15 @@ O si ya expresó interés: "¿Qué días y horarios le quedarían bien?"
 Cargá los slots del sistema internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
 
 PASO 3 — Ofrecer horario específico:
-Cuando el cliente indique el día que prefiere, incluí la acción de disponibilidad filtrada por ese día:
-<accion>{"tipo":"ver_disponibilidad","dia":"martes"}</accion>  ← reemplazá "martes" por el día que dijo el cliente.
-El sistema mostrará SOLO los horarios disponibles de ese día. En tu texto decí brevemente "Para el [día], los horarios disponibles son:" y el sistema agrega la lista real.
-CRÍTICO: NUNCA inventes una hora. Si el cliente pide "15 hs" pero solo existe "15:30", ofrecé "15:30 hs, ¿nose como le quedaría?"
+Cuando el cliente indique el día que prefiere, incluí la acción de disponibilidad:
+<accion>{"tipo":"ver_disponibilidad","dia":"martes"}</accion>
+Si el cliente ya expresó preferencia de horario (mañana / tarde), añadí el campo "momento":
+<accion>{"tipo":"ver_disponibilidad","dia":"martes","momento":"tarde"}</accion>
+Si pregunta "¿qué día tienen de tarde?" SIN decir día, usá solo momento (sin dia):
+<accion>{"tipo":"ver_disponibilidad","momento":"tarde"}</accion>
+El sistema mostrará SOLO los horarios disponibles. Tu texto ANTES de la acción debe ser brevísimo — NO menciones ninguna hora específica: el sistema ya la muestra. Decí simplemente "Para el [día]" o "De tarde tenemos:" y dejá que el sistema agregue los horarios.
+CRÍTICO: NUNCA pongas una hora en tu texto cuando usás ver_disponibilidad. Jamás digas "tenemos a las 10:00" si también vas a llamar ver_disponibilidad — eso crea contradicciones.
+CRÍTICO: Si el cliente pide "16 hs" y el sistema muestra que ese slot no existe, decí "Para las 16:00 no tenemos, ¿le quedaría bien alguno de los horarios que le mostré?" — no inventes alternativas sin llamar a ver_disponibilidad.
 
 PASO 4 — Pedir nombre y confirmar:
 Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
@@ -302,8 +307,10 @@ RESPUESTAS CORTAS PARA SITUACIONES COMUNES:
 - Consulta de zona: "Si, se puede trabajar piernas, abdomen, espalda y/o glúteos."
 - Anticipo de turno: "Le escribíamos para reconfirmarle la sesión de mañana, ¿le queda bien a las [hora]hs?"
 - Reagendamiento: "Tranqui, para el [día] tenemos disponible [hora] hs, ¿nose como le quedaría?"
-- Clienta de otra ciudad: "Lamentablemente solo atendemos en Montevideo, en Sarandí 554. 😊"
-- Sin horarios disponibles: "En ese horario no tenemos disponible, ¿podría ser [alternativa]?"
+- Clienta de otra ciudad: "Solo atendemos en Montevideo, en Sarandí 554. 😊"
+- Sin horarios disponibles en franja pedida: "Para esa franja no tenemos disponible — [llamá a ver_disponibilidad con momento o día alternativo]"
+- Cuando dice "hoy": verificá con ver_disponibilidad primero; si no hay, decí "Por hoy estamos completas, ¿qué día de esta semana le queda mejor?"
+PROHIBIDO usar la palabra "lamentablemente" — reemplazala siempre por algo más cálido y útil.
 
 === EJEMPLOS DE ESTILO DE MENSAJES ===
 
@@ -469,18 +476,24 @@ async function procesarAccion(accion, userId, canal, nombre) {
     case "ver_disponibilidad": {
       const todosSlots = await getDisponibilidad();
 
-      // Si el bot especifica un día, filtrar solo ese día
+      // ── 1. Filtrar por día (si el bot lo especificó) ──────────
       let slots = todosSlots;
+      let hayDiaFiltrado = false;
       if (accion.dia) {
         const diaFiltro = accion.dia.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
         const diasNombres = ["domingo","lunes","martes","miercoles","jueves","viernes","sabado"];
-        slots = todosSlots.filter(s => {
+        const filtered = todosSlots.filter(s => {
           const diaSlot = diasNombres[new Date(s.fecha + "T12:00:00-03:00").getDay()];
           return diaSlot.includes(diaFiltro) || diaFiltro.includes(diaSlot);
         });
-        // Si no hay slots ese día, mostrar todos
-        if (!slots.length) slots = todosSlots;
+        if (filtered.length) { slots = filtered; hayDiaFiltrado = true; }
+        // Si no hay nada ese día, slots queda con todos para que el bot ofrezca alternativa
       }
+
+      // ── 2. Filtrar por momento del día (mañana / tarde) ───────
+      // Si el bot NO especificó un día concreto, devolver todos los días
+      // (el formateador agrupará y mostrará el primero disponible)
+      const momento = accion.momento || null; // "mañana" | "tarde" | null
 
       slotsPendientes.set(userId, slots);
 
@@ -521,7 +534,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
         nadiaNotificada.delete(userId);
       }
 
-      return formatearDisponibilidad(slots);
+      return formatearDisponibilidad(slots, 3, momento);
     }
 
     case "agendar": {

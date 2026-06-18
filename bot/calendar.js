@@ -238,25 +238,58 @@ function invalidarCacheSlots() {
 }
 
 // ─── FORMATEAR DISPONIBILIDAD para el cliente ─────────────────
-function formatearDisponibilidad(slots, maxSlots = 3) {
-  if (!slots?.length) {
+// momento: null | "mañana" | "tarde"
+// "mañana" = slots antes de 13:00 | "tarde" = slots 13:00 en adelante
+function formatearDisponibilidad(slots, maxSlots = 3, momento = null) {
+  // ── Filtrar por momento del día ───────────────────────────────
+  let slotsFiltrados = slots || [];
+  if (momento) {
+    const esTarde = momento === "tarde";
+    slotsFiltrados = slotsFiltrados.filter(s => {
+      const h = parseInt(s.horaInicio.split(":")[0], 10);
+      return esTarde ? h >= 13 : h < 13;
+    });
+  }
+
+  if (!slotsFiltrados.length) {
+    // Sin slots para el momento pedido — sugerir alternativa útil
+    if (momento === "tarde") {
+      // Buscar el primer día con tarde entre todos los slots originales
+      const conTarde = (slots || []).filter(s => parseInt(s.horaInicio.split(":")[0], 10) >= 13);
+      if (conTarde.length) {
+        const diasNombre = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+        const dias = [...new Set(conTarde.map(s => {
+          const d = new Date(s.fecha + "T12:00:00-03:00");
+          return { fecha: s.fecha, dia: diasNombre[d.getDay()], hora: s.horaInicio };
+        }))];
+        const primero = dias[0];
+        return `Para la tarde, el próximo turno disponible es el *${primero.dia}* a las ${primero.hora} hs. ¿Le queda bien?`;
+      }
+      return "Para la tarde no tenemos disponible esta semana. ¿Algún horario de la mañana le quedaría?";
+    }
+    if (momento === "mañana") {
+      return "Para la mañana no tenemos disponible ese día. ¿Algún horario de la tarde le quedaría?";
+    }
     return "No tenemos turnos disponibles en los próximos 7 días.\n\nSi quiere le buscamos para la semana que viene, solo dígame qué día le queda mejor.";
   }
 
-  // Agrupar por fecha, deduplicar por hora+terapeuta
+  // ── Agrupar por fecha ─────────────────────────────────────────
   const porFecha = {};
-  for (const slot of slots) {
+  for (const slot of slotsFiltrados) {
     if (!porFecha[slot.fecha]) porFecha[slot.fecha] = { label: slot.fechaLabel, slots: [] };
-    const ya = porFecha[slot.fecha].slots.find(s => s.hora === slot.horaInicio && s.ter === (slot.terapeutaNombre || "Citrino"));
+    const ya = porFecha[slot.fecha].slots.find(
+      s => s.hora === slot.horaInicio && s.ter === (slot.terapeutaNombre || "Citrino")
+    );
     if (!ya) porFecha[slot.fecha].slots.push({ hora: slot.horaInicio, ter: slot.terapeutaNombre || "Citrino" });
   }
 
   const fechas = Object.keys(porFecha);
-
-  // Mostrar solo el primer día, limitar a maxSlots horarios
   const primerDia = fechas[0];
   const info = porFecha[primerDia];
-  const slotsDelDia = info.slots.slice(0, maxSlots);
+
+  // Con filtro de momento mostramos hasta 5 opciones (la clienta ya dijo mañana/tarde)
+  const limite = momento ? Math.max(maxSlots, 5) : maxSlots;
+  const slotsDelDia = info.slots.slice(0, limite);
 
   const terapeutasUnicos = [...new Set(slotsDelDia.map(s => s.ter))];
   const hayMultiples = terapeutasUnicos.length > 1;
@@ -273,7 +306,7 @@ function formatearDisponibilidad(slots, maxSlots = 3) {
     texto += slotsDelDia.map(s => `• ${s.hora} hs`).join("\n");
   }
 
-  // Mencionar otros días si los hay, sin listar todos los horarios
+  // Mencionar otros días si los hay
   if (fechas.length > 1) {
     const otrosDias = fechas.slice(1, 3).map(f => porFecha[f].label).join(" y ");
     texto += `\n\n_(Si ninguno le queda bien, también tenemos el ${otrosDias})_`;
@@ -284,6 +317,36 @@ function formatearDisponibilidad(slots, maxSlots = 3) {
 
 // ─── CREAR TURNO ──────────────────────────────────────────────
 async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terapeutaId = null }) {
+  // ANTI-DUPLICADO: antes de insertar, verificar que no exista ya
+  // la misma sesión (mismo slot + mismo cliente). Evita que un retry
+  // o una doble llamada del bot creen dos filas idénticas.
+  const existentes = await _leerSesiones(true); // forzar lectura fresca
+  const telNorm = (telefono || "").replace(/\D/g, "").slice(-9);
+  const yaExiste = existentes.find(f => {
+    if (f[COL.ESTADO] === "cancelado") return false;
+    if (f[COL.FECHA] !== slot.inicioISO) return false;
+    // Match por teléfono O por nombre (case-insensitive)
+    const telFila = (f[COL.ID_CLIENTE] || "").replace(/\D/g, "").slice(-9);
+    const nomFila = (f[COL.CLIENTE] || "").toLowerCase().trim();
+    const nomBusc = (nombre || "").toLowerCase().trim();
+    const matchTel = telNorm && telFila && telNorm === telFila;
+    const matchNom = nomBusc && nomFila && nomFila.includes(nomBusc.split(" ")[0]);
+    return matchTel || matchNom;
+  });
+
+  if (yaExiste) {
+    console.log(`⚠️ crearTurno: sesión duplicada detectada para "${nombre}" a las ${slot.inicioISO} — usando la existente`);
+    const terExist = yaExiste[COL.TERAPEUTA] || terapeutaId || "Citrino";
+    return {
+      id:              yaExiste[COL.ID_SESION],
+      terapeutaId:     terExist,
+      terapeutaNombre: terExist,
+      inicio:          yaExiste[COL.FECHA],
+      fin:             yaExiste[COL.FECHA_FIN],
+      _duplicate:      true,
+    };
+  }
+
   const api = await getSheets();
   const id  = generateId();
 
@@ -298,10 +361,11 @@ async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terape
     telefono || "",              // F: ID_Cliente
     500,                         // G: Monto_Terapeuta (default)
     notas || "",                 // H: Observaciones
-    slot.finISO,                 // I: Fecha_Fin (ISO)
+    slot.finISO || "",           // I: Fecha_Fin (ISO)
     "pendiente",                 // J: Estado
   ];
 
+  // intentos: 1 porque append NO es idempotente — el retry crea filas duplicadas
   await conRetry(
     () => api.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -309,7 +373,7 @@ async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terape
       valueInputOption: "USER_ENTERED",
       resource: { values: [fila] },
     }),
-    { nombre: "Sheets - crearTurno", intentos: 3 }
+    { nombre: "Sheets - crearTurno", intentos: 1 }
   );
 
   invalidarCacheSlots();

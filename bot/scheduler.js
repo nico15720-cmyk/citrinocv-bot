@@ -1169,6 +1169,14 @@ function startScheduler() {
         `📋 *Seguimiento pendiente — clientas sin reagendar*\n\nVinieron hace 3+ días y no reagendaron:\n\n${lista}\n\n¿Las contactamos o las dejamos para la semana que viene?`,
         "whatsapp"
       ).catch(() => {});
+      // Marcar como notificado para no repetir
+      const { upsertCliente } = require("./sheets-crm");
+      for (const c of pendientes) {
+        try {
+          const notas = (c.NOTAS || "").replace("[seguimiento_pendiente]", "[seguimiento_notificado]");
+          await upsertCliente({ ID_Cliente: c.ID_Cliente || c.Telefono, NOTAS: notas });
+        } catch {}
+      }
     } catch {}
   }, { timezone: "America/Montevideo" });
 

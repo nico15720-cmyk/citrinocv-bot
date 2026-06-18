@@ -14,6 +14,38 @@ const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
 const modoAdmin = new Set(); // números que activaron /admin temporalmente
 const modoMarta = new Set(); // números que activaron /marta (override admin)
 
+// Parsea strings como "viernes 10:30" o "20/06 10:30" a ISO datetime
+function parsearFechaHoraStr(str) {
+  if (!str) return "";
+  const DIAS = { lunes:1, martes:2, miércoles:3, miercoles:3, jueves:4, viernes:5, sábado:6, sabado:6, domingo:0 };
+  const partes = str.trim().toLowerCase().split(/\s+/);
+  const hora = partes[partes.length - 1]; // ej "10:30"
+  const [hh = 0, mm = 0] = hora.split(":").map(Number);
+  const diaNombre = partes[0];
+  const ahora = new Date();
+
+  if (DIAS.hasOwnProperty(diaNombre)) {
+    // "viernes 10:30" → próximo viernes
+    const diaObj = DIAS[diaNombre];
+    const diff = (diaObj - ahora.getDay() + 7) % 7 || 7;
+    const fecha = new Date(ahora);
+    fecha.setDate(fecha.getDate() + diff);
+    fecha.setHours(hh, mm, 0, 0);
+    return fecha.toISOString();
+  }
+
+  // "20/06 10:30" → DD/MM
+  const matchDDMM = str.match(/(\d{1,2})\/(\d{1,2})/);
+  if (matchDDMM) {
+    const d = parseInt(matchDDMM[1]), m = parseInt(matchDDMM[2]) - 1;
+    const fecha = new Date(ahora.getFullYear(), m, d, hh, mm, 0, 0);
+    return fecha.toISOString();
+  }
+
+  // Fallback: devolver tal cual (best effort)
+  return str;
+}
+
 // ============================================================
 // MESSAGE BATCHING — acumula mensajes durante 8 segundos
 // para que Marta responda después de que la persona termina
@@ -219,8 +251,8 @@ app.post("/webhook", async (req, res) => {
 
           if (fechaHoraStr) {
             // Tiene nueva fecha — enviar confirmación
-            // Guardar Fecha_Turno en CRM
-            update.Fecha_Turno = fechaHoraStr;
+            // Parsear fechaHoraStr a ISO para que el cron lo procese
+            update.Fecha_Turno = parsearFechaHoraStr(fechaHoraStr);
             await upsertCliente({ ID_Cliente: telLimpio, ...update });
 
             mensajeCliente =
@@ -1164,6 +1196,64 @@ Si no podés leer el monto, ponés 0. Si no identificás la categoría, ponés "
     const data = JSON.parse(txt);
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message, monto: 0, descripcion: "", categoria: "Otros" }); }
+});
+
+// ============================================================
+// EL CEREBRO — Plataforma de enseñanza
+// ============================================================
+app.get("/teach", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "teach", "index.html"));
+});
+
+app.get("/api/teach/status", (req, res) => {
+  const { getSessionInfo } = require("./bot/teach");
+  res.json(getSessionInfo());
+});
+
+app.post("/api/teach/chat", async (req, res) => {
+  try {
+    const { chat } = require("./bot/teach");
+    const reply = await chat(req.body.message || "");
+    res.json({ reply });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/teach/audio", async (req, res) => {
+  try {
+    const { chat } = require("./bot/teach");
+    const Groq = require("groq-sdk");
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const buf = Buffer.from(req.body.audio, "base64");
+    const tmpPath = require("os").tmpdir() + "/teach_audio_" + Date.now() + ".webm";
+    fs.writeFileSync(tmpPath, buf);
+    const transcripcion = await groq.audio.transcriptions.create({
+      file: fs.createReadStream(tmpPath),
+      model: "whisper-large-v3",
+      language: "es",
+    });
+    fs.unlinkSync(tmpPath);
+    const text = transcripcion.text.trim();
+    const reply = await chat(text);
+    res.json({ transcripcion: text, reply });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/teach/upload", async (req, res) => {
+  try {
+    const { addFile } = require("./bot/teach");
+    const { filename, content } = req.body;
+    const text = Buffer.from(content, "base64").toString("utf8");
+    const message = await addFile(filename, text);
+    res.json({ message });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/teach/end", async (req, res) => {
+  try {
+    const { endSession } = require("./bot/teach");
+    const result = await endSession();
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ============================================================

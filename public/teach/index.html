@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Cerebro — Citrino</title>
+<style>
+  :root {
+    --bg:      #FFF8F3;
+    --orange:  #EA580C;
+    --red:     #991B1B;
+    --card:    #FFFFFF;
+    --border:  #FDDCCC;
+    --text:    #1C1917;
+    --muted:   #78716C;
+    --bubble-nico: #FFF0E8;
+    --bubble-bot:  #F5F5F4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── Header ──────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(150,60,0,.25);
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo { font-size: 22px; }
+  .header-title { font-size: 17px; font-weight: 700; line-height: 1.2; }
+  .header-sub { font-size: 12px; opacity: .8; }
+  #session-badge {
+    background: rgba(255,255,255,.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    display: none;
+  }
+  #btn-end {
+    background: rgba(255,255,255,.9);
+    color: var(--red);
+    border: none;
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: none;
+    transition: transform .1s;
+  }
+  #btn-end:active { transform: scale(.95); }
+
+  /* ─── Chat área ───────────────────────────── */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.55;
+    word-wrap: break-word;
+  }
+  .bubble.nico {
+    background: var(--bubble-nico);
+    border: 1px solid var(--border);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.bot {
+    background: var(--bubble-bot);
+    border: 1px solid #E7E5E4;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.system {
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    align-self: center;
+    text-align: center;
+    padding: 4px 10px;
+    border: none;
+  }
+  .bubble.file {
+    background: #EDF4FF;
+    border: 1px solid #C3D8FF;
+    align-self: flex-end;
+    font-size: 13px;
+    color: #1E40AF;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.error {
+    background: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+    align-self: center;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .typing {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bubble-bot);
+    border: 1px solid #E7E5E4;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+    width: 60px;
+  }
+  .typing span {
+    width: 7px; height: 7px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: bounce .9s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .15s; }
+  .typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30%          { transform: translateY(-7px); }
+  }
+
+  /* ─── Barra inferior ──────────────────────── */
+  #toolbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px 20px;
+    max-width: 640px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+  }
+  #input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  #txt-input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 10px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    outline: none;
+    background: var(--bg);
+    transition: border-color .2s;
+  }
+  #txt-input:focus { border-color: var(--orange); }
+  #txt-input::placeholder { color: var(--muted); }
+
+  .icon-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: transform .15s, background .15s;
+    flex-shrink: 0;
+  }
+  .icon-btn:active { transform: scale(.9); }
+
+  #btn-mic {
+    background: var(--orange);
+    color: white;
+    box-shadow: 0 2px 8px rgba(234,88,12,.4);
+  }
+  #btn-mic.recording {
+    background: #DC2626;
+    animation: pulse-mic 1s infinite;
+    box-shadow: 0 0 0 0 rgba(220,38,38,.5);
+  }
+  @keyframes pulse-mic {
+    0%   { box-shadow: 0 0 0 0 rgba(220,38,38,.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0); }
+    100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+  }
+  #btn-send {
+    background: var(--orange);
+    color: white;
+    box-shadow: 0 2px 8px rgba(234,88,12,.4);
+    display: none;
+  }
+  #btn-attach {
+    background: #F5F5F4;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  #file-input { display: none; }
+
+  /* ─── Pantalla de bienvenida ──────────────── */
+  #welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px 24px;
+    text-align: center;
+    flex: 1;
+    min-height: 60vh;
+  }
+  #welcome .brain { font-size: 64px; }
+  #welcome h2 { font-size: 22px; font-weight: 700; }
+  #welcome p { color: var(--muted); font-size: 15px; max-width: 320px; line-height: 1.6; }
+  #btn-start {
+    background: linear-gradient(135deg, var(--red), var(--orange));
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(234,88,12,.4);
+    transition: transform .15s;
+    margin-top: 8px;
+  }
+  #btn-start:active { transform: scale(.97); }
+
+  /* ─── Modal fin de sesión ─────────────────── */
+  #modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #modal-bg.show { display: flex; }
+  #modal {
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    max-width: 640px;
+    width: 100%;
+    max-height: 75vh;
+    overflow-y: auto;
+    animation: slide-up .3s ease;
+  }
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  #modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+  #modal pre {
+    white-space: pre-wrap;
+    font-size: 13px;
+    line-height: 1.6;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    font-family: inherit;
+  }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 20px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #btn-new-session { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+  #btn-close-modal { background: var(--orange); color: white; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo">🧠</span>
+    <div>
+      <div class="header-title">El Cerebro</div>
+      <div class="header-sub">Enseñale al bot sobre Citrino</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="session-badge">0 turnos</span>
+    <button id="btn-end">Finalizar clase ✓</button>
+  </div>
+</header>
+
+<!-- Pantalla de bienvenida (se oculta al iniciar) -->
+<div id="welcome">
+  <div class="brain">🧠</div>
+  <h2>El Cerebro de Citrino</h2>
+  <p>Hablá con el bot como si fuera una clase. Contale reglas del negocio, casos especiales, datos de clientas. Al terminar indexa todo y lo recuerda para siempre.</p>
+  <p style="font-size:13px;color:#A8A29E">Podés usar voz, texto o subir archivos.</p>
+  <button id="btn-start">Empezar clase</button>
+</div>
+
+<!-- Chat (oculto al inicio) -->
+<div id="chat" style="display:none"></div>
+
+<!-- Input bar (oculta al inicio) -->
+<div id="toolbar" style="display:none">
+  <div id="input-row">
+    <button id="btn-attach" class="icon-btn" title="Subir archivo">📎</button>
+    <input type="file" id="file-input" accept=".txt,.md,.csv,.json,.pdf">
+    <textarea id="txt-input" placeholder="Escribí o tocá el micrófono…" rows="1"></textarea>
+    <button id="btn-send" class="icon-btn" title="Enviar">➤</button>
+    <button id="btn-mic" class="icon-btn" title="Grabar voz">🎤</button>
+  </div>
+</div>
+
+<!-- Modal de cierre de sesión -->
+<div id="modal-bg">
+  <div id="modal">
+    <h3>✅ Clase guardada en el cerebro</h3>
+    <pre id="modal-content">Procesando...</pre>
+    <div class="modal-btns">
+      <button id="btn-new-session">Nueva clase</button>
+      <button id="btn-close-modal">Listo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Estado ───────────────────────────────────────────────────
+let turnos = 0;
+let mediaRecorder = null;
+let audioChunks  = [];
+let recording    = false;
+let sending      = false;
+
+// ── Refs ─────────────────────────────────────────────────────
+const chat       = document.getElementById("chat");
+const welcome    = document.getElementById("welcome");
+const toolbar    = document.getElementById("toolbar");
+const txtInput   = document.getElementById("txt-input");
+const btnMic     = document.getElementById("btn-mic");
+const btnSend    = document.getElementById("btn-send");
+const btnAttach  = document.getElementById("btn-attach");
+const fileInput  = document.getElementById("file-input");
+const btnEnd     = document.getElementById("btn-end");
+const btnStart   = document.getElementById("btn-start");
+const sessionBadge = document.getElementById("session-badge");
+const modalBg    = document.getElementById("modal-bg");
+const modalContent = document.getElementById("modal-content");
+const btnNewSession = document.getElementById("btn-new-session");
+const btnCloseModal = document.getElementById("btn-close-modal");
+
+// ── Auth header ───────────────────────────────────────────────
+function authHeader() {
+  const u = sessionStorage.getItem("teach_user") || prompt("Usuario:");
+  const p = sessionStorage.getItem("teach_pass") || prompt("Contraseña:");
+  sessionStorage.setItem("teach_user", u);
+  sessionStorage.setItem("teach_pass", p);
+  return "Basic " + btoa(u + ":" + p);
+}
+
+async function apiFetch(path, options = {}) {
+  if (!options.headers) options.headers = {};
+  options.headers["Authorization"] = authHeader();
+  const r = await fetch(path, options);
+  if (r.status === 401) {
+    sessionStorage.removeItem("teach_user");
+    sessionStorage.removeItem("teach_pass");
+    throw new Error("Credenciales incorrectas");
+  }
+  return r;
+}
+
+// ── UI helpers ────────────────────────────────────────────────
+function addBubble(text, type = "bot") {
+  const div = document.createElement("div");
+  div.className = `bubble ${type}`;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const el = document.createElement("div");
+  el.className = "typing";
+  el.innerHTML = "<span></span><span></span><span></span>";
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+function updateBadge() {
+  sessionBadge.textContent = `${turnos} turno${turnos !== 1 ? "s" : ""}`;
+  sessionBadge.style.display = turnos > 0 ? "block" : "none";
+  btnEnd.style.display = turnos > 0 ? "block" : "none";
+}
+
+// Autoexpand textarea
+txtInput.addEventListener("input", () => {
+  txtInput.style.height = "auto";
+  txtInput.style.height = Math.min(txtInput.scrollHeight, 120) + "px";
+  btnSend.style.display = txtInput.value.trim() ? "flex" : "none";
+  btnMic.style.display  = txtInput.value.trim() ? "none" : "flex";
+});
+
+// ── Iniciar sesión ────────────────────────────────────────────
+btnStart.addEventListener("click", () => {
+  welcome.style.display = "none";
+  chat.style.display = "flex";
+  toolbar.style.display = "block";
+  addBubble("¡Hola! Soy el cerebro de Citrino. Contame sobre el negocio, las clientas, las reglas. Te voy haciendo preguntas para entender bien. Al terminar guardamos todo. 🌿", "bot");
+});
+
+// ── Enviar texto ──────────────────────────────────────────────
+async function sendText(text) {
+  if (!text.trim() || sending) return;
+  sending = true;
+  addBubble(text, "nico");
+  txtInput.value = "";
+  txtInput.style.height = "auto";
+  btnSend.style.display = "none";
+  btnMic.style.display  = "flex";
+
+  const typing = addTyping();
+  try {
+    const r = await apiFetch("/api/teach/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await r.json();
+    typing.remove();
+    addBubble(data.reply || "...", "bot");
+    turnos++;
+    updateBadge();
+  } catch (e) {
+    typing.remove();
+    addBubble("Error al enviar: " + e.message, "error");
+  }
+  sending = false;
+}
+
+btnSend.addEventListener("click", () => sendText(txtInput.value));
+txtInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(txtInput.value); }
+});
+
+// ── Micrófono (voz → transcripción → chat) ───────────────────
+btnMic.addEventListener("click", async () => {
+  if (recording) {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      btnMic.classList.remove("recording");
+      btnMic.textContent = "🎤";
+      recording = false;
+
+      if (!audioChunks.length) return;
+      const blob = new Blob(audioChunks, { type: "audio/webm" });
+      const base64 = await blobToBase64(blob);
+
+      const typing = addTyping();
+      try {
+        const r = await apiFetch("/api/teach/audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ audio: base64 }),
+        });
+        const data = await r.json();
+        typing.remove();
+        if (data.transcripcion) addBubble(data.transcripcion, "nico");
+        if (data.reply) addBubble(data.reply, "bot");
+        if (data.transcripcion || data.reply) { turnos++; updateBadge(); }
+      } catch (e) {
+        typing.remove();
+        addBubble("Error en audio: " + e.message, "error");
+      }
+    };
+    mediaRecorder.start();
+    recording = true;
+    btnMic.classList.add("recording");
+    btnMic.textContent = "⏹";
+  } catch (e) {
+    addBubble("No se pudo acceder al micrófono: " + e.message, "error");
+  }
+});
+
+function blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = () => res(reader.result.split(",")[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ── Subir archivo ─────────────────────────────────────────────
+btnAttach.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  fileInput.value = "";
+
+  addBubble(`📄 ${file.name}`, "file");
+
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(",")[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+
+  const typing = addTyping();
+  try {
+    const r = await apiFetch("/api/teach/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: file.name, content: base64, type: file.type }),
+    });
+    const data = await r.json();
+    typing.remove();
+    addBubble(data.message || "Archivo recibido.", "bot");
+  } catch (e) {
+    typing.remove();
+    addBubble("Error subiendo archivo: " + e.message, "error");
+  }
+});
+
+// ── Finalizar clase ───────────────────────────────────────────
+btnEnd.addEventListener("click", async () => {
+  if (!confirm("¿Finalizar la clase y guardar todo en el cerebro?")) return;
+  addBubble("Procesando y guardando lo que aprendí…", "system");
+  btnEnd.disabled = true;
+
+  try {
+    const r = await apiFetch("/api/teach/end", { method: "POST" });
+    const data = await r.json();
+    modalContent.textContent = data.aprendizajes || "Sin contenido.";
+    modalBg.classList.add("show");
+    turnos = 0;
+    updateBadge();
+  } catch (e) {
+    addBubble("Error al finalizar: " + e.message, "error");
+  }
+  btnEnd.disabled = false;
+});
+
+// ── Modal ─────────────────────────────────────────────────────
+btnNewSession.addEventListener("click", () => {
+  modalBg.classList.remove("show");
+  while (chat.firstChild) chat.removeChild(chat.firstChild);
+  addBubble("¡Nueva clase! Contame qué más quieras enseñarme 🌿", "bot");
+});
+
+btnCloseModal.addEventListener("click", () => {
+  modalBg.classList.remove("show");
+  addBubble("Perfecto, guardé todo. Cada vez que hablés con el bot va a usar ese conocimiento 🧠", "system");
+});
+</script>
+</body>
+</html>
