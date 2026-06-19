@@ -1,8 +1,9 @@
 // ============================================================
-// CITRINO — Plataforma de enseñanza (El Cerebro)
+// CITRINO — Plataforma de enseñanza (El Cerebro) v2.1
 // Sesión de chat/voz con Claude Haiku.
 // Al finalizar, guarda aprendizajes en Google Sheets (CONOCIMIENTO)
-// y en CONOCIMIENTO.md como cache local para el admin bot.
+// y propuestas de mejora en PROPUESTAS.
+// Cache local en CONOCIMIENTO.md para el admin bot (Marta).
 // ============================================================
 
 const Anthropic       = require("@anthropic-ai/sdk");
