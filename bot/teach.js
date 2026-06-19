@@ -23,6 +23,10 @@ const CONOCIMIENTO_COLS  = ["Fecha", "Categoria", "Contenido", "Fuente"];
 const FLUJOS_SHEET = "FLUJOS";
 const FLUJOS_COLS  = ["ID", "Nombre", "Categoria", "Descripcion", "Pasos", "Ultima_Actualizacion"];
 
+// ── Hoja PROPUESTAS ───────────────────────────────────────────
+const PROPUESTAS_SHEET = "PROPUESTAS";
+const PROPUESTAS_COLS  = ["Fecha", "Propuesta", "Contexto", "Categoria", "Estado"];
+
 // ── Estado de sesión (una a la vez, en memoria) ───────────────
 let session = { active: false, messages: [], fileContext: "", startedAt: null };
 
@@ -235,8 +239,10 @@ async function rebuildMdCache() {
   }
 }
 
-// ── System prompt del modo enseñanza ─────────────────────────
-const TEACH_SYSTEM = `Sos La Conciencia de Citrino — el cerebro que aprende y recuerda todo sobre este negocio de estética y bienestar en Uruguay. Nico (el dueño) te está enseñando.
+// ── System prompt del modo enseñanza (base, sin conocimiento existente) ──
+const TEACH_SYSTEM_BASE = `Sos La Conciencia de Citrino — el cerebro que aprende y recuerda todo sobre este negocio de estética y bienestar en Uruguay. Nico (el dueño) te está enseñando.
+
+CONTEXTO CRÍTICO: Todo lo que aprendés en esta sesión va directo al sistema de Marta, el bot de WhatsApp de Citrino. Marta usa esa información para responder a las clientas en tiempo real — sobre precios, turnos, cuponeras, terapeutas, etc. Entonces cada aprendizaje que sale de acá tiene impacto directo en la experiencia de las clientas.
 
 TU MISIÓN: construir un conocimiento RICO y COMPLETO, no solo registrar lo que te dicen. Sos un colaborador activo que ayuda a Nico a articular y formalizar el saber del negocio.
 
@@ -249,6 +255,12 @@ CÓMO RESPONDÉS (en orden):
    - Si hay casos especiales con alguna clienta o terapeuta específica
    - Cómo impacta en el flujo de trabajo o en la contabilidad
 3. Si Nico da info incompleta, lo guiás a completarla
+4. Si la info que Nico da YA ESTÁ en el conocimiento existente, confirmalo brevemente ("ya tenía eso registrado") y pasá a profundizar o a otro tema
+
+CUANDO LLEGÁS A UNA CONCLUSIÓN O PROPUESTA DE MEJORA:
+- Marcala claramente con "💡 PROPUESTA: ..." al final de tu respuesta
+- Ejemplos: "💡 PROPUESTA: Agregar al flujo de cobro un mensaje automático de confirmación de pago"
+- Estas propuestas se guardan automáticamente para que Nico y Claude las trabajen juntos
 
 CUANDO NICO DESCRIBE UN FLUJO O PROCESO:
 - Lo escuchás completo primero
@@ -266,6 +278,13 @@ TONO: cálido, directo, con "vos". Máx 4 líneas por respuesta. No seas repetit
 • Reglas y excepciones (cuándo se hace una excepción y quién la autoriza)
 • Contabilidad (qué se registra, qué no, cómo se manejan los ingresos)
 • Situaciones especiales (conflictos, problemas frecuentes, cómo se resuelven)`;
+
+// Construye el system prompt inyectando el conocimiento existente
+function buildTeachSystem() {
+  const conocimiento = getConocimiento();
+  if (!conocimiento) return TEACH_SYSTEM_BASE;
+  return TEACH_SYSTEM_BASE + `\n\n═══ CONOCIMIENTO YA REGISTRADO (no volver a preguntar esto) ═══\n${conocimiento}\n═══ FIN DEL CONOCIMIENTO EXISTENTE ═══`;
+}
 
 // ── Iniciar o continuar sesión ────────────────────────────────
 function ensureSession() {
@@ -289,8 +308,8 @@ async function chat(userMessage) {
 
   const response = await anthropic.messages.create({
     model:      "claude-haiku-4-5-20251001",
-    max_tokens: 250,
-    system:     TEACH_SYSTEM,
+    max_tokens: 300,
+    system:     buildTeachSystem(),
     messages:   trimmed,
   });
 
@@ -379,11 +398,39 @@ EJEMPLO:
     Fuente:    "clase",
   }));
 
-  // Guardar en Sheets
+  // Extraer propuestas de mejora de la misma transcripción
+  let propuestas = [];
+  try {
+    const propResponse = await anthropic.messages.create({
+      model:      "claude-haiku-4-5-20251001",
+      max_tokens: 800,
+      system: `Analizás una conversación de enseñanza sobre Citrino (centro de estética en Uruguay). Tu tarea: extraer ÚNICAMENTE las propuestas de mejora, ideas de implementación, o conclusiones accionables que surgieron — ya sea marcadas con "💡 PROPUESTA:" o implícitas en la conversación como "sería bueno que...", "habría que...", "podría mejorarse...", "falta definir...".
+
+DEVOLVÉS SOLO JSON válido (array, puede ser vacío []):
+[{ "propuesta": "descripción concreta de la mejora", "contexto": "de qué parte de la conversación surgió", "categoria": "flujo|bot|precio|atención|sistema|comunicación" }]
+
+Si no hay propuestas concretas, devolvé [].`,
+      messages: [{ role: "user", content: transcript }],
+    });
+    const propTxt = propResponse.content[0].text.trim().replace(/```json\n?|\n?```/g, "");
+    const parsed = JSON.parse(propTxt);
+    if (Array.isArray(parsed)) propuestas = parsed.filter(p => p.propuesta && p.propuesta.length > 10);
+  } catch (e) {
+    console.error("⚠️ No se pudieron extraer propuestas:", e.message);
+  }
+
+  // Guardar aprendizajes en Sheets
   try {
     await appendConocimientoRows(rowsToAdd);
   } catch (e) {
-    console.error("❌ Error guardando en Sheets:", e.message);
+    console.error("❌ Error guardando conocimiento en Sheets:", e.message);
+  }
+
+  // Guardar propuestas en Sheets
+  try {
+    await appendPropuestas(propuestas);
+  } catch (e) {
+    console.error("❌ Error guardando propuestas en Sheets:", e.message);
   }
 
   // Reconstruir cache .md
@@ -391,7 +438,69 @@ EJEMPLO:
 
   // Reset sesión
   session = { active: false, messages: [], fileContext: "", startedAt: null };
-  return { ok: true, aprendizajes: rowsToAdd };
+  return { ok: true, aprendizajes: rowsToAdd, propuestas };
+}
+
+// ── PROPUESTAS: infraestructura de sheets ────────────────────
+async function ensurePropuestasHeader() {
+  const api = await getSheetsApi();
+  try {
+    const resp = await api.spreadsheets.values.get({
+      spreadsheetId: TEACH_SHEET_ID,
+      range: `${PROPUESTAS_SHEET}!A1:E1`,
+    });
+    if (!resp.data.values?.length) throw new Error("no header");
+  } catch {
+    try {
+      await api.spreadsheets.batchUpdate({
+        spreadsheetId: TEACH_SHEET_ID,
+        requestBody: { requests: [{ addSheet: { properties: { title: PROPUESTAS_SHEET } } }] },
+      });
+    } catch {}
+    await api.spreadsheets.values.update({
+      spreadsheetId: TEACH_SHEET_ID,
+      range: `${PROPUESTAS_SHEET}!A1`,
+      valueInputOption: "RAW",
+      requestBody: { values: [PROPUESTAS_COLS] },
+    });
+  }
+}
+
+async function appendPropuestas(propuestas) {
+  if (!propuestas.length) return;
+  await ensurePropuestasHeader();
+  const api = await getSheetsApi();
+  const fecha = new Date().toLocaleDateString("es-UY", {
+    day: "numeric", month: "long", year: "numeric", timeZone: "America/Montevideo",
+  });
+  await api.spreadsheets.values.append({
+    spreadsheetId:    TEACH_SHEET_ID,
+    range:            `${PROPUESTAS_SHEET}!A1`,
+    valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: propuestas.map(p => [fecha, p.propuesta || "", p.contexto || "", p.categoria || "General", "pendiente"]),
+    },
+  });
+}
+
+async function readPropuestas() {
+  await ensurePropuestasHeader();
+  const api = await getSheetsApi();
+  const resp = await api.spreadsheets.values.get({
+    spreadsheetId: TEACH_SHEET_ID,
+    range: `${PROPUESTAS_SHEET}!A1:E`,
+  });
+  const rows = resp.data.values || [];
+  if (rows.length < 2) return [];
+  return rows.slice(1).map((row, idx) => ({
+    _rowIndex: idx + 2,
+    Fecha:     row[0] || "",
+    Propuesta: row[1] || "",
+    Contexto:  row[2] || "",
+    Categoria: row[3] || "",
+    Estado:    row[4] || "pendiente",
+  })).filter(r => r.Propuesta);
 }
 
 // ── Info de sesión actual ─────────────────────────────────────
@@ -499,4 +608,5 @@ module.exports = {
   chat, addFile, endSession, getSessionInfo, getConocimiento, getKnowledgeRelevantTo,
   readConocimientoSheet, appendConocimientoRows, updateConocimientoRow, deleteConocimientoRow, rebuildMdCache,
   readFlujos, appendFlujo, updateFlujo, deleteFlujo, getFlujos, rebuildFlujosMdCache,
+  readPropuestas, appendPropuestas,
 };

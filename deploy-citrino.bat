@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "fix: smart retrieval con categoria + admin usa retrieval inteligente + startup rebuild robusto"
+git commit -m "feat: teach sabe que es para bot Marta + no repregunta conocimiento existente + hoja PROPUESTAS"
 git push origin main
 echo Push OK.
 echo.
