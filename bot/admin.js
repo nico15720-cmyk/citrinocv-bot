@@ -406,12 +406,24 @@ async function ejecutarAccionAdmin(accion, datos) {
       case "enviar_individual": {
         const telefono = (accion.telefono || "").replace(/\D/g, "");
         const mensajeInd = accion.mensaje || "";
+        const nombreDest = accion.nombre || telefono || "la clienta";
         if (!telefono || !mensajeInd) return "⚠️ Falta teléfono o mensaje.";
         // Asegurar formato internacional (Uruguay)
         const dest = telefono.startsWith("598") ? telefono : `598${telefono.replace(/^0/, "")}`;
+
+        // ── Confirmación previa obligatoria ──────────────────────
+        if (!accion.confirmado) {
+          return (
+            `📤 *¿Confirmar envío?*\n` +
+            `👤 *${nombreDest}* (${dest})\n\n` +
+            `📝 "${mensajeInd}"\n\n` +
+            `Respondé *"sí"* para enviar o *"no"* para cancelar.`
+          );
+        }
+
         try {
           await enviarMensaje(dest, mensajeInd, "whatsapp");
-          return `✅ Mensaje enviado a ${dest}`;
+          return `✅ Mensaje enviado a *${nombreDest}*`;
         } catch (e) {
           return `❌ No se pudo enviar a ${dest}: ${e.message}`;
         }
@@ -676,17 +688,39 @@ Podés ejecutar MÚLTIPLES acciones seguidas (un bloque por acción).
 "Este es el número de Ana: 099 123 456"
 → buscar_cliente (telefono:"099123456") para ver quién es, luego podés ejecutar acciones sobre ella.
 
-═══ ENVIAR MENSAJE A UNA CLIENTA ═══
-Cuando Nico quiere mandar un mensaje a una clienta específica (por nombre o teléfono):
+═══ ENVIAR MENSAJE A UNA CLIENTA — FLUJO OBLIGATORIO ═══
+⚠️ NUNCA enviés un mensaje individual sin confirmación previa. El flujo siempre es de 2 pasos.
+
+PASO 1 — Si Nico da solo un nombre (sin teléfono):
+→ ejecutá buscar_cliente(nombre:"...") PRIMERO para obtener el teléfono y confirmar quién es.
+→ Cuando veas el resultado, proponé el envío con los datos exactos (nombre + tel).
+
+PASO 2 — Cuando ya tenés el teléfono (de buscar_cliente o porque Nico lo dio directamente):
+→ Emitís enviar_individual SIN confirmado (o confirmado:false) para mostrar preview.
+→ El sistema muestra: "¿Confirmar envío? 👤 Nombre (tel) 📝 mensaje" y espera SÍ/NO de Nico.
+
+PASO 3 — Cuando Nico responde "sí", "dale", "enviá":
+→ Emitís la MISMA acción enviar_individual con los MISMOS parámetros del turno anterior + "confirmado":true.
+→ Leé el historial para recuperar el teléfono y el mensaje exactos.
+
+Ejemplos:
 "Mandále a Silvana que la sesión de mañana se posterga"
-→ enviar_individual(telefono:"59899XXXXXX", mensaje:"texto")
+→ buscar_cliente(nombre:"Silvana") → luego enviar_individual(nombre:"Silvana",telefono:"598...",mensaje:"...")
 
-"Mandále a este número: 098 123 456 → el turno es a las 10"
-→ enviar_individual(telefono:"59898123456", mensaje:"texto")
+"Mandále a este número 098 123 456 que el turno es a las 10"
+→ enviar_individual(nombre:"cliente",telefono:"59898123456",mensaje:"Hola! Su turno de hoy es a las 10hs 🌿")
 
-Si Nico da solo un nombre, primero buscá el cliente para obtener el teléfono, después enviá.
-<admin_accion>{"tipo":"enviar_individual","telefono":"59899123456","mensaje":"Hola! Le avisamos que..."}</admin_accion>
-→ Envía el mensaje directamente a esa clienta por WhatsApp. SIEMPRE podés hacer esto.
+"sí" / "dale" / "enviá" (después de ver el preview)
+→ Repetís la acción con confirmado:true.
+
+<admin_accion>{"tipo":"enviar_individual","nombre":"Silvana","telefono":"59899123456","mensaje":"Hola Silvana! Le avisamos que...","confirmado":false}</admin_accion>
+→ Muestra PREVIEW del envío — NO manda hasta que Nico confirme.
+
+<admin_accion>{"tipo":"enviar_individual","nombre":"Silvana","telefono":"59899123456","mensaje":"Hola Silvana! Le avisamos que...","confirmado":true}</admin_accion>
+→ Manda el mensaje (solo después de que Nico dijo sí).
+
+⚠️ SI EL NOMBRE ES AMBIGUO (puede ser más de una persona):
+→ Hacé buscar_cliente ANTES de proponer el envío. Nunca asumas el teléfono.
 
 ═══ ENVÍO MASIVO ═══
 Cuando Nico quiere mandar un mensaje a un grupo de clientas:
@@ -762,8 +796,10 @@ En riesgo ⚠️ no volvió en +30 días
 - Ejemplo: si buscaste a Silvia y luego Nico pregunta "¿tiene cuponera?", respondé sobre Silvia directamente.
 
 ⚠️ SOBRE NOMBRES AMBIGUOS:
-Si el nombre de una clienta puede coincidir con múltiples, igual generá la acción con el nombre que te dio Nico.
-El sistema automáticamente detectará si hay duplicados y pedirá aclaración.
+Si el nombre puede coincidir con más de una persona (ej: "Milena" → Milena Rodríguez + Iri Milena):
+- Para acciones de marcado/nota/cuponera → el sistema detecta duplicados y pregunta. Igual generá la acción.
+- Para ENVIAR MENSAJE → hacé buscar_cliente PRIMERO. No generes enviar_individual hasta confirmar el teléfono exacto.
+Si en el CRM hay "Iri Milena" y "Milena Rodríguez" y Nico dice "Milena", preguntá cuál es ANTES de actuar.
 
 ⚠️ SOBRE CUPONERA Y SESIONES RESTANTES:
 El campo "Ses.Rest." del contexto de clientes está DESACTUALIZADO — NUNCA lo uses para responder.

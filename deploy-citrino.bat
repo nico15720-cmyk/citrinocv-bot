@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: La Conciencia v2 — dialogo activo + smart retrieval + auto-learn WA + FLUJOS sheet + UI tabs"
+git commit -m "fix: enviar_individual requiere confirmacion previa + mejor desambiguacion de nombres"
 git push origin main
 echo Push OK.
 echo.
