@@ -212,14 +212,46 @@ Generá un análisis semanal con: qué está yendo bien, qué mejorar, y 2-3 acc
 // ============================================================
 // ANALIZAR UNA CONVERSACIÓN ESPECÍFICA
 // Llamado después de cada intercambio para detectar señales
+// OPTIMIZADO: pre-screening por keywords + rate limit por usuario
 // ============================================================
+
+// Palabras que indican situaciones que ameritan análisis LLM
+const KEYWORDS_ALERTA = [
+  "urgente", "urgente!", "dolor", "duele", "me lastimé", "accidente",
+  "queja", "molesta", "enojada", "mal", "terrible", "pésimo", "horrible",
+  "devolver", "reembolso", "reintegro", "estafa", "fraude",
+  "alérgica", "reacción", "hinchazón",
+  "vip", "empresa", "empleadas", "grupo", "todas",
+  "nunca más", "cancelo", "cancelar todo",
+];
+
+// Rate limit: un análisis por usuario cada 15 minutos
+const _ultimoAnalisisPorUser = new Map();
+
+function _necesitaAnalisis(userId, historial) {
+  // Mínimo 6 mensajes (antes era 4)
+  if (historial.length < 6) return false;
+
+  // Rate limit: no analizar si se analizó hace menos de 15 minutos
+  const ahora = Date.now();
+  const ultimoTs = _ultimoAnalisisPorUser.get(userId);
+  if (ultimoTs && (ahora - ultimoTs) < 15 * 60 * 1000) return false;
+
+  // Pre-screening: solo llamar LLM si hay keywords de alerta en los últimos 4 mensajes
+  const ultimos = historial.slice(-4).map(m => (m.content || "").toLowerCase()).join(" ");
+  return KEYWORDS_ALERTA.some(kw => ultimos.includes(kw));
+}
+
 async function analizarConversacion(userId, historial, datosCliente) {
   try {
-    if (historial.length < 4) return null; // muy poco contexto
+    if (!_necesitaAnalisis(userId, historial)) return null;
+
+    // Registrar timestamp antes de llamar para evitar llamadas simultáneas
+    _ultimoAnalisisPorUser.set(userId, Date.now());
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 200,
+      max_tokens: 150,
       system: `Analizás conversaciones de un spa de masajes. Detectás señales importantes y decidís si hay que actuar.
 Respondé SOLO con JSON: {"accion": "ninguna"} o {"accion": "alertar_dueno", "motivo": "..."}
 Alertar solo si: cliente muy frustrado, consulta urgente médica, queja seria, oportunidad de venta VIP clara.`,
@@ -269,8 +301,24 @@ async function autoAprendizajeDesdeConversaciones() {
     const yaConocido = await readConocimientoSheet();
     const contenidosExistentes = new Set(yaConocido.map(r => r.Contenido.substring(0, 60).toLowerCase()));
 
-    // Construir muestra de conversaciones (últimas 20 con historial)
-    const muestra = conHistorial.slice(-20).map(c => {
+    // Gate de actividad: solo procesar si hay conversaciones con actividad en las últimas 24h
+    const hace24h = Date.now() - 24 * 60 * 60 * 1000;
+    const conActividadReciente = conHistorial.filter(c => {
+      try {
+        const hist = JSON.parse(c.Historial_JSON);
+        const ultimoMsg = hist[hist.length - 1];
+        if (!ultimoMsg?.timestamp) return false;
+        return new Date(ultimoMsg.timestamp).getTime() > hace24h;
+      } catch { return false; }
+    });
+
+    if (!conActividadReciente.length) {
+      console.log("🧠 [auto-learn] Sin actividad en las últimas 24h — saltando.");
+      return { ok: true, aprendidos: 0 };
+    }
+
+    // Construir muestra de conversaciones (últimas 8 con historial, reducido de 20)
+    const muestra = conHistorial.slice(-8).map(c => {
       let hist = [];
       try { hist = JSON.parse(c.Historial_JSON); } catch {}
       const resumen = hist.slice(-6).map(m => `${m.role === "user" ? "Cliente" : "Marta"}: ${m.content}`).join("\n");

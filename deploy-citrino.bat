@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "feat: teach sabe que es para bot Marta + no repregunta conocimiento existente + hoja PROPUESTAS"
+git commit -m "perf: reducir consumo de tokens — keyword pre-screening + rate limit en analizarConversacion + auto-aprendizaje cada 3 dias"
 git push origin main
 echo Push OK.
 echo.

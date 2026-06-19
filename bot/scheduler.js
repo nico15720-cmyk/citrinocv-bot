@@ -1144,7 +1144,8 @@ function startScheduler() {
   cron.schedule("30 23 * * *", cerrarNoShows, { timezone: "America/Montevideo" });
 
   // ── Auto-aprendizaje nocturno — 02:00 (analiza conversaciones del día y extrae patrones) ─
-  cron.schedule("0 2 * * *", async () => {
+  // Corre cada 3 días a las 02:00 (días 1, 4, 7... del mes) — era diario, reducido para ahorrar tokens
+  cron.schedule("0 2 */3 * *", async () => {
     try {
       const { autoAprendizajeDesdeConversaciones } = require("./consciousness");
       const resultado = await autoAprendizajeDesdeConversaciones();
