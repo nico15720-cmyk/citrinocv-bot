@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "fix: enviar_individual requiere confirmacion previa + mejor desambiguacion de nombres"
+git commit -m "fix: smart retrieval con categoria + admin usa retrieval inteligente + startup rebuild robusto"
 git push origin main
 echo Push OK.
 echo.

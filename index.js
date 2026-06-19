@@ -1615,11 +1615,25 @@ app.listen(PORT, async () => {
   startScheduler(); // recordatorios + remarketing
 
   // Reconstruir caches al arrancar (Railway no persiste archivos entre deploys)
-  try {
+  // Reintenta hasta 3 veces con pausa de 5s para tolerar Sheets API flaky al cold start
+  (async () => {
     const { rebuildMdCache, rebuildFlujosMdCache } = require("./bot/teach");
-    await Promise.all([rebuildMdCache(), rebuildFlujosMdCache()]);
-    console.log("🧠 Caches de Conocimiento y Flujos reconstruidos al arrancar.");
-  } catch (err) {
-    console.warn("⚠️ No se pudo reconstruir caches:", err.message);
-  }
+    for (let intento = 1; intento <= 3; intento++) {
+      try {
+        const [conocRows, flujoRows] = await Promise.all([rebuildMdCache(), rebuildFlujosMdCache()]);
+        console.log(`🧠 Caches reconstruidos al arrancar (intento ${intento}).`);
+        // Verificar que el .md efectivamente se escribió
+        const fs = require("fs"), path = require("path");
+        const mdPath = path.join(__dirname, "CONOCIMIENTO.md");
+        const existe = fs.existsSync(mdPath);
+        const tamanio = existe ? fs.statSync(mdPath).size : 0;
+        console.log(`📚 CONOCIMIENTO.md: ${existe ? `${tamanio} bytes` : "vacío/no creado"}`);
+        break; // éxito, salir del loop
+      } catch (err) {
+        console.error(`❌ Error reconstruyendo caches (intento ${intento}/3): ${err.message}`);
+        if (intento < 3) await new Promise(r => setTimeout(r, 5000));
+        else console.error("⛔ Cache de conocimiento NO disponible. El bot funcionará sin él.");
+      }
+    }
+  })();
 });

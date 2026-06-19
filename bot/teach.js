@@ -127,52 +127,88 @@ function getConocimiento() {
 }
 
 // ── Smart retrieval: devuelve solo los fragmentos MÁS RELEVANTES al contexto ──
-// Evita inyectar TODA la base de conocimiento en cada prompt (que crece con el tiempo).
-// Usa scoring de palabras clave: busca términos del contexto en cada entrada.
-// Siempre incluye las categorías de alto impacto (Reglas, Flujos).
-function getKnowledgeRelevantTo(contexto = "", maxEntradas = 20) {
+// Parsea el .md respetando la jerarquía de categorías (## Categoria → - item).
+// El boost de categorías prioritarias funciona porque comparamos contra el nombre
+// de la sección, no contra el texto del item.
+// Siempre incluye TODOS los items de categorías de alto impacto.
+function getKnowledgeRelevantTo(contexto = "", maxEntradas = 25) {
   try {
     if (!fs.existsSync(CONOCIMIENTO_MD)) return "";
 
-    // Parsear el .md en líneas de items
     const raw = fs.readFileSync(CONOCIMIENTO_MD, "utf8");
-    const lineas = raw.split("\n").filter(l => l.startsWith("- "));
-    const items = lineas.map(l => l.slice(2).trim()).filter(Boolean);
+
+    // ── Parsear con contexto de categoría ────────────────────────
+    const lineas = raw.split("\n");
+    const items = [];          // { text, cat }
+    let currentCat = "General";
+    for (const l of lineas) {
+      if (l.startsWith("## ")) {
+        currentCat = l.slice(3).trim();
+      } else if (l.startsWith("- ")) {
+        const text = l.slice(2).trim();
+        if (text) items.push({ text, cat: currentCat });
+      }
+    }
 
     if (!items.length) return "";
 
-    // Si hay pocas entradas, devolver todo
+    // Si hay pocas entradas, devolver todo el .md tal cual
     if (items.length <= maxEntradas) return raw;
 
-    // Palabras clave del contexto (normalizado)
+    // ── Palabras clave del contexto (normalizado) ─────────────────
     const palabras = contexto.toLowerCase()
       .replace(/[^a-záéíóúüñ\s]/gi, " ")
       .split(/\s+/)
       .filter(w => w.length > 3);
 
-    // Categorías siempre incluidas (alto impacto para el bot)
-    const CATS_PRIORITARIAS = ["reglas de negocio", "flujos del negocio", "precios", "horarios", "identidad"];
+    // Categorías que SIEMPRE se incluyen completas (críticas para el bot)
+    const CATS_SIEMPRE = new Set([
+      "Reglas de Negocio",
+      "Precios y Productos",
+      "Identidad del Negocio",
+      "Horarios",
+    ]);
 
-    // Score cada item
-    const scored = items.map(item => {
-      const itemLow = item.toLowerCase();
+    // Categorías que se priorizan en el scoring
+    const CATS_BOOST = ["reglas", "precios", "flujos", "horarios", "identidad", "situaciones especiales"];
+
+    // ── Score cada item ───────────────────────────────────────────
+    const scored = items.map(({ text, cat }) => {
+      const haystack = (text + " " + cat).toLowerCase();
       let score = 0;
-      // Palabras del contexto que aparecen en el item
-      for (const p of palabras) { if (itemLow.includes(p)) score += 2; }
-      // Boost para categorías prioritarias
-      for (const cat of CATS_PRIORITARIAS) { if (itemLow.includes(cat)) score += 1; }
-      // Items muy cortos son menos valiosos
-      if (item.length < 40) score -= 1;
-      return { item, score };
+
+      // Items de categorías críticas: siempre incluidos
+      if (CATS_SIEMPRE.has(cat)) score += 10;
+
+      // Boost por categoría relevante
+      for (const b of CATS_BOOST) { if (cat.toLowerCase().includes(b)) score += 3; }
+
+      // Keywords del contexto que matchean
+      for (const p of palabras) { if (haystack.includes(p)) score += 2; }
+
+      // Items muy cortos aportan menos
+      if (text.length < 40) score -= 1;
+
+      return { text, cat, score };
     });
 
     // Ordenar por score, tomar los top N
     const seleccionados = scored
       .sort((a, b) => b.score - a.score)
-      .slice(0, maxEntradas)
-      .map(s => s.item);
+      .slice(0, maxEntradas);
 
-    return "## Conocimiento relevante de Citrino\n" + seleccionados.map(i => `- ${i}`).join("\n");
+    // Reagrupar por categoría para output limpio
+    const porCat = {};
+    for (const { text, cat } of seleccionados) {
+      if (!porCat[cat]) porCat[cat] = [];
+      porCat[cat].push(text);
+    }
+
+    let out = "## 🌿 Conocimiento relevante de Citrino\n\n";
+    for (const [cat, textos] of Object.entries(porCat)) {
+      out += `### ${cat}\n${textos.map(t => `- ${t}`).join("\n")}\n\n`;
+    }
+    return out.trim();
   } catch {
     return getConocimiento(); // fallback al texto completo
   }

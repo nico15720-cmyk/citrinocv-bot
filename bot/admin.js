@@ -25,7 +25,7 @@ const { appendRow: appendRowSheets, getSaldoClienteBot } = require("./sheets-crm
 const { detectarYAplicarCambio } = require("./self-fix");
 const { reporteLeads, reporteVIP, reporteInactivos, reporteCuponeras, reporteAgendadas } = require("./reportes");
 const { construirContenidoConImagen } = require("./media");
-const { getConocimiento } = require("./teach");
+const { getConocimiento, getKnowledgeRelevantTo } = require("./teach");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const TIMEZONE = "America/Montevideo";
@@ -806,7 +806,12 @@ El campo "Ses.Rest." del contexto de clientes está DESACTUALIZADO — NUNCA lo 
 Para saber cuántas sesiones tiene una clienta, ejecutá buscar_cliente y usá el resultado de la acción.
 En tu texto NO menciones sesiones restantes antes de tener el resultado de la acción.
 
-${(() => { const k = getConocimiento(); return k ? `\n═══ CONOCIMIENTO DEL NEGOCIO (aprendido por el dueño) ═══\n${k}\n` : ""; })()}
+${(() => {
+    // Smart retrieval: inyectamos solo lo relevante al mensaje de Nico (hasta 30 items)
+    // Las categorías críticas (Reglas, Precios, Identidad) siempre se incluyen completas.
+    const k = getKnowledgeRelevantTo(text, 30);
+    return k ? `\n═══ CONOCIMIENTO DEL NEGOCIO ═══\n${k}\n` : "";
+  })()}
 ${resumenNegocio}`,
       messages: historialAdmin.map(m => ({ role: m.role, content: m.content })),
     });
