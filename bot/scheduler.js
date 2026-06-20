@@ -1427,8 +1427,8 @@ function startScheduler() {
   // ── Agenda del día siguiente para Nico — 20:00 ────────────
   cron.schedule("0 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
 
-  // ── Re-booking post-sesión — 10:00 (invitar próximo turno) ──
-  cron.schedule("0 10 * * *", enviarRebooking, { timezone: "America/Montevideo" });
+  // ── Re-booking post-sesión — 10:00 (invitar próximo turno) — DESACTIVADO por ahora ──
+  // cron.schedule("0 10 * * *", enviarRebooking, { timezone: "America/Montevideo" });
 
   // ── Re-marketing leads sin turno (+7 días) — 10:30 ────────
   cron.schedule("30 10 * * *", enviarRemarketing, { timezone: "America/Montevideo" });
@@ -1436,14 +1436,14 @@ function startScheduler() {
   // ── Seguimiento post-sesión — 11:00 ───────────────────────
   cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
 
-  // ── NPS post-sesión — 13:00 ────────────────────────────────
-  cron.schedule("0 13 * * *", enviarNPSPostSesion, { timezone: "America/Montevideo" });
+  // ── NPS post-sesión — 13:00 — DESACTIVADO por ahora ────────
+  // cron.schedule("0 13 * * *", enviarNPSPostSesion, { timezone: "America/Montevideo" });
 
-  // ── Recordatorio 2hs antes del turno — cada 30 min ─────────
-  cron.schedule("*/30 * * * *", enviarRecordatorio2hs, { timezone: "America/Montevideo" });
+  // ── Recordatorio 2hs antes del turno — cada 30 min — DESACTIVADO por ahora ──
+  // cron.schedule("*/30 * * * *", enviarRecordatorio2hs, { timezone: "America/Montevideo" });
 
-  // ── Bienvenida primera visita — 16:00 ─────────────────────
-  cron.schedule("0 16 * * *", enviarBienvenidaPrimeraVisita, { timezone: "America/Montevideo" });
+  // ── Bienvenida primera visita — 16:00 — DESACTIVADO por ahora ──
+  // cron.schedule("0 16 * * *", enviarBienvenidaPrimeraVisita, { timezone: "America/Montevideo" });
 
   // ── Check-in diario — 21:00 ────────────────────────────────
   cron.schedule("0 21 * * *", enviarCheckInDiario, { timezone: "America/Montevideo" });
