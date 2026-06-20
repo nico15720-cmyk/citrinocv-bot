@@ -18,7 +18,7 @@ const {
 } = require("./crm");
 const { getDisponibilidad, formatearDisponibilidad, crearReservasFantasma, liberarGhostExpiradas, getEventosAgenda } = require("./calendar");
 const { tomarDecisiones } = require("./consciousness");
-const { procesarMensajesPendientes } = require("./conversation");
+const { procesarMensajesPendientes, npsEsperando } = require("./conversation");
 const { verificarSalud } = require("./utils");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -111,6 +111,50 @@ const MENSAJES = {
   recuperacionNoShow: (nombre) =>
     `¡Hola ${nombre || ""}! 🌿 Vimos que hoy no pudo venir a su turno en Citrino, esperamos que esté bien 🙏\n\n` +
     `Cuando quiera reagendamos sin problema. ¿Cuándo le quedaría bien esta semana?`,
+
+  // ── RECORDATORIO 2 HORAS ANTES ───────────────────────────────
+  recordatorio2hs: (nombre, hora) =>
+    `¡Hola ${nombre || ""}! 🌿 Le recordamos que su turno en Citrino es *hoy a las ${hora}*.\n\n` +
+    `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz, Ciudad Vieja\n\n` +
+    `¡La esperamos! 💛`,
+
+  // ── NPS POST-SESIÓN ───────────────────────────────────────────
+  npsPostSesion: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 Esperamos que haya disfrutado su sesión en Citrino 💆‍♀️\n\n` +
+    `¿Nos podría contar cómo estuvo su experiencia? *Responda con un número del 1 al 5:*\n\n` +
+    `⭐ 1 = Mejorable\n⭐⭐ 2 = Regular\n⭐⭐⭐ 3 = Bien\n⭐⭐⭐⭐ 4 = Muy bien\n⭐⭐⭐⭐⭐ 5 = Excelente\n\n` +
+    `Su opinión nos ayuda a mejorar 🙏`,
+
+  // ── RE-BOOKING POST-SESIÓN ────────────────────────────────────
+  rebooking: (nombre) =>
+    `¡Hola ${nombre || ""}! 🌿 ¿Cómo se siente después de su sesión?\n\n` +
+    `Los resultados se notan mucho más cuando se mantiene la frecuencia. ¿Le reservamos el próximo turno para que no pierda el ritmo? 💆‍♀️\n\n` +
+    `¿Qué día de la semana le quedaría mejor?`,
+
+  // ── BIENVENIDA PRIMERA VISITA ─────────────────────────────────
+  bienvenidaPrimeraVisita: (nombre, hora) =>
+    `¡Hola ${nombre || ""}! 🌿 Le escribimos de Citrino para recordarle que *mañana tiene su primera sesión con nosotros* 💛\n\n` +
+    `📍 *Sarandí 554 apto. 1* — frente a Plaza Matriz, Ciudad Vieja\n` +
+    `🕐 Le esperamos a las *${hora}* — le pedimos llegar 5 minutos antes\n\n` +
+    `*Para aprovechar al máximo su sesión:*\n` +
+    `✅ Ropa cómoda y holgada\n` +
+    `✅ Hidratarse bien antes y después\n` +
+    `✅ Evitar comidas pesadas las 2hs previas\n` +
+    `✅ Si tiene alguna condición médica, avisarnos\n\n` +
+    `¡La esperamos con muchas ganas! 🌿`,
+
+  // ── CUMPLEAÑOS ────────────────────────────────────────────────
+  cumpleanos: (nombre) =>
+    `¡Feliz cumpleaños ${nombre || ""}! 🎂🌿\n\n` +
+    `En Citrino queremos celebrar este día especial con usted. *Como regalo, tiene un 15% de descuento* en cualquier sesión durante los próximos 7 días 🎁\n\n` +
+    `¿Le agendamos algo especial para celebrar? 💛`,
+
+  // ── PUNTOS FIDELIDAD: NOTIFICACIÓN ───────────────────────────
+  puntosAcumulados: (nombre, puntos) =>
+    `¡Hola ${nombre || ""}! 🌿 Tiene *${puntos} puntos* de fidelidad en Citrino.\n\n` +
+    (puntos >= 8
+      ? `🎉 *¡Llegó a 8 puntos!* Tiene una sesión de regalo disponible. ¿La agendamos? 💛`
+      : `Le faltan *${8 - puntos} sesiones* para ganar una sesión de regalo 🎁\n¡Siga así! 💪`),
 };
 
 // ============================================================
@@ -1110,11 +1154,263 @@ async function enviarRecordatorio18hs() {
 }
 
 // ============================================================
+// RECORDATORIO 2 HORAS ANTES DEL TURNO
+// Corre cada 30 min y envía recordatorio a clientas con turno en 1.5–2.5 hs
+// ============================================================
+async function enviarRecordatorio2hs() {
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = new Date();
+
+    const candidatas = clientes.filter(c => {
+      if (!c.Fecha_Turno || !c.ID_Cliente) return false;
+      const estados = ["confirmado", "agendado", "pendiente_confirmacion"];
+      if (!estados.includes(c.Estado)) return false;
+      const turno = new Date(c.Fecha_Turno);
+      const diffMin = (turno - ahora) / 60000;
+      return diffMin >= 90 && diffMin <= 150; // entre 1.5h y 2.5h
+    });
+
+    for (const c of candidatas) {
+      try {
+        const hora = new Date(c.Fecha_Turno).toLocaleTimeString("es-UY", {
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo"
+        });
+        await enviarMensaje(
+          c.ID_Cliente,
+          MENSAJES.recordatorio2hs(c.Nombre || "", hora),
+          c.Canal || "whatsapp"
+        );
+        console.log(`⏰ [2hs] Recordatorio enviado → ${c.ID_Cliente} (${c.Nombre})`);
+        await new Promise(r => setTimeout(r, 800));
+      } catch (e) {
+        console.error(`❌ [2hs] Error con ${c.ID_Cliente}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error("❌ [recordatorio2hs] Error:", e.message);
+  }
+}
+
+// ============================================================
+// NPS POST-SESIÓN — corre diario a las 13:00
+// Envía encuesta 1-5 a clientas que vinieron ayer
+// ============================================================
+async function enviarNPSPostSesion() {
+  console.log("⭐ [NPS] Enviando encuestas post-sesión...");
+  try {
+    const { readSheet, upsertCliente: upsert } = require("./sheets-crm");
+    const { npsEsperando } = require("./conversation");
+
+    const clientes = await readSheet("CLIENTES");
+    const ahora = new Date();
+    const ayer = new Date(ahora);
+    ayer.setDate(ayer.getDate() - 1);
+    const ayerStr = ayer.toISOString().split("T")[0];
+
+    const candidatas = clientes.filter(c => {
+      if (!c.ID_Cliente) return false;
+      if (c.NPS_Pendiente === "si") return false; // ya enviado
+      if (c.Estado !== "vino") return false;
+      if (!c.Fecha_Turno) return false;
+      const fechaTurno = c.Fecha_Turno.split("T")[0];
+      return fechaTurno === ayerStr;
+    });
+
+    for (const c of candidatas) {
+      try {
+        await enviarMensaje(
+          c.ID_Cliente,
+          MENSAJES.npsPostSesion(c.Nombre || ""),
+          c.Canal || "whatsapp"
+        );
+        npsEsperando.set(c.ID_Cliente, true);
+        await upsert({ ID_Cliente: c.ID_Cliente, NPS_Pendiente: "si" });
+        // Incrementar puntos de fidelidad por la sesión completada
+        incrementarPuntosFidelidad(c.ID_Cliente, c.Nombre || "", c.Canal || "whatsapp").catch(() => {});
+        console.log(`⭐ [NPS] Enviado → ${c.ID_Cliente} (${c.Nombre})`);
+        await new Promise(r => setTimeout(r, 800));
+      } catch (e) {
+        console.error(`❌ [NPS] Error con ${c.ID_Cliente}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error("❌ [NPS] Error general:", e.message);
+  }
+}
+
+// ============================================================
+// RE-BOOKING POST-SESIÓN — corre diario a las 10:00
+// Invita a reservar el próximo turno a clientas que vinieron hace 2 días
+// ============================================================
+async function enviarRebooking() {
+  console.log("📅 [rebooking] Enviando invitaciones de próxima sesión...");
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = new Date();
+    const hace2dias = new Date(ahora);
+    hace2dias.setDate(hace2dias.getDate() - 2);
+    const hace2diasStr = hace2dias.toISOString().split("T")[0];
+
+    const candidatas = clientes.filter(c => {
+      if (!c.ID_Cliente || c.Estado !== "vino") return false;
+      if (!c.Fecha_Turno) return false;
+      const fechaTurno = c.Fecha_Turno.split("T")[0];
+      // Solo si NO tiene otro turno agendado ya
+      if (c.Estado === "agendado" || c.Estado === "confirmado") return false;
+      return fechaTurno === hace2diasStr;
+    });
+
+    for (const c of candidatas) {
+      try {
+        await enviarMensaje(
+          c.ID_Cliente,
+          MENSAJES.rebooking(c.Nombre || ""),
+          c.Canal || "whatsapp"
+        );
+        console.log(`📅 [rebooking] Enviado → ${c.ID_Cliente} (${c.Nombre})`);
+        await new Promise(r => setTimeout(r, 800));
+      } catch (e) {
+        console.error(`❌ [rebooking] Error con ${c.ID_Cliente}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error("❌ [rebooking] Error general:", e.message);
+  }
+}
+
+// ============================================================
+// BIENVENIDA PRIMERA VISITA — corre junto al recordatorio 24hs
+// Detecta si es la primera vez de la clienta y manda info especial
+// ============================================================
+async function enviarBienvenidaPrimeraVisita() {
+  try {
+    const { readSheet, upsertCliente: upsert } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = new Date();
+    const manana = new Date(ahora);
+    manana.setDate(manana.getDate() + 1);
+    const mananaStr = manana.toISOString().split("T")[0];
+
+    const candidatas = clientes.filter(c => {
+      if (!c.ID_Cliente || !c.Fecha_Turno) return false;
+      if (c.Bienvenida_Enviada === "si") return false;
+      if (!["confirmado", "agendado"].includes(c.Estado)) return false;
+      const fechaTurno = c.Fecha_Turno.split("T")[0];
+      // Primera visita: Estado nunca fue "vino" (no tiene historial) y es nueva
+      const esNueva = !c.NOTAS?.includes("vino") && (c.Intencion_Compra === "" || !c.Intencion_Compra || c.Origen === "lead");
+      return fechaTurno === mananaStr && esNueva;
+    });
+
+    for (const c of candidatas) {
+      try {
+        const hora = new Date(c.Fecha_Turno).toLocaleTimeString("es-UY", {
+          hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo"
+        });
+        await enviarMensaje(
+          c.ID_Cliente,
+          MENSAJES.bienvenidaPrimeraVisita(c.Nombre || "", hora),
+          c.Canal || "whatsapp"
+        );
+        await upsert({ ID_Cliente: c.ID_Cliente, Bienvenida_Enviada: "si" });
+        console.log(`🎉 [bienvenida] Enviada → ${c.ID_Cliente} (${c.Nombre})`);
+        await new Promise(r => setTimeout(r, 800));
+      } catch (e) {
+        console.error(`❌ [bienvenida] Error con ${c.ID_Cliente}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error("❌ [bienvenida] Error general:", e.message);
+  }
+}
+
+// ============================================================
+// CUMPLEAÑOS — corre diario a las 9:00
+// Envía saludo + descuento 15% a clientas que cumplen hoy
+// ============================================================
+async function enviarCumpleanos() {
+  console.log("🎂 [cumpleaños] Verificando cumpleaños de hoy...");
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const hoy = new Date();
+    const diaHoy = String(hoy.getDate()).padStart(2, "0");
+    const mesHoy = String(hoy.getMonth() + 1).padStart(2, "0");
+
+    const candidatas = clientes.filter(c => {
+      if (!c.ID_Cliente || !c.Fecha_Nacimiento) return false;
+      // Fecha_Nacimiento puede ser YYYY-MM-DD o DD/MM/YYYY
+      const fn = c.Fecha_Nacimiento.replace(/\//g, "-");
+      const partes = fn.includes("-") ? fn.split("-") : [];
+      if (partes.length < 3) return false;
+      // Normalizar: si es YYYY-MM-DD → partes[1]=mes, partes[2]=dia
+      // si es DD-MM-YYYY → partes[0]=dia, partes[1]=mes
+      const esIso = partes[0].length === 4;
+      const diaNac = esIso ? partes[2].padStart(2, "0") : partes[0].padStart(2, "0");
+      const mesNac = esIso ? partes[1].padStart(2, "0") : partes[1].padStart(2, "0");
+      return diaNac === diaHoy && mesNac === mesHoy;
+    });
+
+    for (const c of candidatas) {
+      try {
+        await enviarMensaje(
+          c.ID_Cliente,
+          MENSAJES.cumpleanos(c.Nombre || ""),
+          c.Canal || "whatsapp"
+        );
+        console.log(`🎂 [cumpleaños] Mensaje enviado → ${c.ID_Cliente} (${c.Nombre})`);
+        await new Promise(r => setTimeout(r, 800));
+      } catch (e) {
+        console.error(`❌ [cumpleaños] Error con ${c.ID_Cliente}:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.error("❌ [cumpleaños] Error general:", e.message);
+  }
+}
+
+// ============================================================
+// PUNTOS DE FIDELIDAD — incrementa al marcar sesión como realizada
+// Se llama desde cerrarNoShows cuando actualiza estado a "vino"
+// ============================================================
+async function incrementarPuntosFidelidad(clienteId, nombre, canal) {
+  try {
+    const { readSheet, upsertCliente: upsert } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const c = clientes.find(f => f.ID_Cliente === clienteId || f.Telefono === clienteId);
+    if (!c) return;
+
+    const puntosActuales = parseInt(c.Puntos_Fidelidad || "0");
+    const nuevosPuntos = puntosActuales + 1;
+    await upsert({ ID_Cliente: clienteId, Puntos_Fidelidad: String(nuevosPuntos) });
+
+    // Notificar si acaba de alcanzar 8 (sesión de regalo) o en hitos intermedios (4)
+    const notificarEn = [4, 8, 12, 16];
+    if (notificarEn.includes(nuevosPuntos)) {
+      await enviarMensaje(
+        clienteId,
+        MENSAJES.puntosAcumulados(nombre || "", nuevosPuntos),
+        canal || "whatsapp"
+      );
+      console.log(`🏆 [fidelidad] Notificación de ${nuevosPuntos} puntos → ${clienteId}`);
+    }
+    console.log(`⭐ [fidelidad] ${clienteId}: ${puntosActuales} → ${nuevosPuntos} puntos`);
+  } catch (e) {
+    console.error("❌ [fidelidad] Error:", e.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
   // ── Salud del sistema ──────────────────────────────────────
   cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
+
+  // ── Cumpleaños — 9:00 diario ──────────────────────────────────
+  cron.schedule("0 9 * * *", enviarCumpleanos, { timezone: "America/Montevideo" });
 
   // ── Notificar ghosts — 9:00 diario (ventana 24-48hs antes del turno) ───
   cron.schedule("0 9 * * *", notificarGhosts, { timezone: "America/Montevideo" });
@@ -1131,11 +1427,23 @@ function startScheduler() {
   // ── Agenda del día siguiente para Nico — 20:00 ────────────
   cron.schedule("0 20 * * *", enviarAgendaManana, { timezone: "America/Montevideo" });
 
+  // ── Re-booking post-sesión — 10:00 (invitar próximo turno) ──
+  cron.schedule("0 10 * * *", enviarRebooking, { timezone: "America/Montevideo" });
+
   // ── Re-marketing leads sin turno (+7 días) — 10:30 ────────
   cron.schedule("30 10 * * *", enviarRemarketing, { timezone: "America/Montevideo" });
 
   // ── Seguimiento post-sesión — 11:00 ───────────────────────
   cron.schedule("0 11 * * *", enviarSeguimientoPostSesion, { timezone: "America/Montevideo" });
+
+  // ── NPS post-sesión — 13:00 ────────────────────────────────
+  cron.schedule("0 13 * * *", enviarNPSPostSesion, { timezone: "America/Montevideo" });
+
+  // ── Recordatorio 2hs antes del turno — cada 30 min ─────────
+  cron.schedule("*/30 * * * *", enviarRecordatorio2hs, { timezone: "America/Montevideo" });
+
+  // ── Bienvenida primera visita — 16:00 ─────────────────────
+  cron.schedule("0 16 * * *", enviarBienvenidaPrimeraVisita, { timezone: "America/Montevideo" });
 
   // ── Check-in diario — 21:00 ────────────────────────────────
   cron.schedule("0 21 * * *", enviarCheckInDiario, { timezone: "America/Montevideo" });

@@ -40,10 +40,12 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ============================================================
 const conversaciones = new Map(); // userId → [{ role, content }]
 const slotsPendientes = new Map(); // userId → slots disponibles
-const chatsBloqueados = new Set(); // chats donde Nico tomó el control con /nicolas
+const slotsPendientesTs = new Map(); // userId → timestamp cuando se cargaron los slots (TTL 30 min)
+const chatsBloqueados = new Map(); // userId → timestamp cuando Nico tomó el control (TTL 4h auto-release)
 const intentosAgendamiento = new Map(); // userId → número de intercambios fallidos de horario
 const nadiaNotificada = new Set(); // userId → ya se notificó a Nadia para este cliente
 const mensajesPendientes = new Map(); // userId → { text, platform, timestamp } — mensajes fuera de horario
+const npsEsperando = new Map(); // userId → true cuando se envió NPS y esperamos respuesta 1-5
 
 function getHistorial(userId) {
   if (!conversaciones.has(userId)) {
@@ -250,6 +252,21 @@ Si el mensaje viene de Facebook o Instagram Y es el primer contacto (sin histori
 2. Mostrá los packs con precios
 3. Preguntá disponibilidad inmediatamente
 No esperés que pregunten — tomá la iniciativa porque ya demostraron interés.
+
+=== DETECCIÓN DE INTENCIÓN DE COMPRA ===
+Antes de responder, identificá el nivel de intención de la clienta y actuá en consecuencia:
+
+🟢 LISTA PARA RESERVAR — ir directo a disponibilidad sin pasar por info:
+Señales: "quiero agendar", "¿para cuándo tienen?", "¿tienen turno?", "me anoto", "¿cuándo puedo ir?"
+→ Saltá DIRECTAMENTE al paso de disponibilidad. No la hagas leer info que ya sabe.
+
+🟡 CONSULTANDO — informar primero, luego invitar a agendar:
+Señales: "¿qué hacen?", "¿cuánto sale?", "me interesa saber más", "¿tienen X?"
+→ Explicá el servicio con entusiasmo, luego preguntá si quiere un horario.
+
+🔴 CON OBJECIÓN — validar antes de ofrecer alternativa:
+Señales: "está caro", "lo pienso", "capaz más adelante", "en otro momento", "no sé"
+→ Validá con empatía: "Entiendo, el tiempo es lo más valioso." Luego ofrecé una alternativa concreta: descuento por transferencia (10%), pack que amortiza el costo, o simplemente dejar la puerta abierta sin presionar. Siempre usá guardar_objecion.
 
 === FLUJO DE CONVERSACIÓN (seguilo en orden) ===
 
@@ -497,6 +514,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
       const momento = accion.momento || null; // "mañana" | "tarde" | null
 
       slotsPendientes.set(userId, slots);
+      slotsPendientesTs.set(userId, Date.now()); // TTL: slots válidos por 30 min
 
       // Contar intentos fallidos de agendamiento para el flujo Nadia
       if (!slots || slots.length === 0) {
@@ -539,8 +557,12 @@ async function procesarAccion(accion, userId, canal, nombre) {
     }
 
     case "agendar": {
-      const slots = slotsPendientes.get(userId) || (await getDisponibilidad());
+      // Verificar TTL de slots cacheados (válidos solo 30 min para evitar doble reserva)
+      const slotsCachedTs = slotsPendientesTs.get(userId);
+      const slotsExpirados = !slotsCachedTs || (Date.now() - slotsCachedTs > 30 * 60 * 1000);
+      const slots = (!slotsExpirados && slotsPendientes.get(userId)) || (await getDisponibilidad());
       slotsPendientes.set(userId, slots);
+      slotsPendientesTs.set(userId, Date.now());
 
       // Buscar el slot que coincida con lo que pidió
       // Pasamos todo el slot_label como texto + hora explícita si el LLM la incluyó
@@ -642,7 +664,19 @@ async function procesarAccion(accion, userId, canal, nombre) {
         ).catch(() => {});
       }
 
-      return "Cancelamos el turno sin problema 🙏 ¿Le buscamos otro horario?";
+      // Ofrecer reagendamiento inmediato — no solo cancelar
+      try {
+        const slotsParaReagendar = await getDisponibilidad();
+        if (slotsParaReagendar && slotsParaReagendar.length > 0) {
+          slotsPendientes.set(userId, slotsParaReagendar);
+          slotsPendientesTs.set(userId, Date.now());
+          const primerosDias = [...new Set(slotsParaReagendar.slice(0, 6).map(s =>
+            new Date(s.fecha + "T12:00:00").toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" })
+          ))].slice(0, 2).join(" o ");
+          return `Cancelamos sin problema 🙏 ¿Le buscamos otro horario? Tenemos disponibilidad ${primerosDias}. ¿Cuándo le quedaría mejor?`;
+        }
+      } catch {}
+      return "Cancelamos el turno sin problema 🙏 Cuando quiera reagendar, avísenos y le buscamos un horario.";
     }
 
     case "guardar_nombre": {
@@ -860,18 +894,54 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
 
   // Comando /nicolas — Nico toma el control, Marta se detiene
   if (text.trim().toLowerCase() === "/nicolas") {
-    chatsBloqueados.add(userId);
+    chatsBloqueados.set(userId, Date.now());
     await enviarMensaje(userId, "Entendido, Nico se encarga de esta conversación 🙏", canal);
     return;
   }
   // Comando /marta — Marta retoma el control
   if (text.trim().toLowerCase() === "/marta") {
     chatsBloqueados.delete(userId);
+    npsEsperando.delete(userId);
     await enviarMensaje(userId, "¡Hola de nuevo! 😊 ¿En qué le puedo ayudar?", canal);
     return;
   }
-  // Si el chat está bloqueado, no intervenir
-  if (chatsBloqueados.has(userId)) return;
+  // ── Handler NPS: respuesta 1-5 a encuesta post-sesión ──────────
+  if (npsEsperando.get(userId) && /^[1-5]$/.test(text.trim())) {
+    const score = parseInt(text.trim());
+    npsEsperando.delete(userId);
+    // Guardar score en CRM
+    upsertCliente({ ID_Cliente: userId, NPS_Pendiente: "no" }).catch(() => {});
+    if (score <= 3) {
+      // Score bajo → alertar a Nico
+      const ownerNum = process.env.OWNER_WHATSAPP;
+      if (ownerNum) {
+        const { enviarMensaje: enviar } = require("./sender");
+        enviar(ownerNum,
+          `⚠️ *NPS bajo (${score}/5)*\n\nClienta: ${userId}\nCalificó la sesión con ${score} estrella${score === 1 ? "" : "s"}. Puede valer la pena escribirle personalmente.`,
+          "whatsapp"
+        ).catch(() => {});
+      }
+      await enviarMensaje(userId,
+        `Gracias por su honestidad ${score <= 2 ? "🙏" : "💛"} Nos importa mucho mejorar. Si quiere contarnos qué pasó, estamos acá para escucharle.`,
+        canal
+      );
+    } else {
+      // Score alto → pedir reseña Google
+      await enviarMensaje(userId,
+        `¡Muchísimas gracias! 💛 Nos alegra mucho saber eso. Si tiene un momento, nos ayudaría muchísimo que nos deje una reseña en Google:\n\nhttps://g.page/r/citrinobienestar/review\n\n¡La esperamos pronto! 🌿`,
+        canal
+      );
+    }
+    return;
+  }
+
+  // Si el chat está bloqueado, verificar TTL (auto-release después de 4 horas)
+  if (chatsBloqueados.has(userId)) {
+    const bloqueadoTs = chatsBloqueados.get(userId);
+    if (Date.now() - bloqueadoTs < 4 * 60 * 60 * 1000) return; // menos de 4h → sigue bloqueado
+    chatsBloqueados.delete(userId); // más de 4h → Nico se olvidó de /marta, liberar automáticamente
+    console.log(`🔓 [handoff] Auto-liberado chat de ${userId} después de 4h sin /marta`);
+  }
 
   // ============================================================
   // HANDLER SÍ/NO — Respuestas a confirmaciones de turno
@@ -956,8 +1026,25 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   } else if (media?.type === "audio") {
     // No hay transcripción — Claude responde con el mensaje de audio del SYSTEM_PROMPT
     contenidoUsuario = "[AUDIO: la clienta envió una nota de voz que no pude escuchar]";
+  } else if (media?.type === "sticker") {
+    contenidoUsuario = text || "[La clienta envió un sticker 😊 — responder con calidez y preguntar en qué podemos ayudarle]";
+  } else if (media?.type === "video") {
+    contenidoUsuario = text || "[La clienta envió un video — no podemos reproducirlo, pedirle que escriba lo que necesita]";
+  } else if (media?.type === "location") {
+    contenidoUsuario = "[La clienta compartió su ubicación — responder que nuestra dirección es Sarandí 554 apto. 1]";
+  } else if (media?.type === "contacts" || media?.type === "contact") {
+    contenidoUsuario = "[La clienta compartió un contacto — agradecer y preguntar en qué podemos ayudarle]";
+  } else if (media && !text) {
+    // Tipo de media desconocido sin texto
+    contenidoUsuario = "[La clienta envió un archivo que no pude procesar — pedirle que escriba lo que necesita]";
   } else {
-    contenidoUsuario = text;
+    contenidoUsuario = text || "[Mensaje vacío]";
+  }
+
+  // Guard: si el contenido final está vacío, no procesar
+  if (!contenidoUsuario || contenidoUsuario === "[Mensaje vacío]") {
+    console.log(`⚠️ [msg vacío] Ignorando mensaje vacío de ${userId}`);
+    return;
   }
 
   // Agregar mensaje del usuario al historial
@@ -1250,4 +1337,4 @@ async function enviarEnPartes(userId, texto, canal) {
   }
 }
 
-module.exports = { handleIncomingMessage, chatsBloqueados, SYSTEM_PROMPT, procesarMensajesPendientes };
+module.exports = { handleIncomingMessage, chatsBloqueados, npsEsperando, SYSTEM_PROMPT, procesarMensajesPendientes };

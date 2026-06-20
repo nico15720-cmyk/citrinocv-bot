@@ -11,7 +11,7 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
 
 // ─── Columnas por hoja ────────────────────────────────────────
 const HEADERS = {
-  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento', 'Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Ultimo_Saludo', 'Historial_JSON', 'Remarketing_Etapa', 'Ultimo_Remarketing'],
+  CLIENTES: ['ID_Cliente', 'Nombre', 'Telefono', 'Origen', 'Fecha_Alta', 'NOTAS', 'Fecha_Nacimiento', 'Estado', 'Intencion_Compra', 'Objecion', 'Fecha_Turno', 'Ultimo_Saludo', 'Historial_JSON', 'Remarketing_Etapa', 'Ultimo_Remarketing', 'Puntos_Fidelidad', 'NPS_Pendiente', 'Bienvenida_Enviada', 'Canal'],
   SESIONES: ['ID_Sesion', 'Fecha_Hora', 'Cliente', 'Tratamiento', 'Terapeuta', 'ID_Cliente_Guardado', 'Semana_Anio', 'Mes_Anio', 'A_Pagar_Terapeuta', 'ID_Cliente_Guardado2', 'Observaciones', 'Estado'],
   VENTAS:   ['Fecha', 'ID_Venta', 'Cliente', 'Producto', 'Monto', 'Forma_Pago', 'Notas', 'ID_Cliente_Guardado', 'Cantidad_Calculada', 'Ingreso_Real', 'Fecha_Vencimiento', 'Mes_Anio'],
   GASTOS:   ['Nombre', 'Monto', 'Mes_ID', 'Notas', 'Recurrente', 'Dia_Vencimiento'],

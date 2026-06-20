@@ -38,7 +38,7 @@ echo.
 
 echo [5/6] Git push del bot (incluye CRM + todos los cambios)...
 git add -A
-git commit -m "perf: reducir consumo de tokens — keyword pre-screening + rate limit en analizarConversacion + auto-aprendizaje cada 3 dias"
+git commit -m "feat: bugs + mejoras — media tipos desconocidos, chatsBloqueados TTL 4h, slotsTTL 30min, NPS post-sesion, rebooking, recordatorio 2hs, cumpleanos, fidelidad puntos, bienvenida primera visita, reagendamiento en cancel, intencion de compra"
 git push origin main
 echo Push OK.
 echo.
