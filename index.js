@@ -14,6 +14,12 @@ const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
 const modoAdmin = new Set(); // números que activaron /admin temporalmente
 const modoMarta = new Set(); // números que activaron /marta (override admin)
 
+// ── Estado global del bot ─────────────────────────────────────
+let botActivo = true;
+let botModo = "auto"; // "auto" | "pausa" | "off"
+global.getBotActivo = () => botActivo;
+global.getBotModo = () => botModo;
+
 // Parsea strings como "viernes 10:30" o "20/06 10:30" a ISO datetime
 function parsearFechaHoraStr(str) {
   if (!str) return "";
@@ -467,15 +473,8 @@ async function responderComentarioIG(senderId, textoOriginal) {
   }, 2000);
 }
 
-// ============================================================
-// ESTADO GLOBAL DEL BOT
-// ============================================================
-let botActivo = true;
-let botModo = "auto"; // "auto" | "pausa" | "off" — ON por defecto
-
-// Exportar para que conversation.js pueda consultarlo
-global.getBotActivo = () => botActivo;
-global.getBotModo = () => botModo;
+// ── El estado del bot ya se declaró arriba (junto con OWNER_WHATSAPP)
+// ── para evitar "Cannot access before initialization" en los webhooks
 
 // ============================================================
 // API DE CONTROL — Centro de control

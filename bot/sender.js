@@ -9,6 +9,8 @@ const axios = require("axios");
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 const META_PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+// Instagram Business Account ID (vinculado a la página de Facebook)
+const INSTAGRAM_ACTOR_ID = process.env.INSTAGRAM_PAGE_ID || "me";
 
 // ============================================================
 // DELAY ALEATORIO — 3 a 8 segundos
@@ -136,11 +138,12 @@ async function enviarFacebook(recipientId, texto) {
 }
 
 // ============================================================
-// INSTAGRAM
+// INSTAGRAM — Messenger API for Instagram
+// Requiere: META_PAGE_ACCESS_TOKEN + INSTAGRAM_PAGE_ID en .env
 // ============================================================
 async function enviarInstagram(recipientId, texto) {
-  // Instagram usa el mismo endpoint que Messenger pero con el token de página
-  const url = `https://graph.facebook.com/v19.0/me/messages`;
+  // Usa el Instagram Business Account ID (INSTAGRAM_PAGE_ID) como actor
+  const url = `https://graph.facebook.com/v19.0/${INSTAGRAM_ACTOR_ID}/messages`;
 
   await axios.post(
     url,
