@@ -138,12 +138,14 @@ async function enviarFacebook(recipientId, texto) {
 }
 
 // ============================================================
-// INSTAGRAM — Messenger API for Instagram
-// Requiere: META_PAGE_ACCESS_TOKEN + INSTAGRAM_PAGE_ID en .env
+// INSTAGRAM — Messenger Platform Instagram
+// Los DMs de Instagram se envían vía Facebook Graph API
+// usando el Page Access Token (igual que Messenger)
+// Token: INSTAGRAM_ACCESS_TOKEN (generado en Messenger → Configuración de Instagram)
 // ============================================================
 async function enviarInstagram(recipientId, texto) {
-  // Usa el Instagram Business Account ID (INSTAGRAM_PAGE_ID) como actor
-  const url = `https://graph.facebook.com/v19.0/${INSTAGRAM_ACTOR_ID}/messages`;
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN || META_PAGE_ACCESS_TOKEN;
+  const url = `https://graph.facebook.com/v19.0/me/messages`;
 
   await axios.post(
     url,
@@ -153,7 +155,7 @@ async function enviarInstagram(recipientId, texto) {
     },
     {
       headers: {
-        Authorization: `Bearer ${META_PAGE_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
