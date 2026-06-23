@@ -457,6 +457,9 @@ Pack 8 sesiones → $9.600
 
 === ACCIONES DEL SISTEMA ===
 Para cancelar: <accion>{"tipo":"cancelar"}</accion>
+⚠️ CANCELAR — REGLA CRÍTICA: cuando usás {"tipo":"cancelar"}, NO escribas NINGÚN texto antes ni después de la acción. El sistema envía automáticamente el mensaje de cancelación + opciones de reagendamiento. Si escribís texto propio, se duplica.
+INCORRECTO: "Cancelamos sin problema 🙏 <accion>{"tipo":"cancelar"}</accion>"
+CORRECTO: <accion>{"tipo":"cancelar"}</accion>
 Para guardar servicio: <accion>{"tipo":"guardar_servicio","servicio":"nombre del servicio"}</accion>
 Para escalar a la dueña: <accion>{"tipo":"escalar","motivo":"descripción del problema"}</accion>
 Para guardar objeción (cuando no agenda): <accion>{"tipo":"guardar_objecion","objecion":"precio|tiempo|duda|otro","intencion":"servicio que le interesa"}</accion>
@@ -907,6 +910,9 @@ async function extraerYProcesarAccion(texto, userId, canal, nombre) {
   const textoLimpio = sanitizarTexto(textoAntesTag || textoDespuesTag);
 
   if (resultado) {
+    // Para "cancelar" el handler genera el mensaje completo (cancela + reagendamiento).
+    // Ignorar el texto de Claude para evitar duplicación y contradicción.
+    if (accion.tipo === "cancelar") return resultado;
     return textoLimpio ? `${textoLimpio}\n\n${resultado}` : resultado;
   }
   return textoLimpio || "";
@@ -1113,12 +1119,51 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
             );
             return;
           } else {
-            // NO → marcar como no_confirmado y cancelar ghost si había
+            // NO → cancelar confirmación, intentar cancelar en calendario, ofrecer reagendamiento
             await updateClienteEstado(userId, "no_confirmado");
             actualizarEstadoGhost(userId, cliente.Fecha_Turno, "cancelado").catch(() => {});
-            agregarMensaje(userId, "user", text);
-            // Dejar que Claude responda (con contexto de cancela → reagendar)
-            // No hacemos return, sigue el flujo normal de Claude
+            // Intentar cancelar el evento del calendario
+            try {
+              const turnoEnCalendario = await buscarTurnoCliente(userId, cliente.Nombre || userId);
+              if (turnoEnCalendario?.eventId) await cancelarTurno(turnoEnCalendario.eventId);
+            } catch {}
+            // Avisar a Nico
+            const ownerCancel = process.env.OWNER_WHATSAPP;
+            if (ownerCancel) {
+              const { enviarMensaje: enviarC } = require("./sender");
+              enviarC(ownerCancel,
+                `❌ Cancelación (confirmación rechazada)\n👤 ${cliente.Nombre || userId}\n📱 ${userId}\n🕐 ${new Date(cliente.Fecha_Turno).toLocaleString("es-UY", { timeZone: "America/Montevideo" })}`,
+                "whatsapp"
+              ).catch(() => {});
+            }
+            // Ofrecer reagendamiento con 3 slots concretos
+            try {
+              const slotsRe = await getDisponibilidad();
+              const primeros = slotsRe.slice(0, 3);
+              if (primeros.length > 0) {
+                const listaRe = primeros.map(s => {
+                  const diaLabel = new Date(s.fecha + "T12:00:00").toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
+                  return `• ${diaLabel} a las *${s.horaInicio} hs*`;
+                }).join("\n");
+                slotsPendientes.set(userId, slotsRe);
+                slotsPendientesTs.set(userId, Date.now());
+                await enviarMensaje(userId,
+                  `Muchas gracias por avisar 🙏 Cancelamos sin problema.\n\n¿Le buscamos otro horario? Los próximos turnos disponibles son:\n\n${listaRe}\n\n¿Alguno le queda bien, o prefiere otro día?`,
+                  canal
+                );
+              } else {
+                await enviarMensaje(userId,
+                  "Muchas gracias por avisar 🙏 Cancelamos sin problema. Quedamos a las órdenes para cuando pueda 🌿",
+                  canal
+                );
+              }
+            } catch {
+              await enviarMensaje(userId,
+                "Muchas gracias por avisar 🙏 Cancelamos sin problema. Quedamos a las órdenes para cuando pueda 🌿",
+                canal
+              );
+            }
+            return; // No pasar a Claude — ya respondimos
           }
         }
       }
