@@ -168,6 +168,7 @@
   </script>
   <style>
     :root {
+      color-scheme: light dark;
       --crema:    #FDF7EF;
       --crema2:   #F0E6D6;
       --crema3:   #E4D3BC;
@@ -1319,6 +1320,102 @@
       .blob-deco, .leaf-deco, .retro-star, .wa-float::before,
       .btn-beam::before, .grad-heading, .wa-float,
       .trust-item { animation: none !important; }
+    }
+
+    /* ══════════════════════════════════════════
+       DARK MODE — prefers-color-scheme: dark
+    ══════════════════════════════════════════ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --crema:   #1B1510;
+        --crema2:  #251c14;
+        --crema3:  #30231a;
+        --terra:   #D08B6C;
+        --terra2:  #B8694A;
+        --terra3:  #9A5234;
+        --verde:   #8BAA87;
+        --verde2:  #6E8E6A;
+        --verde-l: #3d5a39;
+        --oscuro:  #EDE5DA;
+        --gris:    #C0B0A7;
+        --gris2:   #8E817B;
+      }
+
+      /* Base */
+      body { background: var(--crema); color: var(--oscuro); }
+
+      /* Hero overlay más opaco en dark */
+      .hero-overlay {
+        background: linear-gradient(105deg,
+          rgba(27,21,16,.98) 0%,
+          rgba(27,21,16,.95) 42%,
+          rgba(27,21,16,.75) 65%,
+          rgba(27,21,16,.4) 100%) !important;
+      }
+
+      /* Nav */
+      nav {
+        background: rgba(27,21,16,.96) !important;
+        border-bottom-color: rgba(208,139,108,.2) !important;
+        box-shadow: 0 1px 0 rgba(208,139,108,.1), 0 2px 20px rgba(0,0,0,.3) !important;
+      }
+      .nav-links a { color: var(--oscuro) !important; }
+      .burger span { background: var(--oscuro) !important; }
+      .mobile-menu, .nav-mobile-menu { background: var(--crema) !important; }
+
+      /* Hero stats pill */
+      .hero-stats { background: rgba(37,28,20,.8) !important; border-color: rgba(208,139,108,.25) !important; }
+      .hero-stat { border-right-color: rgba(208,139,108,.2) !important; }
+
+      /* Trust strip */
+      .trust-strip { background: var(--crema2) !important; border-color: rgba(208,139,108,.15) !important; }
+      .trust-sep { background: var(--crema3) !important; }
+
+      /* Sección wave */
+      .wave-div svg path { fill: var(--crema2) !important; }
+
+      /* Service cards */
+      .scard { background: var(--crema2) !important; border-color: rgba(208,139,108,.18) !important; }
+      .scard:hover { background: var(--crema3) !important; }
+      .chip { background: var(--crema3) !important; color: var(--gris) !important; }
+      .tag { background: var(--crema2) !important; color: var(--terra) !important; }
+
+      /* Método Citrino */
+      .metodo-badge { background: var(--terra) !important; }
+      .paso { background: var(--crema2) !important; border-color: rgba(208,139,108,.18) !important; }
+
+      /* Terapias cards */
+      .tcard { background: var(--crema2) !important; border-color: rgba(208,139,108,.18) !important; }
+      .tcard-top { background: linear-gradient(135deg, var(--crema2), var(--crema3)) !important; }
+
+      /* Nosotros */
+      #nosotros { background: var(--crema2) !important; }
+      .valor-card { background: var(--crema3) !important; border-color: rgba(208,139,108,.15) !important; }
+      blockquote { border-left-color: var(--verde) !important; }
+
+      /* Contacto */
+      #contacto { background: var(--crema) !important; }
+      .c-item { background: var(--crema2) !important; border-color: rgba(208,139,108,.18) !important; }
+      .mapa iframe { filter: invert(1) hue-rotate(180deg); }
+
+      /* Footer */
+      footer { background: #0f0c08 !important; }
+
+      /* Modal */
+      .modal-backdrop { background: rgba(0,0,0,.85) !important; }
+      .modal-card { background: var(--crema2) !important; border-color: rgba(208,139,108,.2) !important; }
+      .modal-tag { background: var(--crema3) !important; }
+      .modal-close { background: rgba(37,28,20,.9) !important; color: var(--oscuro) !important; }
+
+      /* Eyebrow tags */
+      .eyebrow-tag { background: var(--crema2) !important; color: var(--terra) !important; }
+
+      /* Retro seal */
+      .retro-seal { border-color: rgba(208,139,108,.35) !important; }
+      .retro-seal-inner { color: var(--oscuro) !important; }
+
+      /* Empresas CTA strip en index */
+      .empresas-cta { background: var(--crema2) !important; }
     }
   </style>
 </head>
