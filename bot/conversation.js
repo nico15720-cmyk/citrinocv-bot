@@ -264,9 +264,12 @@ Señales: pregunta precio/pack Y pide turno/horario en el mismo mensaje. Ej: "¿
 → NO hagas presentación. En 2-3 líneas: precio pedido + ver_disponibilidad directo. Cero rollos.
 Ejemplo: "Pack 4 → $5.100, individual → $1.500. Para el sábado:" <accion>{"tipo":"ver_disponibilidad","dia":"sabado"}</accion>
 
-🟢 LISTA PARA RESERVAR — ir directo a disponibilidad sin pasar por info:
-Señales: "quiero agendar", "¿para cuándo tienen?", "¿tienen turno?", "me anoto", "¿cuándo puedo ir?"
-→ Saltá DIRECTAMENTE al paso de disponibilidad. No la hagas leer info que ya sabe.
+🟢 LISTA PARA RESERVAR — ir DIRECTO a disponibilidad, OMITIR toda presentación:
+Señales: "quiero agendar", "quiero sacar turno", "¿para cuándo tienen?", "¿tienen turno?", "me anoto", "¿cuándo puedo ir?", "quiero reservar", "quiero un turno"
+→ OMITIR completamente la presentación de servicios y precios.
+→ Responder SOLO: "¡Perfecto! ¿Qué días y horarios le quedarían mejor?" y llamar a ver_disponibilidad.
+→ Si ya mencionó el servicio ("quiero agendar masaje modelador"), podés asentir brevemente: "Perfecto 🌿 ¿Qué día y horario le queda mejor?" — SIN lista de precios, SIN descripción del servicio.
+⚠️ REGLA DE ORO: Si el cliente dijo "quiero agendar" + nombre de servicio → UNA sola línea de respuesta + acción ver_disponibilidad.
 
 🟡 CONSULTANDO — informar primero, luego invitar a agendar:
 Señales: "¿qué hacen?", "¿cuánto sale?", "me interesa saber más", "¿tienen X?"
@@ -281,11 +284,13 @@ Señales: "está caro", "lo pienso", "capaz más adelante", "en otro momento", "
 PASO 1 — Primera respuesta:
 Cuando alguien consulta por servicios o quiere info, enviá el mensaje de presentación del servicio correspondiente con todos los detalles (precio, pack, ubicación, horarios). Usá el estilo de los ejemplos de abajo.
 
-PASO 2 — Preguntar disponibilidad:
-PRIMERO preguntá qué día/horario le quedaría mejor, SIN listar todos los slots:
-"Estamos de lunes a viernes de 8:00 a 19:00 hs y sábados en la mañana, ¿nose como le quedaría mejor?"
-O si ya expresó interés: "¿Qué días y horarios le quedarían bien?"
-Cargá los slots del sistema internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
+PASO 2 — Esperar respuesta al CTA de la presentación:
+⚠️ REGLA CRÍTICA: El mensaje de presentación YA termina con "¿Te gustaría que te pase los horarios disponibles para comenzar su tratamiento?". ESO es el PASO 2.
+NUNCA agregués la pregunta de horarios en el MISMO mensaje que la presentación.
+ESPERÁ a que el cliente responda (sí, claro, dale, siii, etc.) → RECIÉN AHÍ preguntá:
+"¿Qué días y horarios le quedarían mejor?"
+Cargá los slots internamente: <accion>{"tipo":"ver_disponibilidad"}</accion>
+NO incluyas la frase "Estamos de lunes a viernes..." en un mensaje propio — solo respondé si el cliente pregunta por los horarios del local.
 
 PASO 3 — Ofrecer horario específico:
 Cuando el cliente indique el día que prefiere, incluí la acción de disponibilidad:
@@ -1472,19 +1477,20 @@ async function enviarEnPartes(userId, texto, canal) {
   const textoSeguro = sanitizarTexto(texto);
   if (!textoSeguro) return;
 
-  // Si el texto es corto o no tiene párrafos → enviar directo
+  // Si el texto es corto o no tiene múltiples párrafos → enviar directo (sin cortar)
+  // Umbral alto (900) para que presentaciones de servicios (~600 chars) lleguen en UN solo mensaje
   const parrafos = textoSeguro.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  if (parrafos.length <= 1 || textoSeguro.length < 250) {
+  if (parrafos.length <= 1 || textoSeguro.length < 900) {
     await enviarMensaje(userId, textoSeguro, canal);
     return;
   }
 
-  // Agrupar párrafos en mensajes de máx ~350 chars
+  // Solo textos muy largos (>900 chars) se dividen — máx ~900 chars por chunk
   const mensajes = [];
   let actual = "";
   for (const p of parrafos) {
     const candidato = actual ? `${actual}\n\n${p}` : p;
-    if (actual && candidato.length > 350) {
+    if (actual && candidato.length > 900) {
       mensajes.push(actual);
       actual = p;
     } else {
