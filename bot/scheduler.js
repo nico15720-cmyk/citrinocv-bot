@@ -569,20 +569,26 @@ async function enviarSeguimientoPostSesion() {
     return;
   }
 
+  const { getSaldoClienteBot } = require("./sheets-crm");
+
   for (const cliente of clientes) {
     try {
       const nombre = cliente.nombre || "amig@";
       let mensaje;
 
-      if (cliente.cuponera === "si" && parseInt(cliente.sesRest) > 0) {
-        mensaje = MENSAJES.seguimientoConCuponera(nombre, cliente.sesRest);
+      // Usar getSaldoClienteBot (real, cross-join VENTAS+SESIONES) en vez del campo legacy cuponera
+      let saldo = { saldo: 0 };
+      try { saldo = await getSaldoClienteBot(cliente.userId, nombre); } catch {}
+
+      if (saldo.saldo > 0) {
+        mensaje = MENSAJES.seguimientoConCuponera(nombre, saldo.saldo);
       } else {
         mensaje = MENSAJES.seguimientoPostSesion(nombre);
       }
 
       await enviarMensaje(cliente.userId, mensaje, cliente.canal);
       await registrarRemarketing(cliente.userId);
-      console.log(`✅ Seguimiento enviado a ${cliente.userId} (${nombre})`);
+      console.log(`✅ Seguimiento enviado a ${cliente.userId} (${nombre}) — saldo: ${saldo.saldo}`);
     } catch (err) {
       console.error(`❌ Error en seguimiento a ${cliente.userId}:`, err.message);
     }

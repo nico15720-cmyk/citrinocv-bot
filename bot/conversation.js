@@ -667,7 +667,7 @@ async function procesarAccion(accion, userId, canal, nombre) {
           ID_Cliente_Guardado: userId,
           Semana_Anio:       "",
           Mes_Anio:          mesAnio,
-          A_Pagar_Terapeuta: "500",
+          A_Pagar_Terapeuta: (slot.terapeutaNombre || "").toLowerCase().includes("milena") ? "450" : "500",
           ID_Cliente_Guardado2: userId,
           Observaciones:     "",
         });
@@ -914,8 +914,8 @@ function dentroDeHorario() {
   const hora = local.getHours() + local.getMinutes() / 60;
 
   if (dia === 0) return false; // Domingo cerrado
-  if (dia >= 1 && dia <= 6) return hora >= 6.5 && hora < 21.5; // Lun-Sab 6:30–21:30
-  return false;
+  if (dia === 6) return hora >= 8.5 && hora < 14.5; // Sábado 8:30–14:30 (sesiones 9:00–13:00)
+  return hora >= 6.5 && hora < 21.5; // Lun-Vie 6:30–21:30
 }
 
 // Procesa los mensajes que llegaron fuera de horario y los responde ahora

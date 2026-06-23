@@ -38,7 +38,7 @@ const HORARIOS_DEFAULT = {
   3: { dia: "Miércoles", franjas: [{ inicio: 8.5, fin: 20.5 }] },
   4: { dia: "Jueves",    franjas: [{ inicio: 8.5, fin: 20.5 }] },
   5: { dia: "Viernes",   franjas: [{ inicio: 8.5, fin: 20.5 }] },
-  6: { dia: "Sábado",    franjas: [] },                               // cerrado
+  6: { dia: "Sábado",    franjas: [{ inicio: 9.0, fin: 14.0 }] },   // 9:00–13:00 (último slot empieza 13:00, termina 14:00)
 };
 
 // ─── Auth ─────────────────────────────────────────────────────
