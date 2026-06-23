@@ -298,8 +298,19 @@ function formatearDisponibilidad(slots, maxSlots = 3, momento = null) {
   const terapeutasUnicos = [...new Set(slotsDelDia.map(s => s.ter))];
   const hayMultiples = terapeutasUnicos.length > 1;
 
+  const hoyStr = new Date().toLocaleDateString("sv-SE", { timeZone: TIMEZONE });
+  const mananaStr = new Date(Date.now() + 86400000).toLocaleDateString("sv-SE", { timeZone: TIMEZONE });
+  const esHoy = primerDia === hoyStr;
+  const esManana = primerDia === mananaStr;
   const cap = info.label.charAt(0).toUpperCase() + info.label.slice(1);
-  let texto = `Tenemos disponible el *${cap}*:\n`;
+  let texto;
+  if (esHoy) {
+    texto = `Para hoy tenemos disponible:\n`;
+  } else if (esManana) {
+    texto = `Para mañana tenemos disponible:\n`;
+  } else {
+    texto = `Tenemos disponible el *${cap}*:\n`;
+  }
 
   if (hayMultiples) {
     for (const ter of terapeutasUnicos) {
@@ -312,7 +323,11 @@ function formatearDisponibilidad(slots, maxSlots = 3, momento = null) {
 
   // Mencionar otros días si los hay
   if (fechas.length > 1) {
-    const otrosDias = fechas.slice(1, 3).map(f => porFecha[f].label).join(" y ");
+    const otrosDias = fechas.slice(1, 3).map(f => {
+      if (f === hoyStr) return "hoy";
+      if (f === mananaStr) return "mañana";
+      return porFecha[f].label;
+    }).join(" y ");
     texto += `\n\n_(Si ninguno le queda bien, también tenemos el ${otrosDias})_`;
   }
 
