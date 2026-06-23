@@ -78,8 +78,10 @@ async function cargarHistorialDeSheets(userId) {
     if (cliente?.Historial_JSON) {
       const hist = JSON.parse(cliente.Historial_JSON);
       if (Array.isArray(hist) && hist.length > 0) {
-        conversaciones.set(userId, hist);
-        console.log(`📂 [historial] Cargado desde Sheets para ${userId}: ${hist.length} msgs`);
+        // Truncar al máximo permitido (8) en caso de que venga data vieja más larga
+        const histTruncado = hist.slice(-8);
+        conversaciones.set(userId, histTruncado);
+        console.log(`📂 [historial] Cargado desde Sheets para ${userId}: ${histTruncado.length} msgs`);
         return hist;
       }
     }
@@ -727,16 +729,19 @@ async function procesarAccion(accion, userId, canal, nombre) {
         ).catch(() => {});
       }
 
-      // Ofrecer reagendamiento inmediato — no solo cancelar
+      // Ofrecer reagendamiento inmediato con slots concretos
       try {
         const slotsParaReagendar = await getDisponibilidad();
         if (slotsParaReagendar && slotsParaReagendar.length > 0) {
           slotsPendientes.set(userId, slotsParaReagendar);
           slotsPendientesTs.set(userId, Date.now());
-          const primerosDias = [...new Set(slotsParaReagendar.slice(0, 6).map(s =>
-            new Date(s.fecha + "T12:00:00").toLocaleDateString("es-UY", { weekday: "long", timeZone: "America/Montevideo" })
-          ))].slice(0, 2).join(" o ");
-          return `Cancelamos sin problema 🙏 ¿Le buscamos otro horario? Tenemos disponibilidad ${primerosDias}. ¿Cuándo le quedaría mejor?`;
+          // Mostrar los primeros 3 slots disponibles con día y hora específicos
+          const primeros = slotsParaReagendar.slice(0, 3);
+          const listaSlots = primeros.map(s => {
+            const diaLabel = new Date(s.fecha + "T12:00:00").toLocaleDateString("es-UY", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Montevideo" });
+            return `• ${diaLabel} a las *${s.horaInicio} hs*`;
+          }).join("\n");
+          return `Cancelamos sin problema 🙏\n\n¿Le buscamos otro horario? Los próximos turnos disponibles son:\n\n${listaSlots}\n\n¿Alguno de esos le queda bien, o prefiere otro día?`;
         }
       } catch {}
       return "Cancelamos el turno sin problema 🙏 Cuando quiera reagendar, avísenos y le buscamos un horario.";

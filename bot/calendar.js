@@ -10,6 +10,10 @@ const { conRetry } = require("./utils");
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_ID;
 const SHEET_SESIONES = "Sesiones";
 const TIMEZONE = "America/Montevideo";
+
+// ─── Lock de reserva simultánea ───────────────────────────────
+// Previene que dos clientas reserven el mismo slot si mandan mensaje al mismo tiempo
+const _slotsEnProceso = new Set(); // key: "YYYY-MM-DDTHH:MM:SS|terapeutaId"
 const DURACION_MIN  = 60;   // duración de cada sesión en minutos (1 hora exacta)
 const SLOT_CADA_MIN = 30;   // paso entre slots ofrecidos (cada 30 min: 8:30, 9:00, 9:30…)
 const DIAS_A_MOSTRAR = 7;  // ventana de disponibilidad (días)
@@ -317,6 +321,15 @@ function formatearDisponibilidad(slots, maxSlots = 3, momento = null) {
 
 // ─── CREAR TURNO ──────────────────────────────────────────────
 async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terapeutaId = null }) {
+  // LOCK ANTI-RESERVA-SIMULTÁNEA: bloquear el slot mientras se procesa
+  const lockKey = `${slot.inicioISO}|${slot.terapeutaId || terapeutaId || "default"}`;
+  if (_slotsEnProceso.has(lockKey)) {
+    console.log(`🔒 crearTurno: slot ${lockKey} ya está siendo reservado — rechazando concurrencia`);
+    throw new Error("SLOT_EN_PROCESO");
+  }
+  _slotsEnProceso.add(lockKey);
+
+  try {
   // ANTI-DUPLICADO: antes de insertar, verificar que no exista ya
   // la misma sesión (mismo slot + mismo cliente). Evita que un retry
   // o una doble llamada del bot creen dos filas idénticas.
@@ -386,6 +399,10 @@ async function crearTurno({ nombre, telefono, servicio, slot, notas = "", terape
     inicio: slot.inicioISO,
     fin:    slot.finISO,
   };
+  } finally {
+    // Liberar lock siempre, incluso si hubo error
+    _slotsEnProceso.delete(lockKey);
+  }
 }
 
 // ─── CANCELAR TURNO ───────────────────────────────────────────

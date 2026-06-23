@@ -1654,6 +1654,48 @@ function startScheduler() {
     }
   }, { timezone: "America/Montevideo" });
 
+  // ── Escalación bot→Nico — 12:00 (leads sin respuesta 48hs) ──
+  cron.schedule("0 12 * * *", async () => {
+    if (!OWNER) return;
+    try {
+      const { readSheet } = require("./sheets-crm");
+      const clientes = await readSheet("CLIENTES");
+      const ahora = Date.now();
+      const LIMITE_MS = 48 * 60 * 60 * 1000; // 48 horas
+
+      const sinRespuesta = clientes.filter(c => {
+        // Solo leads activos (no ya atendidos o perdidos)
+        const estadosActivos = ["nuevo", "contactado", "interesado", "pendiente_confirmacion", "confirmado"];
+        if (!estadosActivos.includes(c.Estado || "")) return false;
+        // Que tengan último contacto registrado
+        const ult = c.Ultimo_Saludo ? new Date(c.Ultimo_Saludo).getTime() : 0;
+        if (!ult) return false;
+        const sinActividadMs = ahora - ult;
+        return sinActividadMs >= LIMITE_MS && sinActividadMs < 7 * 24 * 60 * 60 * 1000; // entre 48hs y 7 días
+      });
+
+      if (!sinRespuesta.length) return;
+
+      // Máximo 10 para no spamear a Nico
+      const lista = sinRespuesta.slice(0, 10).map(c => {
+        const tel = c.Telefono || c.ID_Cliente || "?";
+        const nombre = c.Nombre || "Sin nombre";
+        const estado = c.Estado || "?";
+        const canal = c.Canal === "instagram" ? "📸" : "📱";
+        const horasDesde = Math.round((ahora - new Date(c.Ultimo_Saludo).getTime()) / 3600000);
+        return `${canal} *${nombre}* (${tel}) — ${estado} — sin respuesta hace ${horasDesde}hs`;
+      }).join("\n");
+
+      const total = sinRespuesta.length;
+      const msg = `🚨 *Leads sin respuesta +48hs* (${total} total)\n\n${lista}${total > 10 ? `\n\n_...y ${total - 10} más_` : ""}\n\n¿Intervengo yo o los tomás vos?`;
+
+      await enviarMensaje(OWNER, msg, "whatsapp").catch(() => {});
+      console.log(`📣 Escalación: ${total} lead(s) sin respuesta notificados a Nico`);
+    } catch (err) {
+      console.error("❌ Error en escalación bot→Nico:", err.message);
+    }
+  }, { timezone: "America/Montevideo" });
+
   console.log("🗓️ Scheduler iniciado:");
   console.log("  • 06:00 revisión silenciosa (token + sistema + liberar ghosts expiradas)");
   console.log("  • 07:00 (lunes) detectar patrones y crear ghost bookings");

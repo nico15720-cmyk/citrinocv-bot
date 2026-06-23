@@ -63,7 +63,7 @@ async function inicializarHojaTerapeutas() {
             3: { dia: "Miércoles", franjas: [{ inicio: 8, fin: 18 }] },
             4: { dia: "Jueves",    franjas: [{ inicio: 8, fin: 18 }] },
             5: { dia: "Viernes",   franjas: [{ inicio: 8, fin: 18 }] },
-            6: { dia: "Sábado",    franjas: [{ inicio: 8, fin: 12 }] },
+            6: { dia: "Sábado",    franjas: [{ inicio: 9, fin: 14 }] }, // 9:00–13:00
           }),
           process.env.GOOGLE_CALENDAR_ID || "primary",
           "si",
@@ -115,7 +115,7 @@ async function leerTerapeutas() {
         3: { dia: "Miércoles", franjas: [{ inicio: 8, fin: 18 }] },
         4: { dia: "Jueves",    franjas: [{ inicio: 8, fin: 18 }] },
         5: { dia: "Viernes",   franjas: [{ inicio: 8, fin: 18 }] },
-        6: { dia: "Sábado",    franjas: [{ inicio: 8, fin: 12 }] },
+        6: { dia: "Sábado",    franjas: [{ inicio: 9, fin: 14 }] }, // 9:00–13:00
       },
       calendarId: process.env.GOOGLE_CALENDAR_ID || "primary",
       activa: true,
