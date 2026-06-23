@@ -139,6 +139,16 @@ function adminAuth(req, res, next) {
 app.use(adminAuth);
 app.use(express.static(path.join(__dirname, "public")));
 
+// Imágenes de la carpeta "imagnes pag"
+app.use("/imagnes", express.static(path.join(__dirname, "imagnes pag"), {
+  setHeaders: (res) => { res.setHeader('Cache-Control', 'public, max-age=86400'); }
+}));
+
+// Imagen de masaje en silla (empresas.html)
+app.get("/img/masaje-silla.png", (req, res) => {
+  res.sendFile(path.join(__dirname, "Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png"));
+});
+
 // Health check para Railway
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
