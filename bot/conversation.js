@@ -312,6 +312,7 @@ Cuando confirme el horario: "¿Y me dice su nombre para registrar el turno?"
 PASO 5 — Confirmar turno:
 <accion>{"tipo":"agendar","slot_label":"lunes 10:00","hora":"10:00","nombre":"nombre","servicio":"servicio"}</accion>
 CRÍTICO: "hora" debe ser EXACTAMENTE el horario confirmado en formato HH:MM (ej: "15:30", "10:00"). Sin esto el sistema agenda el horario incorrecto.
+CRÍTICO: "nombre" SIEMPRE debe estar en la acción. Si la clienta es conocida y no dio su nombre en esta conversación, usá el nombre que aparece en el contexto (ej: "Nadia", "María"). Si no hay nombre disponible, dejalo en blanco string vacío "" — nunca omitir el campo.
 Mensaje de confirmación natural: "Perfecto, le dejamos agendada para el [día] a las [hora]hs, la esperamos."
 
 === ESTILO DE MENSAJES DE SEGUIMIENTO ===
@@ -528,6 +529,7 @@ Podés recibir imágenes y PDFs (comprobantes de pago, fotos de zonas del cuerpo
 Después de confirmar el turno, agregá UNA SOLA FRASE corta y natural de recomendación — NO una lista, NO un checklist.
 La frase va ANTES de la acción {"tipo":"agendar"}, integrada naturalmente en el mensaje de confirmación.
 
+⚠️ OBLIGATORIO: Siempre incluí la recomendación en el mensaje de confirmación. Sin excepción, aunque sea clienta conocida o haya dicho solo "Si".
 El tono es cálido y acompañante — Citrino no solo da un servicio, acompaña el bienestar de la persona.
 La recomendación va integrada al mensaje de confirmación, en 2-3 líneas naturales. Sin listas ni ítems.
 
@@ -639,7 +641,16 @@ async function procesarAccion(accion, userId, canal, nombre) {
         return "No encontramos disponibilidad para ese horario. ¿Le quedaria bien alguna otra opción?";
       }
 
-      const nombreCliente = accion.nombre || nombre || "Cliente";
+      // Intentar recuperar nombre de CRM si Claude no lo incluyó en la acción
+      let nombreCliente = accion.nombre || nombre;
+      if (!nombreCliente || nombreCliente === "Cliente") {
+        try {
+          const { readSheet: leerNombre } = require("./sheets-crm");
+          const filasNombre = await leerNombre("CLIENTES");
+          const clienteNombre = filasNombre.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+          nombreCliente = clienteNombre?.Nombre || nombreCliente || "Cliente";
+        } catch {}
+      }
       const servicio = accion.servicio || "masaje";
 
       const evento = await crearTurno({
@@ -723,10 +734,22 @@ async function procesarAccion(accion, userId, canal, nombre) {
       if (ownerCancel) {
         const { enviarMensaje: enviarC } = require("./sender");
         const horaLabel = turno.start
-          ? new Date(turno.start).toLocaleString("es-UY", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })
-          : "horario desconocido";
+          ? new Date(turno.start).toLocaleString("es-UY", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })
+          : (turno.inicioISO
+            ? new Date(turno.inicioISO).toLocaleString("es-UY", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "America/Montevideo" })
+            : "horario desconocido");
+        // Buscar nombre en CRM si el turno no lo tiene
+        let nombreCancel = turno.clienteNombre;
+        if (!nombreCancel) {
+          try {
+            const { readSheet: leerNC } = require("./sheets-crm");
+            const filasNC = await leerNC("CLIENTES");
+            const clienteNC = filasNC.find(f => f.ID_Cliente === userId || f.Telefono === userId);
+            nombreCancel = clienteNC?.Nombre || userId;
+          } catch { nombreCancel = userId; }
+        }
         enviarC(ownerCancel,
-          `❌ *Cancelación*\n\n👤 ${turno.clienteNombre || userId}\n📱 ${userId}\n🕐 ${horaLabel}`,
+          `❌ *Cancelación*\n\n👤 ${nombreCancel}\n📱 ${userId}\n🕐 ${horaLabel}`,
           "whatsapp"
         ).catch(() => {});
       }
