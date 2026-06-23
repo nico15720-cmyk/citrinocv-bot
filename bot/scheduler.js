@@ -361,6 +361,29 @@ async function enviarUpsellPack() {
     const clientes = await readSheet("CLIENTES");
     const ahora = Date.now();
 
+    // Pre-cargar VENTAS y SESIONES para verificar cuponera real
+    // (el campo c.Cuponera no existe en el CRM actual — hay que calcularlo)
+    const PACK_KW_UP = ["pack", "cuponera", "pase libre"];
+    let ventasUp = [], sesionesUp = [];
+    try {
+      [ventasUp, sesionesUp] = await Promise.all([
+        readSheet("VENTAS").catch(() => []),
+        readSheet("SESIONES").catch(() => []),
+      ]);
+    } catch {}
+    function normIdUp(v) { return String(v || "").replace(/\D/g, "").slice(-9); }
+    function tieneCuponeraActiva(clienteId) {
+      const cid = normIdUp(clienteId);
+      if (!cid) return false;
+      const compradas = ventasUp
+        .filter(v => normIdUp(v.ID_Cliente_Guardado) === cid &&
+          PACK_KW_UP.some(k => (v.Producto || "").toLowerCase().includes(k)))
+        .reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+      if (!compradas) return false;
+      const usadas = sesionesUp.filter(s => normIdUp(s.ID_Cliente_Guardado) === cid).length;
+      return compradas - usadas > 0;
+    }
+
     for (const c of clientes) {
       try {
         if (c.Estado !== "vino") continue;
@@ -368,13 +391,12 @@ async function enviarUpsellPack() {
         // Solo si vino entre 24 y 48hs atrás
         const diffHoras = (ahora - new Date(c.Fecha_Turno)) / (1000 * 60 * 60);
         if (diffHoras < 24 || diffHoras > 48) continue;
-        // Solo si no tiene cuponera activa
-        if (c.Cuponera === "si") continue;
         // Evitar reenviar (NOTAS como flag)
         if ((c.NOTAS || "").includes("[upsell_enviado]")) continue;
-
+        // Solo si no tiene cuponera activa (verificación real vs VENTAS-SESIONES)
         const userId = c.ID_Cliente || c.Telefono;
         if (!userId) continue;
+        if (tieneCuponeraActiva(userId)) continue;
 
         await enviarMensaje(userId, MENSAJES.upsellPack(c.Nombre || ""), c.Origen || "whatsapp");
         await updateClienteEstado(userId, "vino", { NOTAS: ((c.NOTAS || "") + " [upsell_enviado]").trim() });
@@ -491,7 +513,7 @@ async function enviarCheckInDiario() {
 async function cerrarNoShows() {
   console.log("🔍 Verificando no-shows del día...");
   try {
-    const { readSheet, updateClienteEstado } = require("./sheets-crm");
+    const { readSheet, updateClienteEstado, upsertCliente } = require("./sheets-crm");
     const clientes = await readSheet("CLIENTES");
     const ahora = new Date();
     const inicioHoy = new Date(ahora); inicioHoy.setHours(0, 0, 0, 0);
@@ -518,12 +540,9 @@ async function cerrarNoShows() {
           ).catch(() => {});
         }
 
-        // Mensaje de recuperación (después de 1 hora)
-        setTimeout(async () => {
-          try {
-            await enviarMensaje(userId, MENSAJES.recuperacionNoShow(c.Nombre || ""), c.Origen || "whatsapp");
-          } catch {}
-        }, 60 * 60 * 1000);
+        // Mensaje de recuperación — enviado a las 9:00 del día siguiente via NOTAS flag
+        // (no setTimeout que se pierde al reiniciar Railway)
+        upsertCliente({ ID_Cliente: userId, NOTAS: ((c.NOTAS || "") + " [noshow_pendiente_followup]").trim() }).catch(() => {});
 
         console.log(`✅ No-show registrado: ${c.Nombre || userId}`);
       } catch (err) {
@@ -1403,11 +1422,109 @@ async function incrementarPuntosFidelidad(clienteId, nombre, canal) {
 }
 
 // ============================================================
+// FOLLOW-UP LEAD TIBIO — "luego confirmo" → al día siguiente
+// Detecta leads que pidieron horarios ayer pero no confirmaron.
+// Corre todos los días a las 10:00
+// ============================================================
+async function followUpLeadTibio() {
+  console.log("📨 Follow-up leads tibios (10am)...");
+  try {
+    const { readSheet, upsertCliente } = require("./sheets-crm");
+    const clientes = await readSheet("CLIENTES");
+    const ahora = Date.now();
+    const hoyStr = new Date().toISOString().slice(0, 10); // "2026-06-22"
+
+    const estadosExcluidos = new Set(["vino", "agendado", "confirmado", "pendiente_confirmacion", "cancelado"]);
+
+    for (const c of clientes) {
+      try {
+        if (estadosExcluidos.has(c.Estado)) continue;
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+
+        // Evitar doble envío en el mismo día
+        if ((c.NOTAS || "").includes(`[followup_tibio:${hoyStr}]`)) continue;
+
+        // Leads con objeción ya están en el flujo de remarketing — no duplicar con follow-up tibio
+        if (c.Lead_Score === "objecion") continue;
+
+        // Verificar que el historial incluye conversación sobre horarios/turnos
+        // (o que el Lead_Score ya indica alta intención — en ese caso confiamos en eso)
+        let preguntoPorHorario = c.Lead_Score === "alta";
+        if (!preguntoPorHorario) {
+          try {
+            const hist = JSON.parse(c.Historial_JSON || "[]");
+            if (hist.length >= 2) {
+              const textoHist = hist.map(m => m.content || m.msg || m.text || "").join(" ").toLowerCase();
+              preguntoPorHorario = /horario|turno|cuando|agendar|disponib|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|semana/.test(textoHist);
+            }
+          } catch {}
+        }
+        if (!preguntoPorHorario) continue;
+
+        // Solo si el último contacto fue hace entre 14 y 30 horas (ayer)
+        const refDate = c.Ultimo_Remarketing || c.Fecha_Alta;
+        if (!refDate) continue;
+        const diffHoras = (ahora - new Date(refDate).getTime()) / (1000 * 60 * 60);
+        if (diffHoras < 14 || diffHoras > 30) continue;
+
+        const nombre = c.Nombre || "";
+        // Lead con alta intención → mensaje más directo y concreto
+        // Lead sin score → mensaje estándar
+        const msg = c.Lead_Score === "alta"
+          ? (nombre
+              ? `Holii ${nombre}, que tal? 😊 Le escribía porque quedó pendiente definir el horario para su sesión — tenemos lugar esta semana si le interesa 🌿`
+              : `Holii, que tal? 😊 Quedó pendiente definir el horario para su sesión — tenemos lugar esta semana si le interesa 🌿`)
+          : (nombre
+              ? `Holii ${nombre}, que tal? 😊 Le consultaba si pudo definir algún horario para la sesión.`
+              : `Holii, que tal? 😊 Le consultaba si pudo definir algún horario para la sesión.`);
+
+        await enviarMensaje(userId, msg, c.Origen || "whatsapp");
+
+        // Marcar para no reenviar hoy + resetear clock de remarketing
+        // (evita que el remarketing de las 10:30 mande un segundo mensaje el mismo día)
+        await upsertCliente({
+          ID_Cliente:          userId,
+          NOTAS:               ((c.NOTAS || "") + ` [followup_tibio:${hoyStr}]`).trim(),
+          Ultimo_Remarketing:  new Date().toISOString(),
+        });
+
+        console.log(`✅ Follow-up tibio → ${userId} (${nombre})`);
+        await new Promise(r => setTimeout(r, 1200));
+      } catch (err) {
+        console.error(`❌ Error follow-up tibio ${c.ID_Cliente}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en followUpLeadTibio:", err.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
   // ── Salud del sistema ──────────────────────────────────────
   cron.schedule("0 */4 * * *", verificarSalud, { timezone: "America/Montevideo" });
+
+  // ── Recuperación no-shows — 9:05 (flag [noshow_pendiente_followup] del día anterior) ──
+  cron.schedule("5 9 * * *", async () => {
+    try {
+      const { readSheet, upsertCliente: upsert } = require("./sheets-crm");
+      const clientes = await readSheet("CLIENTES");
+      for (const c of clientes) {
+        if (!(c.NOTAS || "").includes("[noshow_pendiente_followup]")) continue;
+        const userId = c.ID_Cliente || c.Telefono;
+        if (!userId) continue;
+        await enviarMensaje(userId, MENSAJES.recuperacionNoShow(c.Nombre || ""), c.Origen || "whatsapp");
+        const notasLimpias = (c.NOTAS || "").replace(/\[noshow_pendiente_followup\]/g, "").trim();
+        await upsert({ ID_Cliente: userId, NOTAS: notasLimpias });
+        await new Promise(r => setTimeout(r, 800));
+      }
+    } catch (e) {
+      console.error("❌ [noshow-followup]:", e.message);
+    }
+  }, { timezone: "America/Montevideo" });
 
   // ── Cumpleaños — 9:00 diario ──────────────────────────────────
   cron.schedule("0 9 * * *", enviarCumpleanos, { timezone: "America/Montevideo" });
@@ -1429,6 +1546,11 @@ function startScheduler() {
 
   // ── Re-booking post-sesión — 10:00 (invitar próximo turno) — DESACTIVADO por ahora ──
   // cron.schedule("0 10 * * *", enviarRebooking, { timezone: "America/Montevideo" });
+
+  // ── Follow-up lead tibio — 10:00 ("luego confirmo" → al día siguiente) ──
+  cron.schedule("0 10 * * *", () => {
+    followUpLeadTibio().catch(err => console.error("❌ followUpLeadTibio:", err.message));
+  }, { timezone: "America/Montevideo" });
 
   // ── Re-marketing leads sin turno (+7 días) — 10:30 ────────
   cron.schedule("30 10 * * *", enviarRemarketing, { timezone: "America/Montevideo" });

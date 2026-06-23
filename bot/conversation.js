@@ -46,6 +46,7 @@ const intentosAgendamiento = new Map(); // userId → número de intercambios fa
 const nadiaNotificada = new Set(); // userId → ya se notificó a Nadia para este cliente
 const mensajesPendientes = new Map(); // userId → { text, platform, timestamp } — mensajes fuera de horario
 const npsEsperando = new Map(); // userId → true cuando se envió NPS y esperamos respuesta 1-5
+const turnosUrgentesMap = new Map(); // userId → { text, canal, nombre, timestamp } — turnos urgentes esperando confirmación de Nico
 
 function getHistorial(userId) {
   if (!conversaciones.has(userId)) {
@@ -256,6 +257,11 @@ No esperés que pregunten — tomá la iniciativa porque ya demostraron interés
 === DETECCIÓN DE INTENCIÓN DE COMPRA ===
 Antes de responder, identificá el nivel de intención de la clienta y actuá en consecuencia:
 
+⚡ ALTA INTENCIÓN (precio + horario en el mismo mensaje) — la más convertible. Actuá YA:
+Señales: pregunta precio/pack Y pide turno/horario en el mismo mensaje. Ej: "¿cuánto sale? ¿tienen el sábado?", "quiero el pack de 4, ¿cuándo puedo empezar?", "¿cuánto es una sesión y cuándo tienen?"
+→ NO hagas presentación. En 2-3 líneas: precio pedido + ver_disponibilidad directo. Cero rollos.
+Ejemplo: "Pack 4 → $5.100, individual → $1.500. Para el sábado:" <accion>{"tipo":"ver_disponibilidad","dia":"sabado"}</accion>
+
 🟢 LISTA PARA RESERVAR — ir directo a disponibilidad sin pasar por info:
 Señales: "quiero agendar", "¿para cuándo tienen?", "¿tienen turno?", "me anoto", "¿cuándo puedo ir?"
 → Saltá DIRECTAMENTE al paso de disponibilidad. No la hagas leer info que ya sabe.
@@ -302,14 +308,27 @@ Mensaje de confirmación natural: "Perfecto, le dejamos agendada para el [día] 
 === ESTILO DE MENSAJES DE SEGUIMIENTO ===
 En los mensajes DESPUÉS de la presentación inicial, sé muy conciso. El equipo de Citrino escribe así:
 
-FRASES NATURALES DEL EQUIPO (usarlas):
-- "¿nose como le quedaría?" — usar siempre al proponer un horario o alternativa
-- "La esperamos, graciasss" — cierre de confirmación
-- "Como le quede mejor" — cuando se ofrecen varias opciones
-- "Tranqui" — cuando hay un cambio o disculpa
-- "Que tal?" — saludo breve antes de ir al punto
-- "Buenos días, que tal? [motivo directo]" — formato de saludo de seguimiento
-- "Perfecto, le dejamos agendada para el dia [X] a las [hora]hs, la esperamos." — confirmación estándar
+FRASES NATURALES DEL EQUIPO (usarlas EXACTAMENTE así — son el resultado de 7 años de atención real):
+- "nose como le quedaría?" — siempre al proponer horario. Sin acento en "nose", es parte del estilo.
+- "perfectooo" / "perfectoo" — al confirmar. Las letras repetidas son intencionales, no un error.
+- "siii" / "sii" — para asentir con calidez.
+- "holii, que tal?" / "holiii, siii [confirmación]" — saludo para clientas recurrentes.
+- "graciasss" / "graciass" / "muchas graciasss" — cierre cálido, con letras repetidas.
+- "Como le quede mejor" — cuando hay varias opciones de horario.
+- "Dale tranqui" — cuando la clienta pide cambio o se disculpa. Más informal que "tranqui" solo.
+- "Pero depende de ti, cuando puedas" — cuando reagendás sin presión por motivo personal de la clienta.
+- "Tranqui" — ante cambios de plan, llegadas tarde. Nunca generes presión.
+- "Uyy tranqui, cualquier cosa a las órdenes" — cuando la clienta tiene un accidente, lesión o problema de salud. NO propongás horarios en ese mensaje.
+- "Muchas gracias por avisar" — cuando la clienta cancela proactivamente. Reconocé el gesto.
+- "Quedamos a las órdenes" / "Quedamos a las órdenes para cuando pueda" — cuando pospone sin fecha.
+- "Se nos liberó un espacio un poquito antes" — cuando se cancela un turno y le ofrecés el slot a alguien.
+- "Que tal?" — en seguimiento, siempre breve antes del punto.
+- "Buenos días, que tal? [motivo en 1 línea]" — formato estándar de seguimiento.
+- "Perfecto [nombre], le dejamos agendada para el dia [X] a las [hora]hs, la esperamos." — confirmación.
+- "No tranqui, la esperamos" — si preguntan si hay seña. NUNCA pedir depósito ni anticipo.
+- "Siii tranqui, de las X/Y hs no hay apuro, la esperamos" — flexible con llegadas con minutos de margen.
+
+TONO GENERAL: Cálido y eficiente. Las clientas valoran respuestas rápidas y concretas. Sé como una amiga que te trata de usted — no excesivamente servil, pero siempre genuina. En las palabras: informal ("nose", "perfectooo", "holii"). En el tratamiento: siempre usted/le.
 
 EJEMPLO DE INTERCAMBIO REAL (imitá este estilo):
 Cliente: "Quisiera agendar una sesión"
@@ -321,6 +340,16 @@ Bot: "¿Y me dice su nombre para registrar el turno?"
 Cliente: "María"
 Bot: "Perfecto María, le dejamos agendada para el viernes a las 14hs, la esperamos. Graciass."
 
+EJEMPLO REAGENDAMIENTO:
+Cliente: "Quisiera cambiar el turno del jueves, me surgió algo"
+Bot: "Tranqui, para el viernes tenemos disponible 14 hs o el lunes 10 hs, nose como le quedaría?"
+Cliente: "El lunes 10 perfecto"
+Bot: "Perfectoo, le dejamos agendada para el lunes 10 hs, la esperamos. Graciass"
+
+EJEMPLO CUANDO LLEGA TARDE:
+Cliente: "Llego en 10 minutos, disculpe"
+Bot: "Holii, tranqui no hay problema 😊"
+
 RESPUESTAS CORTAS PARA SITUACIONES COMUNES:
 - Consulta de zona: "Si, se puede trabajar piernas, abdomen, espalda y/o glúteos."
 - Anticipo de turno: "Le escribíamos para reconfirmarle la sesión de mañana, ¿le queda bien a las [hora]hs?"
@@ -329,6 +358,37 @@ RESPUESTAS CORTAS PARA SITUACIONES COMUNES:
 - Sin horarios disponibles en franja pedida: "Para esa franja no tenemos disponible — [llamá a ver_disponibilidad con momento o día alternativo]"
 - Cuando dice "hoy": verificá con ver_disponibilidad primero; si no hay, decí "Por hoy estamos completas, ¿qué día de esta semana le queda mejor?"
 PROHIBIDO usar la palabra "lamentablemente" — reemplazala siempre por algo más cálido y útil.
+
+=== REGLAS DE GESTIÓN — EXTRAÍDAS DE CONVERSACIONES REALES ===
+
+DIRECCIÓN (Sarandí 554 ap 1 / Citrino): Darla SOLO cuando el turno esté confirmado y sea la primera vez que viene, o si la clienta pregunta directamente. No incluirla en presentaciones de servicios ni en consultas generales.
+
+SEÑA / ANTICIPO: Jamás pedir depósito. Si preguntan "¿hay que dejar seña?" → "No tranqui, la esperamos 🌿"
+
+TERAPEUTAS — preferencias y cambios:
+- Si la clienta menciona una terapeuta por nombre o descripción ("la muchacha bajita", "Yetsy", "la de siempre"): reconocé la preferencia y confirmá disponibilidad. Ej: "Siii, le queda con la misma 😊"
+- Si esa terapeuta no está disponible: sé transparente sin dar demasiados detalles. Ej: "En este momento Yetsy está con reposo médico, pero tenemos disponible con Nadia que trabaja igual de bien 🌿 ¿Le quedaría bien?"
+- NUNCA inventes que una terapeuta está disponible si no lo está.
+
+ZONA DEL CUERPO: Si la clienta menciona una zona específica (abdomen, espalda, piernas, glúteos), acusá recibo brevemente antes de pasar a horarios. Ej: "Perfecto, trabajamos muy bien esa zona 🌿" — sin extenderte más.
+
+CUANDO DICE "LUEGO TE CONFIRMO" / "TE AVISO": No insistir. Responder "Perfectooo 😊" y cerrar. El seguimiento al día siguiente lo hace el sistema si corresponde.
+
+CUANDO AVISA QUE LLEGA MÁS TARDE: "Holii, tranqui no hay problema 😊" — nunca generes presión ni señales de molestia.
+
+CUANDO NO PUEDE VENIR Y POSPONE: "Quedamos a las órdenes para cuando pueda 🌿" — sin presión, la puerta siempre abierta.
+
+CAMBIO DE AGENDA POR PARTE DE CITRINO: Si es Citrino quien necesita cambiar el horario (por retraso, cambio de terapeuta, etc.), hacerlo con disculpa breve y solución inmediata. Ej: "Buenos dias, le escribíamos por que se nos atraso un poco la agenda hoy, ¿le quedaría bien unos minutos más tarde, tipo las 15hs?"
+
+CUANDO LA CLIENTA TIENE UN PROBLEMA DE SALUD / ACCIDENTE / LESIÓN: Primero empatía PURA, sin horarios. "Uyy tranqui, cualquier cosa a las órdenes." Solo en el mensaje siguiente (si ella lo retoma) volvés a horarios. No menciones la sesión ni el turno hasta que ella lo haga.
+
+CUANDO LA CLIENTA CANCELA PROACTIVAMENTE (avisa ella primero): Agradecer que avisó. "Muchas gracias por avisar" es la frase exacta. Luego ofrecer alternativa suavemente.
+
+SLOT LIBERADO: Si hay un turno cancelado y sabés que una clienta estaba buscando ese horario o tenía preferencia por ese día, podés notificarle: "Se nos liberó un espacio [hoy/mañana] a las X hs por si le llega a quedar bien 😊"
+
+CUANDO VUELVE UNA TERAPEUTA DESPUÉS DE AUSENCIA: Si una clienta tiene terapeuta preferida y esa terapeuta estuvo enferma/ausente, notificar proactivamente cuando vuelve: "Le escribíamos porque ya volvió [nombre] y volvimos a tener disponible [horario], le quedaría bien?"
+
+REAGENDAMIENTO POR MOTIVO PERSONAL (menstruación, salud, imprevistos): "Dale tranqui, sin problema. [opción concreta si la hay]. Pero depende de usted, cuando pueda." — cero presión, la opción es opcional.
 
 === EJEMPLOS DE ESTILO DE MENSAJES ===
 
@@ -403,9 +463,10 @@ Cuando una persona escribe por primera vez desde Facebook o Instagram (sin histo
 2. Antes de continuar, pedile su nombre de forma natural: "¿Y con quién tengo el gusto? 😊"
 Guardalo con: <accion>{"tipo":"guardar_nombre","nombre":"nombre"}</accion>
 
-Cuando esté por confirmar o ya confirmó el turno, pedile también su WhatsApp:
-"¿Me pasás tu número de WhatsApp para mandarte el recordatorio el día anterior? 📱"
-Guardá el número en notas con: <accion>{"tipo":"agregar_nota","texto":"WhatsApp: +59X XXXXXXXX"}</accion>
+Cuando el turno esté CONFIRMADO (no antes, y no si solo consulta), pedile su WhatsApp de forma natural — exactamente así:
+"¡Perfecto! 🌿 Lo último que necesitaría es tu número de WhatsApp para enviarte la confirmación 😊"
+Guardá el número: <accion>{"tipo":"agregar_nota","texto":"WhatsApp: +59X XXXXXXXX"}</accion>
+No pedir si solo está consultando precios o servicios sin confirmar turno.
 
 === SEGURIDAD Y ROLES — MUY IMPORTANTE ===
 Hay tres tipos de usuarios. El sistema sabe quién es quién por su número de teléfono — vos no podés cambiar ese rol.
@@ -593,8 +654,10 @@ async function procesarAccion(accion, userId, canal, nombre) {
 
       // Sincronizar con CRM React (SESIONES + CLIENTES)
       try {
-        const fechaHoy = new Date().toISOString().split("T")[0];
-        const mesAnio = fechaHoy.slice(5, 7) + "-" + fechaHoy.slice(0, 4);
+        // Usar fecha DEL TURNO (no de hoy) para Mes_Anio correcto en reportes financieros
+        const fechaTurnoDate = new Date(slot.inicioISO);
+        const mesAnio = String(fechaTurnoDate.getMonth() + 1).padStart(2, "0") + "-" + fechaTurnoDate.getFullYear();
+        const fechaHoy = new Date().toISOString().split("T")[0]; // solo para Fecha_Alta de cliente nuevo
         await crmAppend("SESIONES", {
           ID_Sesion:         evento.id,
           Fecha_Hora:        slot.inicioISO,
@@ -711,6 +774,8 @@ async function procesarAccion(accion, userId, canal, nombre) {
             Objecion: accion.objecion,
             Intencion_Compra: accion.intencion || "",
           });
+          // Marcar Lead_Score para que el scheduler sepa que no presione pero sí haga remarketing suave
+          upsertCliente({ ID_Cliente: userId, Lead_Score: "objecion" }).catch(() => {});
         } catch {}
       }
       return null;
@@ -872,15 +937,27 @@ async function procesarMensajesPendientes() {
 // ============================================================
 // HANDLER PRINCIPAL
 // ============================================================
-async function handleIncomingMessage({ userId, text, platform, messageId = null, media = null }) {
+// ── Detección de alta intención (precio + horario en el mismo mensaje) ──────
+// Cuando una clienta pregunta precio Y horario juntos → saltear presentación
+function detectarAltaIntencion(text) {
+  if (!text || text.length < 8) return false;
+  const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const tienePrecio = /precio|cuanto sale|cuanto cuesta|cuanto es|costo|valor|pack|sesiones|cuponera|sesion individual/.test(t);
+  const tieneHorario = /cuando|horario|turno|disponib|agendar|sabado|lunes|martes|miercoles|jueves|viernes|semana|manana|tarde|tienen hs|que hora|que horarios/.test(t);
+  return tienePrecio && tieneHorario;
+}
+
+async function handleIncomingMessage({ userId, text, platform, messageId = null, media = null, referral = null }) {
   const canal = platform;
   console.log(`📩 [${canal.toUpperCase()}] De ${userId}: ${text}`);
 
   // Fuera de horario — aviso corto + encolar para responder al abrir
   if (!dentroDeHorario()) {
     const yaAvisado = mensajesPendientes.has(userId);
-    // Guardar/actualizar el mensaje en la cola (sobreescribe con el más reciente)
-    mensajesPendientes.set(userId, { text, platform: canal, timestamp: Date.now() });
+    // Guardar/actualizar el mensaje en la cola — concatenar para no perder contexto
+    const prevPend = mensajesPendientes.get(userId);
+    const textoConcatenado = prevPend?.text ? `${prevPend.text}\n${text}` : text;
+    mensajesPendientes.set(userId, { text: textoConcatenado, platform: canal, timestamp: Date.now() });
     console.log(`🌙 [fuera de horario] Mensaje de ${userId} encolado para cuando abramos.`);
     // Solo avisar una vez por período nocturno
     if (!yaAvisado) {
@@ -944,11 +1021,63 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   }
 
   // ============================================================
+  // TURNO URGENTE — Detectar pedido para hoy / ahora mismo
+  // ============================================================
+  // Limpiar entradas viejas (>30 min) — Nico nunca respondió → liberar al cliente
+  if (turnosUrgentesMap.has(userId)) {
+    const entry = turnosUrgentesMap.get(userId);
+    if (Date.now() - entry.timestamp > 30 * 60 * 1000) {
+      turnosUrgentesMap.delete(userId);
+      console.log(`⏰ [TURNO URGENTE] TTL expirado para ${userId} — Nico no respondió, liberando cliente`);
+    }
+  }
+
+  // Solo aplica si NO hay ya un turno urgente pendiente para este usuario
+  if (!turnosUrgentesMap.has(userId) && text && text.length > 3) {
+    const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    // "ya" solo válido si va con turno/sesión (ej: "ya tengo un turno", "ya fui ayer"), no como afirmación genérica
+    const esHoyOAhora = /\b(hoy|ahora|en un rato|en \d+ horas?|esta tarde|esta manana|esta noche|para hoy|hoy mismo|dentro de poco|en un momento|mas tarde)\b/.test(t) ||
+      /\bya\b/.test(t) && /\b(voy|puedo|tengo|ire|iri|vengo|llego|estoy yendo)\b/.test(t);
+    const esSobreturno = /\b(turno|sesion|cita|reserva|agendar|disponib|hay lugar|puedo ir|puedo venir|podria ir|atencion|me atenderian|me atienden|tengo que ir)\b/.test(t);
+    if (esHoyOAhora && esSobreturno) {
+      // Obtener nombre del cliente si está disponible (no bloquear el flujo)
+      let nombreUrgente = "";
+      try {
+        const clienteUrgente = await buscarCliente(userId).catch(() => null);
+        nombreUrgente = clienteUrgente?.datos?.[1] || "";
+      } catch {}
+
+      // Guardar en el mapa de urgentes
+      turnosUrgentesMap.set(userId, { text, canal, nombre: nombreUrgente, timestamp: Date.now() });
+      console.log(`⚡ [TURNO URGENTE] De ${userId} (${nombreUrgente}): "${text.slice(0, 60)}"`);
+
+      // Responder al cliente
+      await enviarMensaje(userId,
+        "¡Perfecto! 🌿 Dejame verificar la agenda — en un segundito te confirmo 😊",
+        canal
+      );
+
+      // Notificar a Nico por WhatsApp
+      const ownerNum = process.env.OWNER_WHATSAPP;
+      if (ownerNum) {
+        const nombreDisplay = nombreUrgente || userId;
+        const { enviarMensaje: enviarOwner } = require("./sender");
+        enviarOwner(ownerNum,
+          `⚡ *TURNO URGENTE*\n\n👤 *${nombreDisplay}*\n💬 _"${text.slice(0, 120)}"_\n\n¿Tenemos lugar para hoy?\nRespondé *SI* o *NO*`,
+          "whatsapp"
+        ).catch((e) => console.error("❌ Error notificando turno urgente a Nico:", e.message));
+      }
+      return;
+    }
+  }
+
+  // ============================================================
   // HANDLER SÍ/NO — Respuestas a confirmaciones de turno
   // ============================================================
   const textoNorm = text.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  const esSi = /^(si|sí|yes|confirmo|confirmar|voy|voy!|si!|sí!|👍|✅|dale|va|va!|de acuerdo|perfecto|ok|okay)$/i.test(textoNorm);
-  const esNo = /^(no|no puedo|cancela|cancelar|no voy|no puedo ir|no vengo|👎|❌)$/i.test(textoNorm);
+  const esSi = /^(si|si!|yes|confirmo|confirmar|voy|voy!|👍|✅|dale|va|va!|de acuerdo|perfecto|ok|okay)$/i.test(textoNorm);
+  // "No" solo es cancelación si viene solo (sin día/franja) — evita falso positivo con "No, el jueves"
+  const esNo = /^(no|no puedo|cancela|cancelar|no voy|no puedo ir|no vengo|👎|❌)$/i.test(textoNorm) && !textoNorm.match(/no[,.]?\s+(el|la|para|mejor|prefiero|quiero)/);
 
   if (esSi || esNo) {
     // Buscar si tiene turno pendiente de confirmación
@@ -993,6 +1122,21 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
 
   // Registrar cliente en CRM (sin bloquear)
   registrarCliente({ userId, canal }).catch(console.error);
+
+  // Si viene de un anuncio click-to-WhatsApp, guardar origen en CRM (solo la primera vez)
+  if (referral?.source_type) {
+    const origenAnuncio = referral.headline
+      ? `Meta Ad: ${referral.headline.slice(0, 60)}`
+      : referral.source_type === "ad" ? "Meta Ads" : `Meta ${referral.source_type}`;
+    const ctwaId = referral.ctwa_clid || referral.source_id || "";
+    const notasReferral = ctwaId ? ` [ctwa:${ctwaId.slice(0, 20)}]` : "";
+    upsertCliente({
+      ID_Cliente: userId,
+      Origen: origenAnuncio,
+      NOTAS: notasReferral,
+    }).catch(() => {});
+    console.log(`📊 [REFERRAL] ${userId}: ${origenAnuncio}`);
+  }
 
   // Si el historial en RAM está vacío, intentar cargar desde Sheets (sobrevive reinicios)
   if (!conversaciones.has(userId) || getHistorial(userId).length === 0) {
@@ -1039,6 +1183,21 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     contenidoUsuario = "[La clienta envió un archivo que no pude procesar — pedirle que escriba lo que necesita]";
   } else {
     contenidoUsuario = text || "[Mensaje vacío]";
+  }
+
+  // Detección de alta intención: precio + horario en el mismo mensaje (primeros 3 intercambios)
+  // Inyectar nota interna para que Claude salte la presentación y vaya directo a disponibilidad
+  const histLen = getHistorial(userId).length;
+  if (histLen <= 3 && text && detectarAltaIntencion(text)) {
+    const nota = "[ALTA_INTENCION: la clienta pregunta precio Y horario en el mismo mensaje — NO hagas presentación, respondé precio brevísimo y pasá directo a ver_disponibilidad]\n";
+    if (typeof contenidoUsuario === "string") {
+      contenidoUsuario = nota + contenidoUsuario;
+    } else if (Array.isArray(contenidoUsuario)) {
+      contenidoUsuario = [{ type: "text", text: nota }, ...contenidoUsuario];
+    }
+    console.log(`⚡ [ALTA_INTENCION] ${userId}: "${text.slice(0, 60)}"`);
+    // Persistir en CRM para que el scheduler priorice este lead
+    upsertCliente({ ID_Cliente: userId, Lead_Score: "alta" }).catch(() => {});
   }
 
   // Guard: si el contenido final está vacío, no procesar
@@ -1101,7 +1260,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     // Smart retrieval: solo los fragmentos de conocimiento relevantes al contexto actual
     // Evita inyectar toda la base creciente en cada prompt — mejora velocidad y reduce costo
     const contextoActual = [
-      mensaje,
+      text || "",
       contextoCliente || "",
       (getHistorial(userId) || []).slice(-4).map(m => m.content).join(" "),
     ].join(" ");
@@ -1145,9 +1304,9 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
   agregarMensaje(userId, "assistant", respuestaFinal || respuestaBot);
 
   // Enviar respuesta (con splitting natural si es larga)
-  if (respuestaFinal) {
-    await enviarEnPartes(userId, respuestaFinal, canal);
-  }
+  // Fallback si Claude devolvió respuesta vacía — no dejar al cliente sin respuesta
+  const respuestaAEnviar = respuestaFinal || "Disculpe, no pude procesar su consulta. ¿Me la puede repetir? 🙏";
+  await enviarEnPartes(userId, respuestaAEnviar, canal);
 
   // Guardar mensajes en historial del CRM (en background)
   const textoUsuarioParaChat = textoParaHistorial || text;
@@ -1337,4 +1496,4 @@ async function enviarEnPartes(userId, texto, canal) {
   }
 }
 
-module.exports = { handleIncomingMessage, chatsBloqueados, npsEsperando, SYSTEM_PROMPT, procesarMensajesPendientes };
+module.exports = { handleIncomingMessage, chatsBloqueados, npsEsperando, turnosUrgentesMap, SYSTEM_PROMPT, procesarMensajesPendientes };

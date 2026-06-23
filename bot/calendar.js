@@ -438,10 +438,14 @@ async function marcarAsistencia(eventId, estado = "vino") {
 async function buscarTurnoCliente(telefono) {
   const sesiones = await _leerSesiones();
   const ahora = new Date();
+  // Normalizar para comparar tanto "5989..." como "+5989..." como "989..."
+  const telNorm = (telefono || "").replace(/\D/g, "").slice(-9);
 
   const futuros = sesiones
     .filter(f => {
-      const telOk = f[COL.ID_CLIENTE] === telefono;
+      // Match por últimos 9 dígitos para tolerar prefijos internacionales distintos
+      const telFila = (f[COL.ID_CLIENTE] || "").replace(/\D/g, "").slice(-9);
+      const telOk = telFila && telNorm && telFila === telNorm;
       const noCanc = f[COL.ESTADO] !== "cancelado";
       const futuro = f[COL.FECHA] && new Date(f[COL.FECHA]) > ahora;
       return telOk && noCanc && futuro;
