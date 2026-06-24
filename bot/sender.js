@@ -145,7 +145,8 @@ async function enviarFacebook(recipientId, texto) {
 // ============================================================
 async function enviarInstagram(recipientId, texto) {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN || META_PAGE_ACCESS_TOKEN;
-  const url = `https://graph.facebook.com/v19.0/me/messages`;
+  const pageId = process.env.FACEBOOK_PAGE_ID || "me";
+  const url = `https://graph.facebook.com/v19.0/${pageId}/messages`;
 
   await axios.post(
     url,
