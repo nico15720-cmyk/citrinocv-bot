@@ -402,7 +402,7 @@ app.post("/webhook", async (req, res) => {
   if (body.object === "page") {
     // DM directo
     const msg = entry.messaging?.[0];
-    if (msg?.message?.text) {
+    if (msg?.message?.text && !msg.message.is_echo) {
       if (botModo !== "off") {
         encolarMensaje(msg.sender.id, msg.message.text, "facebook", null, null);
       }
@@ -428,7 +428,7 @@ app.post("/webhook", async (req, res) => {
   if (body.object === "instagram") {
     // DM directo
     const msg = entry.messaging?.[0];
-    if (msg?.message?.text) {
+    if (msg?.message?.text && !msg.message.is_echo) {
       if (botModo !== "off") {
         encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
       }
