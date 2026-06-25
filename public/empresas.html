@@ -1299,11 +1299,144 @@
       .eq-emp-head { gap:.85rem; padding:1rem 1.1rem; }
       .eq-emp-body-inner { padding:.2rem 1.1rem 1.2rem 3.6rem; }
     }
+
+    /* ══ ACCESIBILIDAD: REDUCE MOTION ══ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+      html { scroll-behavior: auto; }
+      .fade-scale, .fade-left, .fade-right { opacity:1 !important; transform:none !important; }
+    }
+
+    /* ════════════════════════════════════════
+       SCROLL PROGRESS BAR
+    ════════════════════════════════════════ */
+    #scroll-progress {
+      position:fixed; top:0; left:0; z-index:9999;
+      height:2px; width:0%;
+      background:linear-gradient(90deg, var(--terra-d), var(--terra), var(--gold));
+      transition:width .08s linear;
+      box-shadow:0 0 8px rgba(196,117,80,.55);
+      pointer-events:none;
+    }
+
+    /* ════════════════════════════════════════
+       STICKY MOBILE CTA BAR
+    ════════════════════════════════════════ */
+    .mobile-cta-bar {
+      display:none;
+      position:fixed; bottom:0; left:0; right:0; z-index:998;
+      background:rgba(13,10,7,.97); backdrop-filter:blur(20px) saturate(1.5);
+      border-top:1px solid rgba(196,117,80,.22);
+      padding:.9rem 1.2rem calc(.9rem + env(safe-area-inset-bottom));
+      gap:.75rem; align-items:center;
+      box-shadow:0 -8px 32px rgba(0,0,0,.5);
+    }
+    @media (max-width:768px) {
+      .mobile-cta-bar { display:flex; }
+      .wa-float { bottom:calc(4.5rem + env(safe-area-inset-bottom)); }
+    }
+    .mcb-txt { flex:1; }
+    .mcb-txt-top { font-size:.6rem; letter-spacing:.18em; color:rgba(255,255,255,.35); font-weight:600; }
+    .mcb-txt-bot { font-family:'Cormorant Garamond',serif; font-size:1rem; color:var(--cream); }
+    .mcb-btn {
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.7rem 1.4rem; border-radius:50px; font-size:.85rem; font-weight:600;
+      background:linear-gradient(135deg, var(--terra), var(--terra-d));
+      color:#fff; border:none; cursor:pointer; white-space:nowrap;
+      box-shadow:0 4px 20px rgba(196,117,80,.38);
+      text-decoration:none;
+    }
+
+    /* ════════════════════════════════════════
+       FORMULARIO DE COTIZACIÓN
+    ════════════════════════════════════════ */
+    #cotizacion { padding:4.5rem 5%; position:relative; z-index:1; }
+    .cotiz-wrap {
+      max-width:780px; margin:3rem auto 0;
+      background:linear-gradient(145deg, rgba(196,117,80,.1) 0%, rgba(13,10,7,.97) 60%, rgba(74,93,107,.08) 100%);
+      border:1px solid rgba(196,117,80,.28); border-radius:32px; overflow:hidden;
+      box-shadow:0 0 0 1px rgba(196,117,80,.06), 0 40px 100px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      position:relative;
+    }
+    .cotiz-wrap::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(196,117,80,.5),rgba(201,168,108,.4),rgba(196,117,80,.5),transparent);
+    }
+    .cotiz-head { padding:2.5rem 2.8rem 2rem; border-bottom:1px solid rgba(255,255,255,.06); }
+    .cotiz-head h3 {
+      font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:600;
+      color:var(--cream); margin-bottom:.4rem;
+    }
+    .cotiz-head p { font-size:.88rem; color:rgba(255,255,255,.38); line-height:1.65; }
+    .cotiz-body { padding:2rem 2.8rem 2.5rem; }
+    .cotiz-row { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1.2rem; }
+    .cotiz-field { display:flex; flex-direction:column; gap:.5rem; }
+    .cotiz-field label { font-size:.72rem; letter-spacing:.12em; color:rgba(255,255,255,.38); font-weight:500; }
+    .cotiz-field input,
+    .cotiz-field select,
+    .cotiz-field textarea {
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+      border-radius:12px; padding:.85rem 1.1rem;
+      font-family:'DM Sans',sans-serif; font-size:.9rem; color:rgba(255,255,255,.85);
+      outline:none; transition:border-color .3s, background .3s;
+      width:100%; appearance:none;
+    }
+    .cotiz-field select {
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(196,117,80,.6)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 1rem center;
+      padding-right:2.5rem; cursor:pointer;
+    }
+    .cotiz-field select option { background:#1C1208; color:#fff; }
+    .cotiz-field textarea { resize:vertical; min-height:90px; }
+    .cotiz-field input::placeholder,
+    .cotiz-field textarea::placeholder { color:rgba(255,255,255,.2); }
+    .cotiz-field input:focus,
+    .cotiz-field select:focus,
+    .cotiz-field textarea:focus {
+      border-color:rgba(196,117,80,.45); background:rgba(196,117,80,.04);
+    }
+    .cotiz-field.full { grid-column:1/-1; }
+    .cotiz-submit {
+      width:100%; margin-top:1.8rem;
+      padding:1.1rem 2rem; border-radius:50px; border:none; cursor:pointer;
+      font-family:'DM Sans',sans-serif; font-size:.98rem; font-weight:600; letter-spacing:.01em;
+      background:linear-gradient(135deg, var(--terra), var(--terra-d));
+      color:#fff; box-shadow:0 4px 28px rgba(196,117,80,.35);
+      display:flex; align-items:center; justify-content:center; gap:.6rem;
+      transition:all .35s cubic-bezier(.16,1,.3,1);
+    }
+    .cotiz-submit:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(196,117,80,.48); }
+    .cotiz-note { margin-top:1rem; font-size:.72rem; color:rgba(255,255,255,.2); text-align:center; line-height:1.6; }
+    .cotiz-trust { display:flex; align-items:center; justify-content:center; gap:2rem; margin-top:1.5rem; flex-wrap:wrap; }
+    .cotiz-trust-item { display:flex; align-items:center; gap:.4rem; font-size:.72rem; color:rgba(255,255,255,.28); }
+    .cotiz-trust-item svg { flex-shrink:0; }
+    @media (max-width:640px) {
+      .cotiz-head { padding:1.8rem 1.4rem 1.4rem; }
+      .cotiz-body { padding:1.4rem 1.4rem 1.8rem; }
+      .cotiz-row { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body>
 
+<div id="scroll-progress" aria-hidden="true"></div>
 <div class="page-dots" aria-hidden="true"></div>
+
+<!-- ══ STICKY MOBILE CTA BAR ══ -->
+<div class="mobile-cta-bar" id="mobile-bar">
+  <div class="mcb-txt">
+    <div class="mcb-txt-top">PROGRAMA CORPORATIVO</div>
+    <div class="mcb-txt-bot">Propuesta en 24 horas</div>
+  </div>
+  <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="mcb-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Solicitar propuesta
+  </a>
+</div>
 
 <!-- ══ NAV ══ -->
 <nav id="nav">
@@ -1331,6 +1464,7 @@
   <a href="#propuesta" onclick="closeMenu()">Precios</a>
   <a href="#calculadora" onclick="closeMenu()">Calculadora</a>
   <a href="#equipo-emp" onclick="closeMenu()">Equipo</a>
+  <a href="#cotizacion" onclick="closeMenu()">Cotizar</a>
   <a href="https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20de%20bienestar%20corporativo" target="_blank" class="nav-cta" onclick="closeMenu()">Solicitar programa</a>
 </div>
 
@@ -2003,6 +2137,105 @@
   </div>
 </section>
 
+<!-- ══ FORMULARIO DE COTIZACIÓN ══ -->
+<section id="cotizacion">
+  <div class="tc">
+    <span class="s-eyebrow fade-up">✦ COTIZACION SIN COMPROMISO</span>
+    <h2 class="s-h fade-up d1">Recibí tu propuesta<br><em>en menos de 24 horas</em></h2>
+    <div class="s-h-deco fade-up d1" aria-hidden="true">
+      <span class="s-h-deco-line"></span><span class="s-h-deco-sym">✦</span><span class="s-h-deco-line r"></span>
+    </div>
+    <p class="s-p fade-up d2">Completá el formulario y te enviamos una propuesta personalizada para Recursos Humanos. Sin contrato ni compromiso.</p>
+  </div>
+
+  <div class="cotiz-wrap fade-scale d1">
+    <div class="cotiz-head">
+      <h3>Solicitar propuesta corporativa</h3>
+      <p>Completá los campos y te contactamos por WhatsApp con los números exactos para tu empresa.</p>
+    </div>
+    <div class="cotiz-body">
+      <form id="cotiz-form" onsubmit="enviarCotizacion(event)">
+        <div class="cotiz-row">
+          <div class="cotiz-field">
+            <label for="cf-empresa">EMPRESA / ORGANIZACIÓN</label>
+            <input type="text" id="cf-empresa" name="empresa" placeholder="Ej: Empresa S.A." required>
+          </div>
+          <div class="cotiz-field">
+            <label for="cf-nombre">NOMBRE Y APELLIDO</label>
+            <input type="text" id="cf-nombre" name="nombre" placeholder="Tu nombre completo" required>
+          </div>
+        </div>
+        <div class="cotiz-row">
+          <div class="cotiz-field">
+            <label for="cf-tel">TELÉFONO O EMAIL</label>
+            <input type="text" id="cf-tel" name="contacto" placeholder="Ej: 099 123 456" required>
+          </div>
+          <div class="cotiz-field">
+            <label for="cf-personas">CANTIDAD DE PERSONAS</label>
+            <select id="cf-personas" name="personas" required>
+              <option value="" disabled selected>Seleccioná</option>
+              <option value="6–15">6 a 15 personas</option>
+              <option value="16–30">16 a 30 personas</option>
+              <option value="31–60">31 a 60 personas</option>
+              <option value="más de 60">Más de 60 personas</option>
+            </select>
+          </div>
+        </div>
+        <div class="cotiz-row">
+          <div class="cotiz-field">
+            <label for="cf-frecuencia">FRECUENCIA DESEADA</label>
+            <select id="cf-frecuencia" name="frecuencia">
+              <option value="" disabled selected>Seleccioná</option>
+              <option value="sesión puntual (prueba)">Sesión puntual (prueba)</option>
+              <option value="mensual">1 vez al mes</option>
+              <option value="quincenal">2 veces al mes</option>
+              <option value="evento especial">Evento especial</option>
+              <option value="aún no lo sé">Aún no lo sé</option>
+            </select>
+          </div>
+          <div class="cotiz-field">
+            <label for="cf-zona">ZONA / BARRIO EN MONTEVIDEO</label>
+            <input type="text" id="cf-zona" name="zona" placeholder="Ej: Pocitos, Ciudad Vieja…">
+          </div>
+        </div>
+        <div class="cotiz-row">
+          <div class="cotiz-field full">
+            <label for="cf-msg">COMENTARIO ADICIONAL (opcional)</label>
+            <textarea id="cf-msg" name="mensaje" placeholder="¿Algo más que quieras contarnos? Fecha tentativa, necesidades especiales…"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="cotiz-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Enviar solicitud por WhatsApp
+        </button>
+      </form>
+      <p class="cotiz-note">Al enviar, se abre WhatsApp con tu información ya completada. Te respondemos en menos de 24 horas hábiles.</p>
+      <div class="cotiz-trust">
+        <div class="cotiz-trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Sin contrato mínimo
+        </div>
+        <div class="cotiz-trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+          Factura empresa disponible
+        </div>
+        <div class="cotiz-trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--terra-l)" stroke-width="1.5" width="14" height="14"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14" stroke-linecap="round"/></svg>
+          Respuesta en &lt;24 h
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Wave divider -->
+<div class="wave-div" aria-hidden="true">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" fill="none">
+    <path d="M0,32 C360,64 720,0 1080,32 C1260,48 1380,24 1440,32" stroke="rgba(196,117,80,.1)" stroke-width="0.8"/>
+    <circle cx="720" cy="32" r="2.5" fill="rgba(196,117,80,.22)"/>
+  </svg>
+</div>
+
 <!-- ══ CTA FINAL ══ -->
 <div class="cta-wrap">
   <div class="cta-glow"></div>
@@ -2039,10 +2272,24 @@
 </a>
 
 <script>
-  // Nav scroll
-  window.addEventListener('scroll', () => {
+  // Scroll progress bar
+  const progressBar = document.getElementById('scroll-progress');
+  const mobileBar   = document.getElementById('mobile-bar');
+  const footerEl    = document.querySelector('footer');
+  function onScroll() {
+    const sc = document.documentElement;
+    const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight) * 100).toFixed(1);
+    if (progressBar) progressBar.style.width = pct + '%';
+    // Nav
     document.getElementById('nav').classList.toggle('scrolled', scrollY > 60);
-  }, { passive:true });
+    // Mobile CTA bar: ocultar si ya se ve el footer
+    if (mobileBar && footerEl) {
+      const fr = footerEl.getBoundingClientRect();
+      mobileBar.style.transform = fr.top < window.innerHeight ? 'translateY(100%)' : 'translateY(0)';
+    }
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
 
   // Scroll reveal
   const obs = new IntersectionObserver(entries => {
@@ -2190,6 +2437,39 @@
     updateViz(p);
   }
   calc();
+
+  // ── FORMULARIO DE COTIZACIÓN ──
+  function enviarCotizacion(e) {
+    e.preventDefault();
+    const empresa   = document.getElementById('cf-empresa').value.trim();
+    const nombre    = document.getElementById('cf-nombre').value.trim();
+    const contacto  = document.getElementById('cf-tel').value.trim();
+    const personas  = document.getElementById('cf-personas').value;
+    const frecuencia= document.getElementById('cf-frecuencia').value;
+    const zona      = document.getElementById('cf-zona').value.trim();
+    const mensaje   = document.getElementById('cf-msg').value.trim();
+
+    let txt = `Hola! Quiero solicitar una propuesta de bienestar corporativo.\n\n`;
+    txt += `🏢 Empresa: ${empresa}\n`;
+    txt += `👤 Nombre: ${nombre}\n`;
+    txt += `📞 Contacto: ${contacto}\n`;
+    txt += `👥 Equipo: ${personas || 'no especificado'}\n`;
+    txt += `📅 Frecuencia: ${frecuencia || 'no especificada'}\n`;
+    if (zona)    txt += `📍 Zona: ${zona}\n`;
+    if (mensaje) txt += `💬 Comentario: ${mensaje}\n`;
+
+    // GA4 tracking
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'cotizacion_submit', {
+        event_category: 'conversion',
+        event_label: 'formulario_empresas',
+        value: 1
+      });
+    }
+
+    const url = 'https://wa.me/59891998151?text=' + encodeURIComponent(txt);
+    window.open(url, '_blank');
+  }
 
   // ── GA4 EVENTOS ──
   document.querySelectorAll('a[href*="wa.me"]').forEach(function(el) {
