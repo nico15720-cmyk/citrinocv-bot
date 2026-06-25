@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Renovar Token Instagram — Citrino Bot</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px; background: #fff8f3; }
+  h1 { color: #c2410c; }
+  .step { background: white; border-left: 4px solid #ea580c; padding: 16px 20px; margin: 16px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .step h2 { margin: 0 0 8px; color: #333; font-size: 1em; }
+  .step p { margin: 6px 0; color: #555; font-size: 0.95em; }
+  a.btn { display: inline-block; background: #ea580c; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; margin-top: 8px; font-weight: bold; }
+  a.btn:hover { background: #c2410c; }
+  .code { background: #f1f1f1; padding: 10px 14px; border-radius: 6px; font-family: monospace; font-size: 0.85em; word-break: break-all; margin-top: 8px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 6px; font-size: 0.9em; margin-top: 8px; }
+  input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 0.9em; box-sizing: border-box; margin-top: 6px; }
+  button.gen { background: #16a34a; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px; font-weight: bold; }
+  button.gen:hover { background: #15803d; }
+  #url-resultado { margin-top: 10px; display: none; }
+</style>
+</head>
+<body>
+
+<h1>🔑 Renovar Token de Instagram — Citrino Bot</h1>
+<p>El token de Instagram expiró el <strong>22-Jun-2026</strong>. Seguí estos 3 pasos:</p>
+
+<div class="step">
+  <h2>Paso 1 — Generar nuevo token en Graph API Explorer</h2>
+  <p>1. Hacé clic en el botón de abajo (ya estás logueado en Meta)</p>
+  <p>2. En el explorador, arriba a la derecha: seleccioná tu app <strong>Citrino</strong></p>
+  <p>3. Clic en <strong>"Generate Access Token"</strong></p>
+  <p>4. Seleccioná la página de Facebook vinculada a Instagram de Citrino</p>
+  <p>5. Marcá estos permisos: <code>instagram_basic</code>, <code>instagram_manage_messages</code>, <code>pages_messaging</code></p>
+  <p>6. Copiá el token generado — lo vas a necesitar en el Paso 2</p>
+  <a class="btn" href="https://developers.facebook.com/tools/explorer/" target="_blank">🔗 Abrir Graph API Explorer</a>
+</div>
+
+<div class="step">
+  <h2>Paso 2 — Convertir a token de larga duración (no expira en 60 días)</h2>
+  <p>Necesitás el <strong>App ID</strong> y <strong>App Secret</strong> de tu app de Meta, y el token del Paso 1.</p>
+  <p>Los encontrás en: <a href="https://developers.facebook.com/apps/" target="_blank">Mis Apps → Configuración básica</a></p>
+
+  <label>App ID:</label>
+  <input type="text" id="app-id" placeholder="ej: 1234567890123456">
+
+  <label style="margin-top:8px;display:block">App Secret:</label>
+  <input type="text" id="app-secret" placeholder="ej: abc123def456...">
+
+  <label style="margin-top:8px;display:block">Token del Paso 1 (corto):</label>
+  <input type="text" id="token-corto" placeholder="EAAxxxxxx...">
+
+  <button class="gen" onclick="generarURL()">Generar URL de intercambio</button>
+
+  <div id="url-resultado">
+    <p>Abrí esta URL en el navegador — te va a devolver el token de larga duración en JSON:</p>
+    <div class="code" id="url-generada"></div>
+    <a class="btn" id="url-link" href="#" target="_blank" style="background:#1d4ed8">🔗 Abrir URL</a>
+    <p style="margin-top:8px">Buscá el campo <code>"access_token"</code> en la respuesta — ese es tu nuevo token.</p>
+  </div>
+</div>
+
+<div class="step">
+  <h2>Paso 3 — Actualizar en Railway</h2>
+  <p>1. Abrí Railway → tu proyecto <strong>delightful-mercy</strong> → <strong>Variables</strong></p>
+  <p>2. Buscá <code>INSTAGRAM_ACCESS_TOKEN</code></p>
+  <p>3. Pegá el token nuevo del Paso 2 → guardá → Railway deploya solo</p>
+  <a class="btn" href="https://railway.app/dashboard" target="_blank" style="background:#7c3aed">🔗 Abrir Railway</a>
+  <div class="note">
+    ⚠️ <strong>Acordate también de hacer doble clic en <code>_commit_fixes.bat</code></strong> para deployar los fixes del código (echo loop de Instagram, nombre desde CRM, etc.)
+  </div>
+</div>
+
+<div class="step">
+  <h2>✅ Verificación</h2>
+  <p>Después de actualizar el token en Railway, mandá un mensaje desde Instagram al DM de Citrino y fijate en los logs de Railway que diga:</p>
+  <div class="code">📤 [IG] → 17841...: ¡Hola! Bienvenida...</div>
+  <p>Si aparece eso, ¡funcionó!</p>
+</div>
+
+<script>
+function generarURL() {
+  const appId = document.getElementById('app-id').value.trim();
+  const appSecret = document.getElementById('app-secret').value.trim();
+  const tokenCorto = document.getElementById('token-corto').value.trim();
+
+  if (!appId || !appSecret || !tokenCorto) {
+    alert('Completá los tres campos primero');
+    return;
+  }
+
+  const url = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenCorto}`;
+
+  document.getElementById('url-generada').textContent = url;
+  document.getElementById('url-link').href = url;
+  document.getElementById('url-resultado').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
