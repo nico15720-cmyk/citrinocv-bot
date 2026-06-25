@@ -605,12 +605,12 @@
     section { padding: 5rem 5%; }
     .tag { display: inline-block; background: var(--crema2); color: var(--terra); padding: .35rem 1rem; border-radius: 50px; font-size: .72rem; letter-spacing: .14em; font-weight: 600; margin-bottom: 1rem; }
     .section-h { font-family: 'Cormorant Garamond', 'Playfair Display', serif; font-size: clamp(2rem, 3.5vw, 3.2rem); line-height: 1.15; margin-bottom: 1rem; font-weight: 600; }
-    .section-p { color: var(--gris); line-height: 1.8; max-width: 560px; margin-bottom: 1.75rem; }
+    .section-p { color: var(--gris2); line-height: 1.8; max-width: 560px; margin-bottom: 1.75rem; }
     .tc { text-align: center; }
     .tc .section-p { margin-inline: auto; }
 
     /* ── SERVICIOS ── */
-    #servicios { background: #fff; }
+    #servicios { background: var(--crema); }
     .tabs { display: flex; gap: .75rem; justify-content: center; margin-bottom: 3rem; flex-wrap: wrap; }
     .tab {
       padding: .6rem 1.5rem; border-radius: 50px; border: 2px solid var(--crema2);
@@ -1308,7 +1308,7 @@
 
     /* ══ PILARES ══ */
     .pilares-strip {
-      background: #fff;
+      background: var(--crema);
       padding: 3rem 5% 4rem;
       text-align: center;
       border-bottom: 1px solid var(--crema2);
@@ -1331,26 +1331,27 @@
       align-items: center; gap: .75rem;
     }
     .pilar-ico {
-      width: 56px; height: 56px;
+      width: 58px; height: 58px;
       border-radius: 50%;
-      background: var(--crema2);
-      border: 1px solid var(--crema3);
+      background: rgba(184,105,74,.1);
+      border: 1.5px solid rgba(184,105,74,.25);
       display: flex; align-items: center; justify-content: center;
-      transition: background .3s, border-color .3s;
+      transition: background .3s, border-color .3s, transform .3s;
     }
     .pilar:hover .pilar-ico {
-      background: rgba(184,105,74,.12);
-      border-color: rgba(184,105,74,.3);
+      background: rgba(184,105,74,.18);
+      border-color: rgba(184,105,74,.45);
+      transform: scale(1.08);
     }
     .pilar-ico svg { width: 26px; height: 26px; }
     .pilar h4 {
       font-family: 'Playfair Display', serif;
       font-size: 1rem; font-weight: 600;
-      color: var(--oscuro); margin: 0;
+      color: var(--terra); margin: 0;
     }
     .pilar p {
-      font-size: .85rem; color: var(--gris);
-      line-height: 1.55; margin: 0;
+      font-size: .88rem; color: var(--oscuro);
+      line-height: 1.6; margin: 0; opacity: .75;
     }
     @media (max-width: 600px) {
       .pilares-grid { grid-template-columns: 1fr; gap: 1.5rem; }
@@ -1635,6 +1636,11 @@
       /* Retro seal */
       .retro-seal { border-color: rgba(208,139,108,.35) !important; }
       .retro-seal-inner { color: var(--oscuro) !important; }
+
+      /* Pilares en dark mode */
+      .pilares-strip { background: var(--crema2) !important; border-color: rgba(208,139,108,.15) !important; }
+      .pilar-ico { background: rgba(208,139,108,.15) !important; border-color: rgba(208,139,108,.3) !important; }
+      .pilar p { color: var(--gris) !important; opacity: 1 !important; }
 
       /* Empresas CTA strip en index */
       .empresas-cta { background: var(--crema2) !important; }
