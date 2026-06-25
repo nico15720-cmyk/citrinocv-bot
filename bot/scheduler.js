@@ -1134,7 +1134,7 @@ async function enviarConfirmacion15hs() {
           `📍 Sarandí 554 apto. 1 — Frente a Plaza Matriz\n\n` +
           `¿Confirma que viene? Responda *SÍ* para confirmar o *NO* si necesita cancelar 🙏`;
 
-        await enviarMensaje(userId, msg, cliente.Origen || "whatsapp");
+        await enviarMensaje(userId, msg, cliente.Canal || "whatsapp");
         await updateClienteEstado(userId, "pendiente_confirmacion");
         console.log(`✅ Confirmación 15hs enviada a ${userId} (${nombre})`);
       } catch (err) {
@@ -1200,7 +1200,7 @@ async function notificarGhosts() {
           clienteId,
           `¡Hola ${nombre}🌿 ¿Venís el *${diaLabel} a las ${horaLabel}* como siempre?\n\n` +
           `Le tenemos el espacio reservado 💛 Respondé *SÍ* para confirmar o *NO* si no podés.`,
-          cl?.Origen || "whatsapp"
+          cl?.Canal || "whatsapp"
         );
 
         // Actualizar CLIENTES → pendiente_confirmacion para que el handler SÍ/NO lo tome

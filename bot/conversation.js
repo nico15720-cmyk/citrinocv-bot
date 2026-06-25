@@ -131,7 +131,7 @@ El contexto de la clienta te dirá si es nueva o recurrente.
 Si es la PRIMERA VEZ que escribe (estado: lead, sin historial):
 - Recibila con calidez y presentá Citrino brevemente
 - Explicá los servicios con entusiasmo
-- Ej: "Buenos días, qué gusto que nos escriba. 💛 Te cuento sobre lo que hacemos en Citrino..."
+- Ej: "Buenos días, qué gusto que nos escriba. 💛 Le cuento sobre lo que hacemos en Citrino..."
 
 Si es una clienta CONOCIDA (estado: vino, agendado, o tiene notas/perfil):
 - Saludala de forma más directa, como si ya se conocieran
@@ -1580,22 +1580,36 @@ async function enviarEnPartes(userId, texto, canal) {
   const textoSeguro = sanitizarTexto(texto);
   if (!textoSeguro) return;
 
+  // Límite de caracteres por canal
+  // Instagram: 1000 chars (límite de la API)
+  // Facebook: 2000 chars
+  // WhatsApp: sin límite práctico → usamos 4000 como tope conservador
+  const MAX_CHARS = canal === "instagram" ? 950 : canal === "facebook" ? 1900 : 3800;
+
   // Si el texto es corto o no tiene múltiples párrafos → enviar directo (sin cortar)
   // Umbral alto (900) para que presentaciones de servicios (~600 chars) lleguen en UN solo mensaje
   const parrafos = textoSeguro.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  if (parrafos.length <= 1 || textoSeguro.length < 900) {
-    await enviarMensaje(userId, textoSeguro, canal);
-    return;
+  if (parrafos.length <= 1 || textoSeguro.length < MAX_CHARS) {
+    // Aún así verificar que no supere el límite del canal
+    if (textoSeguro.length <= MAX_CHARS) {
+      await enviarMensaje(userId, textoSeguro, canal);
+      return;
+    }
   }
 
-  // Solo textos muy largos (>900 chars) se dividen — máx ~900 chars por chunk
+  // Dividir en chunks respetando el límite del canal
   const mensajes = [];
   let actual = "";
   for (const p of parrafos) {
     const candidato = actual ? `${actual}\n\n${p}` : p;
-    if (actual && candidato.length > 900) {
+    if (actual && candidato.length > MAX_CHARS) {
       mensajes.push(actual);
       actual = p;
+      // Si un párrafo solo ya supera el límite, cortarlo a la fuerza
+      while (actual.length > MAX_CHARS) {
+        mensajes.push(actual.slice(0, MAX_CHARS));
+        actual = actual.slice(MAX_CHARS);
+      }
     } else {
       actual = candidato;
     }
