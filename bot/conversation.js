@@ -1159,7 +1159,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
       const { readSheet } = require("./sheets-crm");
       const filas = await readSheet("CLIENTES").catch(() => []);
       const cliente = filas.find(f => f.ID_Cliente === userId || f.Telefono === userId);
-      if (cliente && cliente.Fecha_Turno && (cliente.Estado === "confirmado" || cliente.Estado === "pendiente_confirmacion" || cliente.Estado === "prospecto")) {
+      if (cliente && cliente.Fecha_Turno && (cliente.Estado === "confirmado" || cliente.Estado === "pendiente_confirmacion" || cliente.Estado === "prospecto" || cliente.Estado === "agendado")) {
         const fechaTurno = new Date(cliente.Fecha_Turno);
         const ahora = new Date();
         const diffHoras = (fechaTurno - ahora) / (1000 * 60 * 60);

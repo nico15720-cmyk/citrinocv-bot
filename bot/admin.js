@@ -359,6 +359,21 @@ async function ejecutarAccionAdmin(accion, datos) {
         const fecha      = hoy.toISOString().split("T")[0];
         const mesAnio    = `${String(hoy.getMonth() + 1).padStart(2, "0")}-${hoy.getFullYear()}`;
 
+        // Calcular Ingreso_Real descontando comisión del medio de pago
+        // (igual que calcIngresoNeto en el CRM React)
+        const COMISIONES = {
+          "débito":    0.0275,
+          "debito":    0.0275,
+          "1 cuota":   0.0975,
+          "2 cuotas":  0.0975,
+          "3 cuotas":  0.1036,
+          "mercado pago": 0.0803,
+          "mercado pagos": 0.0803,
+        };
+        const fpNorm = formaPago.toLowerCase();
+        const comision = Object.entries(COMISIONES).find(([k]) => fpNorm.includes(k))?.[1] || 0;
+        const ingresoReal = monto > 0 ? Math.round(monto * (1 - comision)) : 0;
+
         await appendRowSheets("VENTAS", {
           Fecha:               fecha,
           ID_Venta:            `V${Date.now()}`,
@@ -369,12 +384,13 @@ async function ejecutarAccionAdmin(accion, datos) {
           Notas:               accion.notas || "registrado via bot",
           ID_Cliente_Guardado: clienteId,
           Cantidad_Calculada:  numSes,
-          Ingreso_Real:        monto,
+          Ingreso_Real:        ingresoReal,
           Fecha_Vencimiento:   "",
           Mes_Anio:            mesAnio,
         });
 
-        const precioStr = monto ? ` — $${monto.toLocaleString("es-UY")} ${formaPago}` : " (monto a completar en CRM)";
+        const comisionStr = comision > 0 ? ` (neto: $${ingresoReal.toLocaleString("es-UY")} — ${(comision*100).toFixed(2)}% de comisión)` : "";
+        const precioStr = monto ? ` — $${monto.toLocaleString("es-UY")} ${formaPago}${comisionStr}` : " (monto a completar en CRM)";
         return `💰 Venta registrada: *${cliente.Nombre}* — *${producto}* (${numSes} ses.)${precioStr}`;
       }
 
@@ -548,6 +564,60 @@ async function handleAdminMessage({ text, platform, media }) {
   media = latestMedia  || media;
 
   console.log(`🔑 [ADMIN] Mensaje: ${text?.slice(0, 80)}`);
+
+  // ── Respuesta a TURNO URGENTE ─────────────────────────────────────────────────
+  // Cuando Nico responde "SI" o "NO" al aviso de turno urgente del bot,
+  // detectamos la respuesta y la comunicamos al cliente correspondiente.
+  {
+    const { turnosUrgentesMap } = require("./conversation");
+    const tNorm = (text || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const esSiU = /^(si|si!|yes|dale|claro|hay lugar|si hay)$/.test(tNorm);
+    const esNoU = /^(no|no hay|no hay lugar|no tenemos|no tengo)$/.test(tNorm);
+
+    if ((esSiU || esNoU) && turnosUrgentesMap.size > 0) {
+      // Tomar el turno urgente más reciente (< 2h)
+      let masReciente = null;
+      let masRecienteId = null;
+      for (const [clienteId, entry] of turnosUrgentesMap.entries()) {
+        if (Date.now() - entry.timestamp < 2 * 60 * 60 * 1000) {
+          if (!masReciente || entry.timestamp > masReciente.timestamp) {
+            masReciente = entry;
+            masRecienteId = clienteId;
+          }
+        }
+      }
+
+      if (masReciente && masRecienteId) {
+        turnosUrgentesMap.delete(masRecienteId);
+        const nombreDisplay = masReciente.nombre || masRecienteId;
+
+        if (esSiU) {
+          // Hay lugar → ofrecerle slots al cliente
+          const slotsHoy = await getDisponibilidad().catch(() => []);
+          const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Montevideo" });
+          const slotsDeHoy = slotsHoy.filter(s => s.fecha === hoy).slice(0, 3);
+          const lista = slotsDeHoy.length > 0
+            ? slotsDeHoy.map(s => `• *${s.horaInicio} hs*`).join("\n")
+            : null;
+
+          const msgCliente = lista
+            ? `¡Perfecto! 🌿 Tenemos turnos disponibles para hoy:\n\n${lista}\n\n¿Cuál le viene mejor?`
+            : "¡Perfecto! 🌿 Tenemos lugar para hoy. ¿Qué horario le vendría mejor?";
+
+          await enviarMensaje(masRecienteId, msgCliente, masReciente.canal).catch(() => {});
+          await enviarMensaje(ownerId, `✅ Le confirmé disponibilidad hoy a *${nombreDisplay}*`, platform).catch(() => {});
+        } else {
+          // No hay lugar → disculparse y ofrecer otro día
+          await enviarMensaje(masRecienteId,
+            "Le pido disculpas 🙏 Por hoy no tenemos turno disponible. ¿Le viene bien algún horario esta semana? 🌿",
+            masReciente.canal
+          ).catch(() => {});
+          await enviarMensaje(ownerId, `✅ Informé a *${nombreDisplay}* que no hay lugar hoy`, platform).catch(() => {});
+        }
+        return; // No pasar a Claude — ya respondimos
+      }
+    }
+  }
 
   // Recolectar datos frescos
   const datos = await recolectarDatosNegocio();

@@ -142,12 +142,20 @@ async function enviarFacebook(recipientId, texto) {
 // IMPORTANTE: usar siempre /me/messages, NO el IG Business Account ID
 // ============================================================
 
-// Elimina markdown de WhatsApp (*negrita* / _itálica_) que en Instagram
-// se muestran como asteriscos literales en vez de formatear el texto.
+// Elimina markdown de WhatsApp que en Instagram se muestra como caracteres literales.
+// WhatsApp soporta: *negrita*, _itálica_, ~tachado~, ```código```, > cita, - bullet, 1. lista
+// Instagram NO renderiza nada de esto — hay que limpiar todo.
 function sanitizarParaInstagram(texto) {
   return texto
-    .replace(/\*([^*\n]+)\*/g, "$1")  // *texto* → texto
-    .replace(/_([^_\n]+)_/g, "$1");   // _texto_ → texto
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")   // **doble negrita** → texto
+    .replace(/\*([^*\n]+)\*/g, "$1")       // *negrita* → texto
+    .replace(/_([^_\n]+)_/g, "$1")         // _itálica_ → texto
+    .replace(/~([^~\n]+)~/g, "$1")         // ~tachado~ → texto
+    .replace(/```([\s\S]*?)```/g, "$1")    // ```código``` → texto
+    .replace(/`([^`\n]+)`/g, "$1")         // `inline` → texto
+    .replace(/^>[ \t]?/gm, "")            // > blockquote → sin prefijo
+    .replace(/^[-–•]\s+/gm, "· ")         // - bullet → · bullet (legible en IG)
+    .replace(/^\d+\.\s+/gm, "· ");        // 1. lista → · bullet (legible en IG)
 }
 
 async function enviarInstagram(recipientId, texto) {
