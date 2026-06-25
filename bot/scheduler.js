@@ -324,7 +324,7 @@ async function enviarRemarketing() {
         }
 
         // ── Enviar — solo avanzar etapa si el envío fue exitoso ────
-        await enviarMensaje(userId, mensaje, c.Origen || "whatsapp");
+        await enviarMensaje(userId, mensaje, c.Canal || "whatsapp");
         // Si enviarMensaje lanzó, el catch externo lo captura y no llega acá
         const nuevaEtapa = String(etapa + 1);
         await upsertCliente({
@@ -398,7 +398,7 @@ async function enviarUpsellPack() {
         if (!userId) continue;
         if (tieneCuponeraActiva(userId)) continue;
 
-        await enviarMensaje(userId, MENSAJES.upsellPack(c.Nombre || ""), c.Origen || "whatsapp");
+        await enviarMensaje(userId, MENSAJES.upsellPack(c.Nombre || ""), c.Canal || "whatsapp");
         await updateClienteEstado(userId, "vino", { NOTAS: ((c.NOTAS || "") + " [upsell_enviado]").trim() });
         console.log(`✅ Upsell pack enviado a ${userId} (${c.Nombre})`);
       } catch (err) {
@@ -1165,7 +1165,7 @@ async function enviarRecordatorio18hs() {
           userId,
           `Buenas tardes ${c.Nombre ? `${c.Nombre}` : ""}! 🌿 ¿Pudiste ver el mensaje de antes?\n\n` +
           `Mañana a las *${hora}hs* tenés turno en Citrino — respondé *SÍ* o *NO* para avisarnos 🙏`,
-          c.Origen || "whatsapp"
+          c.Canal || "whatsapp"
         );
         console.log(`✅ Segundo recordatorio 18hs → ${userId} (${c.Nombre || ""})`);
         await new Promise(r => setTimeout(r, 1000));
@@ -1283,8 +1283,6 @@ async function enviarRebooking() {
       if (!c.ID_Cliente || c.Estado !== "vino") return false;
       if (!c.Fecha_Turno) return false;
       const fechaTurno = c.Fecha_Turno.split("T")[0];
-      // Solo si NO tiene otro turno agendado ya
-      if (c.Estado === "agendado" || c.Estado === "confirmado") return false;
       return fechaTurno === hace2diasStr;
     });
 
@@ -1485,7 +1483,7 @@ async function followUpLeadTibio() {
               ? `Holii ${nombre}, que tal? 😊 Le consultaba si pudo definir algún horario para la sesión.`
               : `Holii, que tal? 😊 Le consultaba si pudo definir algún horario para la sesión.`);
 
-        await enviarMensaje(userId, msg, c.Origen || "whatsapp");
+        await enviarMensaje(userId, msg, c.Canal || "whatsapp");
 
         // Marcar para no reenviar hoy + resetear clock de remarketing
         // (evita que el remarketing de las 10:30 mande un segundo mensaje el mismo día)
@@ -1522,7 +1520,7 @@ function startScheduler() {
         if (!(c.NOTAS || "").includes("[noshow_pendiente_followup]")) continue;
         const userId = c.ID_Cliente || c.Telefono;
         if (!userId) continue;
-        await enviarMensaje(userId, MENSAJES.recuperacionNoShow(c.Nombre || ""), c.Origen || "whatsapp");
+        await enviarMensaje(userId, MENSAJES.recuperacionNoShow(c.Nombre || ""), c.Canal || "whatsapp");
         const notasLimpias = (c.NOTAS || "").replace(/\[noshow_pendiente_followup\]/g, "").trim();
         await upsert({ ID_Cliente: userId, NOTAS: notasLimpias });
         await new Promise(r => setTimeout(r, 800));

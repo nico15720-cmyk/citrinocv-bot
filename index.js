@@ -426,11 +426,43 @@ app.post("/webhook", async (req, res) => {
 
   // Instagram — DMs y comentarios
   if (body.object === "instagram") {
-    // DM directo
     const msg = entry.messaging?.[0];
-    if (msg?.message?.text && !msg.message.is_echo) {
-      if (botModo !== "off") {
-        encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
+
+    if (msg) {
+      // Ignorar reactions (llegan como msg.reaction, sin msg.message)
+      if (msg.reaction) {
+        // Reaction recibida — ignorar silenciosamente
+        console.log(`💬 [IG] Reaction ignorada de ${msg.sender?.id} (${msg.reaction?.emoji || ""})`);
+      }
+      // Ignorar echo (mensajes enviados por el bot mismo)
+      else if (msg.message?.is_echo) {
+        // No procesar
+      }
+      // Story Reply — enriquecer el mensaje con contexto de la historia
+      else if (msg.message?.reply_to?.story) {
+        if (botModo !== "off") {
+          const storyId = msg.message.reply_to.story.id || "";
+          const textoPrincipal = msg.message.text || "(Respondió sin texto)";
+          // Inyectar contexto para que Marta sepa que es una respuesta a una historia
+          const textoEnriquecido =
+            `[RESPUESTA A HISTORIA DE CITRINO${storyId ? ` (story_id: ${storyId})` : ""}]\n${textoPrincipal}`;
+          encolarMensaje(msg.sender.id, textoEnriquecido, "instagram", null, null);
+          console.log(`📸 [IG] Story reply de ${msg.sender.id}: "${textoPrincipal.slice(0, 40)}"`);
+        }
+      }
+      // DM con texto normal
+      else if (msg.message?.text) {
+        if (botModo !== "off") {
+          encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
+        }
+      }
+      // Media (imágenes, stickers, audio, video) — notificar al bot para respuesta genérica
+      else if (msg.message?.attachments) {
+        if (botModo !== "off") {
+          const tipo = msg.message.attachments[0]?.type || "media";
+          const textoFallback = `[MEDIA_INSTAGRAM: La persona envió ${tipo === "image" ? "una imagen" : tipo === "audio" ? "un audio" : tipo === "video" ? "un video" : "contenido multimedia"} por Instagram]`;
+          encolarMensaje(msg.sender.id, textoFallback, "instagram", null, null);
+        }
       }
     }
 

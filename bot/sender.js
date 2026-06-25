@@ -141,9 +141,21 @@ async function enviarFacebook(recipientId, texto) {
 // Token: INSTAGRAM_ACCESS_TOKEN (Page Token con instagram_manage_messages)
 // IMPORTANTE: usar siempre /me/messages, NO el IG Business Account ID
 // ============================================================
+
+// Elimina markdown de WhatsApp (*negrita* / _itálica_) que en Instagram
+// se muestran como asteriscos literales en vez de formatear el texto.
+function sanitizarParaInstagram(texto) {
+  return texto
+    .replace(/\*([^*\n]+)\*/g, "$1")  // *texto* → texto
+    .replace(/_([^_\n]+)_/g, "$1");   // _texto_ → texto
+}
+
 async function enviarInstagram(recipientId, texto) {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN || META_PAGE_ACCESS_TOKEN;
   const url = `https://graph.facebook.com/v19.0/me/messages`;
+
+  // Eliminar markdown de WhatsApp antes de enviar a Instagram
+  const textoLimpio = sanitizarParaInstagram(texto);
 
   console.log(`📤 [IG] Enviando a ${recipientId}, token: ${token ? token.slice(0, 15) + "..." : "NO TOKEN"}`);
 
@@ -152,7 +164,7 @@ async function enviarInstagram(recipientId, texto) {
       url,
       {
         recipient: { id: recipientId },
-        message: { text: texto },
+        message: { text: textoLimpio },
       },
       {
         headers: {
@@ -161,7 +173,7 @@ async function enviarInstagram(recipientId, texto) {
         },
       }
     );
-    console.log(`✅ [IG] → ${recipientId}: ${texto.slice(0, 50)}...`);
+    console.log(`✅ [IG] → ${recipientId}: ${textoLimpio.slice(0, 50)}...`);
   } catch (err) {
     const errData = err.response?.data || err.message;
     console.error(`❌ [IG] Error enviando a ${recipientId}:`, JSON.stringify(errData));
