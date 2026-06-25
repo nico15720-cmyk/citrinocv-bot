@@ -623,7 +623,7 @@
     .scard {
       background: var(--crema); border-radius: var(--r); overflow: hidden;
       border: 1px solid var(--crema2); transition: all .35s; cursor: pointer;
-      position: relative;
+      position: relative; display: flex; flex-direction: column;
     }
     .scard:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(30,22,18,.12); }
     .scard-img { height: 180px; overflow: hidden; position: relative; }
@@ -635,10 +635,10 @@
       background: var(--terra); color: #fff; padding: .25rem .8rem;
       border-radius: 50px; font-size: .7rem; letter-spacing: .08em; font-weight: 600;
     }
-    .scard-body { padding: 1.5rem; }
+    .scard-body { padding: 1.5rem; display: flex; flex-direction: column; flex: 1; }
     .scard-body h3 { font-family: 'Playfair Display', serif; font-size: 1.15rem; margin-bottom: .5rem; }
     .scard-body p { font-size: .85rem; color: var(--gris); line-height: 1.6; margin-bottom: 1rem; }
-    .scard-footer { display: flex; align-items: center; justify-content: space-between; }
+    .scard-footer { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
     .precio { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--terra); font-weight: 600; }
     .precio small { font-family: 'Inter', sans-serif; font-size: .72rem; color: var(--gris2); font-weight: 400; }
     .scard-wa { width: 36px; height: 36px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; transition: all .3s; flex-shrink: 0; }
@@ -2203,7 +2203,7 @@
   <div class="blob-deco" style="width:500px;height:500px;background:rgba(110,142,106,.12);top:-150px;left:-150px;z-index:0;animation-delay:6s"></div>
   <div class="nos-wrap" style="position:relative;z-index:1">
     <div class="nos-img reveal-left">
-      <img src="../imagnes pag/9f7a6c60-638b-47c6-a044-30a0873b40c5.jpg" onerror="this.onerror=null;this.src='/imagnes/9f7a6c60-638b-47c6-a044-30a0873b40c5.jpg'" alt="Equipo Citrino" loading="lazy" style="object-position:center 38%">
+      <img src="../imagnes pag/9f7a6c60-638b-47c6-a044-30a0873b40c5.jpg" onerror="this.onerror=null;this.src='/imagnes/9f7a6c60-638b-47c6-a044-30a0873b40c5.jpg'" alt="Equipo Citrino" loading="lazy" style="object-position:center 15%">
     </div>
     <div class="reveal-right">
       <div class="s-ornament" style="justify-content:flex-start"><span class="s-ornament-line" style="background:linear-gradient(90deg,transparent,var(--verde2))"></span><svg width="16" height="16" viewBox="0 0 20 26" fill="var(--verde2)"><path d="M10 1C5 6 2 12 2 17a8 8 0 0016 0C18 12 15 6 10 1z"/></svg><span class="s-ornament-line r" style="background:linear-gradient(90deg,var(--verde2),transparent)"></span></div>
@@ -2335,14 +2335,14 @@
   </div>
 </section>
 
-<!-- Ola separadora -->
-<div class="section-wave" style="background:var(--verde-l);margin-top:-2px">
-  <svg viewBox="0 0 1440 50" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="height:50px">
-    <path d="M0,25 C360,50 720,0 1080,25 C1260,37 1380,15 1440,20 L1440,50 L0,50 Z" fill="#4F6E4B"/>
+<!-- Ola separadora hacia empresas -->
+<div aria-hidden="true" style="line-height:0;margin-top:-2px">
+  <svg viewBox="0 0 1440 70" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:70px">
+    <path d="M0,0 L1440,0 L1440,70 C1080,30 360,65 0,35 Z" fill="#3B5C36"/>
   </svg>
 </div>
 <!-- ── EMPRESAS CTA ── -->
-<div class="empresas-cta" style="position:relative;overflow:hidden">
+<div class="empresas-cta" style="position:relative;overflow:hidden;margin-top:-1px">
   <div class="blob-deco" style="width:350px;height:350px;background:rgba(255,255,255,.04);top:-80px;right:10%;z-index:0"></div>
   <!-- Hoja decorativa -->
   <div style="position:absolute;right:5%;top:50%;transform:translateY(-50%);opacity:.07;z-index:0">
