@@ -31,10 +31,11 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const TIMEZONE = "America/Montevideo";
 
 // Historial de conversación admin (en memoria)
+// 30 entradas = ~15 intercambios de ida y vuelta sin perder contexto
 const historialAdmin = [];
 function agregarAdmin(role, content) {
   historialAdmin.push({ role, content });
-  if (historialAdmin.length > 10) historialAdmin.splice(0, historialAdmin.length - 10);
+  if (historialAdmin.length > 30) historialAdmin.splice(0, historialAdmin.length - 30);
 }
 
 // ============================================================

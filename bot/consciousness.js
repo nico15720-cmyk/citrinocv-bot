@@ -16,7 +16,62 @@ const {
   actualizarNotas,
   calcularScore,
 } = require("./crm");
+const { readSheet } = require("./sheets-crm"); // CRM nuevo (CLIENTES sheet)
 const { getDisponibilidad } = require("./calendar");
+
+// ── Adaptar campos de CLIENTES (CRM nuevo) al formato que usa el análisis ──
+// El CRM viejo usa: UltimoContacto, FechaAlta, Cuponera, Ses.Rest.
+// El CRM nuevo usa: Ultimo_Contacto, Fecha_Alta — cuponera se calcula de VENTAS+SESIONES
+async function leerClientesParaAnalisis() {
+  try {
+    const [nuevos, ventas, sesiones] = await Promise.all([
+      readSheet("CLIENTES").catch(() => []),
+      readSheet("VENTAS").catch(() => []),
+      readSheet("SESIONES").catch(() => []),
+    ]);
+    if (!nuevos.length) return leerTodosLosClientes(); // fallback al CRM viejo
+
+    // Calcular saldo cuponera de cada cliente desde VENTAS/SESIONES
+    const PACK_KW = ["pack", "cuponera", "pase libre"];
+    function normTel(v) { return String(v || "").replace(/\D/g, "").slice(-9); }
+    function saldo(clienteId) {
+      const cid = normTel(clienteId);
+      if (!cid) return { compradas: 0, usadas: 0, saldo: 0 };
+      const compradas = ventas
+        .filter(v => normTel(v.ID_Cliente_Guardado) === cid && PACK_KW.some(k => (v.Producto || "").toLowerCase().includes(k)))
+        .reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+      const usadas = sesiones.filter(s => normTel(s.ID_Cliente_Guardado) === cid).length;
+      return { compradas, usadas, saldo: Math.max(0, compradas - usadas) };
+    }
+
+    // Mapear a formato compatible con el análisis de conciencia
+    return nuevos.map(c => {
+      const { compradas, usadas, saldo: sesRest } = saldo(c.ID_Cliente);
+      return {
+        ID:            c.ID_Cliente,
+        Nombre:        c.Nombre,
+        Teléfono:      c.Telefono,
+        Canal:         c.Canal,
+        Servicio:      c.Intencion_Compra || "",
+        Estado:        c.Estado,
+        Cuponera:      compradas > 0 ? "si" : "no",
+        "Ses.Rest.":   String(sesRest),
+        FechaAlta:     c.Fecha_Alta,
+        FechaTurno:    c.Fecha_Turno,
+        Notas:         c.NOTAS,
+        UltimoContacto: c.Ultimo_Contacto || c.Fecha_Alta,
+        Remarketing:   c.Remarketing_Etapa,
+        Perfil:        "",
+        // Campos adicionales del CRM nuevo
+        Lead_Score:    c.Lead_Score,
+        Objecion:      c.Objecion,
+      };
+    });
+  } catch (e) {
+    console.error("⚠️ [consciousness] Error leyendo CRM nuevo, usando CRM viejo:", e.message);
+    return leerTodosLosClientes();
+  }
+}
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const OWNER = process.env.OWNER_WHATSAPP;
@@ -33,10 +88,11 @@ const estadoConciencia = {
 // ============================================================
 async function analizarNegocio() {
   try {
+    // Usar CRM nuevo (CLIENTES sheet) con fallback al CRM viejo
     const [clientes, stats, perfiles] = await Promise.all([
-      leerTodosLosClientes(),
+      leerClientesParaAnalisis(),
       getStats(),
-      obtenerTodosLosPerfiles(),
+      obtenerTodosLosPerfiles().catch(() => []),
     ]);
 
     const ahora = new Date();

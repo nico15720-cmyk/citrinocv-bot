@@ -519,6 +519,53 @@ async function responderComentarioIG(senderId, textoOriginal) {
 // ── para evitar "Cannot access before initialization" en los webhooks
 
 // ============================================================
+// CITRINO MIND — La entidad del negocio (chat con el negocio)
+// POST /api/citrino-mind
+// Body: { message: "...", sessionId: "optional-session-id" }
+// Auth: Bearer ADMIN_TOKEN (mismo que el panel admin)
+// ============================================================
+app.post("/api/citrino-mind", async (req, res) => {
+  try {
+    // Auth simple por token
+    const authHeader = req.headers.authorization || "";
+    const adminToken = process.env.ADMIN_TOKEN || process.env.WEBHOOK_SECRET;
+    if (adminToken && authHeader !== `Bearer ${adminToken}`) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+
+    const { message, sessionId } = req.body;
+    if (!message) return res.status(400).json({ ok: false, error: "message requerido" });
+
+    const { procesarMensajeMind } = require("./bot/citrino-mind");
+    const resultado = await procesarMensajeMind({
+      message,
+      sessionId: sessionId || "default",
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    console.error("❌ [/api/citrino-mind]:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/citrino-mind/datos — solo los datos del negocio (sin conversación)
+app.get("/api/citrino-mind/datos", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const adminToken = process.env.ADMIN_TOKEN || process.env.WEBHOOK_SECRET;
+    if (adminToken && authHeader !== `Bearer ${adminToken}`) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const { recolectarContextoNegocio } = require("./bot/citrino-mind");
+    const datos = await recolectarContextoNegocio();
+    res.json({ ok: true, datos });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ============================================================
 // API DE CONTROL — Centro de control
 // ============================================================
 
