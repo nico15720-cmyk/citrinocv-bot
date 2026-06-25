@@ -9,8 +9,6 @@ const axios = require("axios");
 const META_ACCESS_TOKEN = process.env.META_ACCESS_TOKEN;
 const META_PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-// Instagram Business Account ID (vinculado a la página de Facebook)
-const INSTAGRAM_ACTOR_ID = process.env.INSTAGRAM_PAGE_ID || "me";
 
 // ============================================================
 // DELAY ALEATORIO — 3 a 8 segundos
@@ -138,30 +136,37 @@ async function enviarFacebook(recipientId, texto) {
 }
 
 // ============================================================
-// INSTAGRAM — Messenger Platform Instagram
-// Los DMs de Instagram se envían vía Facebook Graph API
-// usando el Page Access Token (igual que Messenger)
-// Token: INSTAGRAM_ACCESS_TOKEN (generado en Messenger → Configuración de Instagram)
+// INSTAGRAM — Messenger Platform for Instagram
+// Endpoint: POST /me/messages con Page Access Token
+// Token: INSTAGRAM_ACCESS_TOKEN (Page Token con instagram_manage_messages)
+// IMPORTANTE: usar siempre /me/messages, NO el IG Business Account ID
 // ============================================================
 async function enviarInstagram(recipientId, texto) {
   const token = process.env.INSTAGRAM_ACCESS_TOKEN || META_PAGE_ACCESS_TOKEN;
-  const pageId = process.env.FACEBOOK_PAGE_ID || "me";
-  const url = `https://graph.facebook.com/v19.0/${pageId}/messages`;
+  const url = `https://graph.facebook.com/v19.0/me/messages`;
 
-  await axios.post(
-    url,
-    {
-      recipient: { id: recipientId },
-      message: { text: texto },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+  console.log(`📤 [IG] Enviando a ${recipientId}, token: ${token ? token.slice(0, 15) + "..." : "NO TOKEN"}`);
+
+  try {
+    await axios.post(
+      url,
+      {
+        recipient: { id: recipientId },
+        message: { text: texto },
       },
-    }
-  );
-  console.log(`📤 [IG] → ${recipientId}: ${texto.slice(0, 50)}...`);
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log(`✅ [IG] → ${recipientId}: ${texto.slice(0, 50)}...`);
+  } catch (err) {
+    const errData = err.response?.data || err.message;
+    console.error(`❌ [IG] Error enviando a ${recipientId}:`, JSON.stringify(errData));
+    throw err;
+  }
 }
 
 // ============================================================
