@@ -23,18 +23,50 @@ const { getKnowledgeRelevantTo } = require("./teach");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ── Historial por sesión (en memoria, max 50 por sesión) ────
-const historialSesiones = new Map(); // sessionId → Array<{role, content}>
+// ── Historial por sesión — cache en memoria + persistencia en Sheets ─
+// historialCache: sessionId → Array<{role, content}>
+// cacheLoaded:   Set de sessionIds ya cargados desde Sheets
+const historialCache = new Map();
+const cacheLoaded = new Set();
+const MAX_MSGS_POR_SESION = 50;
 
-function getHistorial(sessionId) {
-  if (!historialSesiones.has(sessionId)) historialSesiones.set(sessionId, []);
-  return historialSesiones.get(sessionId);
+async function getHistorial(sessionId) {
+  if (cacheLoaded.has(sessionId)) {
+    return historialCache.get(sessionId) || [];
+  }
+
+  // Primera vez — cargar desde Sheets
+  cacheLoaded.add(sessionId);
+  try {
+    const todas = await readSheet("MIND_SESSIONS");
+    const msgs = todas
+      .filter(r => r.Session_ID === sessionId)
+      .sort((a, b) => (a.Timestamp || "").localeCompare(b.Timestamp || ""))
+      .map(r => ({ role: r.Role, content: r.Content }));
+    historialCache.set(sessionId, msgs);
+    return msgs;
+  } catch (e) {
+    console.warn("⚠️ [CiTrinoMind] No se pudo cargar historial desde Sheets:", e.message);
+    historialCache.set(sessionId, []);
+    return [];
+  }
 }
 
-function agregarHistorial(sessionId, role, content) {
-  const hist = getHistorial(sessionId);
+async function agregarHistorial(sessionId, role, content) {
+  // Actualizar cache
+  if (!historialCache.has(sessionId)) historialCache.set(sessionId, []);
+  const hist = historialCache.get(sessionId);
   hist.push({ role, content });
-  if (hist.length > 50) hist.splice(0, hist.length - 50);
+  if (hist.length > MAX_MSGS_POR_SESION) hist.splice(0, hist.length - MAX_MSGS_POR_SESION);
+
+  // Persistir en Sheets (async, no bloqueante)
+  const { appendRow } = require("./sheets-crm");
+  appendRow("MIND_SESSIONS", {
+    Session_ID: sessionId,
+    Role: role,
+    Content: content.slice(0, 5000), // límite de caracteres en Sheets
+    Timestamp: new Date().toISOString(),
+  }).catch(e => console.warn("⚠️ [CiTrinoMind] Error guardando en Sheets:", e.message));
 }
 
 // ── Recolectar datos del negocio en tiempo real ─────────────
@@ -167,11 +199,12 @@ async function procesarMensajeMind({ message, sessionId = "default", datosOverri
     const datos = datosOverride || await recolectarContextoNegocio();
     const systemPrompt = buildSystemPrompt(datos);
 
-    // Historial de la sesión
-    const historial = getHistorial(sessionId);
-    agregarHistorial(sessionId, "user", message);
+    // Historial de la sesión (async — puede cargar desde Sheets)
+    const historialPrevio = await getHistorial(sessionId);
+    await agregarHistorial(sessionId, "user", message);
+    const historialActual = await getHistorial(sessionId);
 
-    const mensajes = historial.map(h => ({ role: h.role, content: h.content }));
+    const mensajes = historialActual.map(h => ({ role: h.role, content: h.content }));
 
     const res = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -181,7 +214,7 @@ async function procesarMensajeMind({ message, sessionId = "default", datosOverri
     });
 
     const respuesta = res.content[0].text;
-    agregarHistorial(sessionId, "assistant", respuesta);
+    await agregarHistorial(sessionId, "assistant", respuesta);
 
     return {
       ok: true,
@@ -201,9 +234,10 @@ async function procesarMensajeMind({ message, sessionId = "default", datosOverri
   }
 }
 
-// ── Limpiar sesión ────────────────────────────────────────────
+// ── Limpiar sesión (borra del cache; los datos en Sheets se mantienen como registro) ──
 function limpiarSesionMind(sessionId) {
-  historialSesiones.delete(sessionId);
+  historialCache.delete(sessionId);
+  cacheLoaded.delete(sessionId);
 }
 
 module.exports = { procesarMensajeMind, limpiarSesionMind, recolectarContextoNegocio };

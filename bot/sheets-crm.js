@@ -16,6 +16,7 @@ const HEADERS = {
   VENTAS:   ['Fecha', 'ID_Venta', 'Cliente', 'Producto', 'Monto', 'Forma_Pago', 'Notas', 'ID_Cliente_Guardado', 'Cantidad_Calculada', 'Ingreso_Real', 'Fecha_Vencimiento', 'Mes_Anio'],
   GASTOS:   ['Nombre', 'Monto', 'Mes_ID', 'Notas', 'Recurrente', 'Dia_Vencimiento'],
   HORARIOS: ['Terapeuta', 'Dia_Semana', 'Hora_Inicio', 'Hora_Fin', 'Activo', 'Semana_Inicio'],
+  MIND_SESSIONS: ['Session_ID', 'Role', 'Content', 'Timestamp'],
 };
 
 // ─── Auth ─────────────────────────────────────────────────────

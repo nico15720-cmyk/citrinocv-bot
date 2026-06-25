@@ -663,28 +663,71 @@ async function enviarResumenDiario() {
 }
 
 // ============================================================
-// RESUMEN SEMANAL — lunes a las 8:00
+// RESUMEN SEMANAL — lunes a las 8:00 (datos reales desde Sheets)
 // ============================================================
 async function enviarResumenSemanal() {
   if (!OWNER) return;
   try {
-    const clientes = await leerTodosLosClientes();
+    const { readSheet } = require("./sheets-crm");
     const ahora = new Date();
     const hace7 = new Date(ahora.getTime() - 7 * 86400000);
+    const hace7Str = hace7.toISOString();
 
-    const nuevos = clientes.filter(c => c.FechaAlta && new Date(c.FechaAlta) >= hace7).length;
-    const vinieron = clientes.filter(c => c.UltimoContacto && new Date(c.UltimoContacto) >= hace7 && c.Estado === "vino").length;
-    const agendados = clientes.filter(c => c.Estado === "agendado").length;
-    const conCuponera = clientes.filter(c => c.Cuponera === "si").length;
+    const [clientes, ventas, sesiones] = await Promise.all([
+      readSheet("CLIENTES").catch(() => []),
+      readSheet("VENTAS").catch(() => []),
+      readSheet("SESIONES").catch(() => []),
+    ]);
+
+    // Período: últimos 7 días
+    const ventasSemana = ventas.filter(v => {
+      if (!v.Fecha) return false;
+      return new Date(v.Fecha) >= hace7;
+    });
+    const sesionesSemana = sesiones.filter(s => {
+      if (!s.Fecha_Hora) return false;
+      const d = new Date(s.Fecha_Hora);
+      return !isNaN(d) && d >= hace7 && d <= ahora;
+    });
+
+    // Ingresos de la semana
+    const ingresoBruto = ventasSemana
+      .filter(v => v.Forma_Pago !== "Pase Libre")
+      .reduce((a, v) => a + (parseFloat(v.Monto) || 0), 0);
+
+    // Clientes nuevos esta semana
+    const nuevos = clientes.filter(c => c.Fecha_Alta && new Date(c.Fecha_Alta) >= hace7).length;
+
+    // Agendados activos ahora
+    const agendados = clientes.filter(c => ["agendado", "confirmado"].includes(c.Estado || "")).length;
+
+    // Cuponeras activas (cross-join VENTAS × SESIONES)
+    const PACK_KW_S = ["pack", "cuponera", "pase libre"];
+    function normS(v) { return String(v || "").replace(/\D/g, "").slice(-9); }
+    const cuponerasActivas = new Set();
+    for (const c of clientes) {
+      const cid = normS(c.ID_Cliente);
+      if (!cid) continue;
+      const compradas = ventas
+        .filter(v => normS(v.ID_Cliente_Guardado) === cid && PACK_KW_S.some(k => (v.Producto||"").toLowerCase().includes(k)))
+        .reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+      const usadas = sesiones.filter(s => normS(s.ID_Cliente_Guardado) === cid).length;
+      if (compradas - usadas > 0) cuponerasActivas.add(cid);
+    }
+
+    const fechaDesde = hace7.toLocaleDateString("es-UY", { day: "numeric", month: "short" });
+    const fechaHasta = ahora.toLocaleDateString("es-UY", { day: "numeric", month: "short" });
 
     const msg =
       `📊 *Resumen semanal Citrino*\n` +
-      `Semana del ${hace7.toLocaleDateString("es-UY",{day:"numeric",month:"short"})} al ${ahora.toLocaleDateString("es-UY",{day:"numeric",month:"short"})}\n\n` +
-      `🆕 Nuevos contactos: ${nuevos}\n` +
-      `✅ Vinieron: ${vinieron}\n` +
-      `📅 Agendados activos: ${agendados}\n` +
-      `🎟 Con cuponera: ${conCuponera}\n\n` +
-      `Total clientes: ${clientes.length}`;
+      `_${fechaDesde} → ${fechaHasta}_\n\n` +
+      `💰 Ingresos: *$${Math.round(ingresoBruto).toLocaleString("es-UY")}*\n` +
+      `💆 Sesiones dadas: *${sesionesSemana.length}*\n` +
+      `🆕 Nuevas clientas: *${nuevos}*\n` +
+      `📅 Agendadas activas: *${agendados}*\n` +
+      `🎟 Cuponeras activas: *${cuponerasActivas.size}*\n` +
+      `👥 Total CRM: ${clientes.length} clientes\n\n` +
+      `🔗 https://citrinobienestar.uy/app/crm/`;
 
     await enviarMensaje(OWNER, msg, "whatsapp");
   } catch (err) {
@@ -693,36 +736,82 @@ async function enviarResumenSemanal() {
 }
 
 // ============================================================
-// RESUMEN MENSUAL — día 1 de cada mes a las 9:00
+// RESUMEN MENSUAL — día 1 de cada mes a las 9:00 (datos reales)
 // ============================================================
 async function enviarResumenMensual() {
   if (!OWNER) return;
   try {
-    const clientes = await leerTodosLosClientes();
+    const { readSheet } = require("./sheets-crm");
     const ahora = new Date();
-    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
-    const finMes = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
+    // Mes anterior (el que acaba de cerrar)
+    const mesCerrado = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+    const mesAnio = `${String(mesCerrado.getMonth() + 1).padStart(2, "0")}-${mesCerrado.getFullYear()}`;
 
-    const nuevos = clientes.filter(c => {
-      if (!c.FechaAlta) return false;
-      const f = new Date(c.FechaAlta);
-      return f >= inicioMes && f <= finMes;
+    const [clientes, ventas, sesiones, gastos] = await Promise.all([
+      readSheet("CLIENTES").catch(() => []),
+      readSheet("VENTAS").catch(() => []),
+      readSheet("SESIONES").catch(() => []),
+      readSheet("GASTOS").catch(() => []),
+    ]);
+
+    // Filtrar por mes cerrado
+    const ventasMes = ventas.filter(v => (v.Mes_Anio || "") === mesAnio && v.Forma_Pago !== "Pase Libre");
+    const sesionesMes = sesiones.filter(s => (s.Mes_Anio || "") === mesAnio && s.Terapeuta !== "Otros");
+    const gastosMes = gastos.filter(g => (g.Mes_ID || "").startsWith(mesAnio.slice(3,7) + "-" + mesAnio.slice(0,2)) ||
+      (g.Mes_ID || "") === mesAnio);
+
+    const ingresoBruto = ventasMes.reduce((a, v) => a + (parseFloat(v.Monto) || 0), 0);
+    const ingresoNeto  = ventasMes.reduce((a, v) => a + (parseFloat(v.Ingreso_Real) || parseFloat(v.Monto) || 0), 0);
+    const totalGastos  = gastosMes.reduce((a, g) => a + (parseFloat(g.Monto) || 0), 0);
+
+    // Pago terapeutas (aprox $500/sesión)
+    const PAGO_TER = 500;
+    const pagoTerapeutas = sesionesMes.reduce((a, s) => {
+      const p = s.A_Pagar_Terapeuta ? parseFloat(s.A_Pagar_Terapeuta) : PAGO_TER;
+      return a + (isNaN(p) ? PAGO_TER : p);
+    }, 0);
+
+    const ganancia = ingresoNeto - totalGastos - pagoTerapeutas;
+    const margen = ingresoBruto > 0 ? Math.round((ganancia / ingresoBruto) * 100) : 0;
+
+    // Nuevas clientas este mes
+    const nuevas = clientes.filter(c => {
+      if (!c.Fecha_Alta) return false;
+      const f = new Date(c.Fecha_Alta);
+      return !isNaN(f) && `${String(f.getMonth()+1).padStart(2,"0")}-${f.getFullYear()}` === mesAnio;
     }).length;
-    const vinieron = clientes.filter(c => {
-      if (!c.UltimoContacto || c.Estado !== "vino") return false;
-      const f = new Date(c.UltimoContacto);
-      return f >= inicioMes && f <= finMes;
-    }).length;
-    const conCuponera = clientes.filter(c => c.Cuponera === "si").length;
-    const mesNombre = inicioMes.toLocaleDateString("es-UY", { month: "long", year: "numeric" });
+
+    // Cuponeras activas ahora
+    const PACK_KW_M = ["pack", "cuponera", "pase libre"];
+    function normM(v) { return String(v || "").replace(/\D/g, "").slice(-9); }
+    const cuponerasActivas = new Set();
+    for (const c of clientes) {
+      const cid = normM(c.ID_Cliente);
+      if (!cid) continue;
+      const compradas = ventas
+        .filter(v => normM(v.ID_Cliente_Guardado) === cid && PACK_KW_M.some(k => (v.Producto||"").toLowerCase().includes(k)))
+        .reduce((a, v) => a + (parseInt(v.Cantidad_Calculada) || 0), 0);
+      const usadas = sesiones.filter(s => normM(s.ID_Cliente_Guardado) === cid).length;
+      if (compradas - usadas > 0) cuponerasActivas.add(cid);
+    }
+
+    const mesNombre = mesCerrado.toLocaleDateString("es-UY", { month: "long", year: "numeric" });
+    const fmt = n => `$${Math.round(n).toLocaleString("es-UY")}`;
+    const margenEmoji = margen >= 30 ? "🟢" : margen >= 15 ? "🟡" : "🔴";
 
     const msg =
-      `📅 *Resumen mensual — ${mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1)}*\n\n` +
-      `🆕 Nuevos clientes: ${nuevos}\n` +
-      `✅ Sesiones realizadas: ${vinieron}\n` +
-      `🎟 Cuponeras activas: ${conCuponera}\n` +
-      `👥 Total acumulado: ${clientes.length} clientes\n\n` +
-      `¡Buen trabajo este mes! 💛`;
+      `📅 *Cierre de ${mesNombre.charAt(0).toUpperCase()+mesNombre.slice(1)}*\n\n` +
+      `💰 Ingresos brutos: *${fmt(ingresoBruto)}*\n` +
+      `💳 Ingresos netos: *${fmt(ingresoNeto)}*\n` +
+      `🏢 Gastos: ${fmt(totalGastos)}\n` +
+      `👩‍⚕️ Terapeutas: ${fmt(pagoTerapeutas)}\n` +
+      `✨ *Ganancia: ${fmt(ganancia)}*\n` +
+      `${margenEmoji} Margen: *${margen}%*\n\n` +
+      `💆 Sesiones: ${sesionesMes.length}\n` +
+      `🆕 Nuevas clientas: ${nuevas}\n` +
+      `🎟 Cuponeras activas: ${cuponerasActivas.size}\n` +
+      `👥 Total CRM: ${clientes.length}\n\n` +
+      `🔗 https://citrinobienestar.uy/app/crm/`;
 
     await enviarMensaje(OWNER, msg, "whatsapp");
   } catch (err) {
@@ -1505,6 +1594,49 @@ async function followUpLeadTibio() {
 }
 
 // ============================================================
+// BACKUP SEMANAL — lunes 8:05 (snapshot de todos los datos)
+// Envía un resumen de salud de los datos a Nico vía WhatsApp
+// ============================================================
+async function enviarBackupSemanal() {
+  if (!OWNER) return;
+  try {
+    const { readSheet } = require("./sheets-crm");
+    const [clientes, ventas, sesiones, gastos] = await Promise.all([
+      readSheet("CLIENTES").catch(() => []),
+      readSheet("VENTAS").catch(() => []),
+      readSheet("SESIONES").catch(() => []),
+      readSheet("GASTOS").catch(() => []),
+    ]);
+
+    const ahora = new Date();
+    const fechaStr = ahora.toLocaleDateString("es-UY", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Montevideo"
+    });
+
+    // Última venta y última sesión
+    const ultimaVenta = ventas.length > 0 ? ventas[ventas.length - 1] : null;
+    const ultimaSesion = sesiones.length > 0 ? sesiones[sesiones.length - 1] : null;
+
+    const msg =
+      `🗄️ *Backup semanal — ${fechaStr}*\n\n` +
+      `Los datos están en Google Sheets y Railway está activo.\n\n` +
+      `*Estado de las hojas:*\n` +
+      `👥 CLIENTES: ${clientes.length} registros\n` +
+      `💰 VENTAS: ${ventas.length} registros\n` +
+      `💆 SESIONES: ${sesiones.length} registros\n` +
+      `🏢 GASTOS: ${gastos.length} registros\n\n` +
+      (ultimaVenta ? `📌 Última venta: ${ultimaVenta.Fecha || ultimaVenta.Mes_Anio || "?"} — ${ultimaVenta.Cliente || "?"} — $${ultimaVenta.Monto || "?"}\n` : "") +
+      (ultimaSesion ? `📌 Última sesión: ${(ultimaSesion.Fecha_Hora || "").slice(0, 10)} — ${ultimaSesion.Cliente || "?"}\n` : "") +
+      `\n🔗 CRM: https://citrinobienestar.uy/app/crm/`;
+
+    await enviarMensaje(OWNER, msg, "whatsapp");
+    console.log("🗄️ Backup semanal enviado a Nico");
+  } catch (err) {
+    console.error("❌ Error backup semanal:", err.message);
+  }
+}
+
+// ============================================================
 // INICIAR TODOS LOS SCHEDULERS
 // ============================================================
 function startScheduler() {
@@ -1593,6 +1725,9 @@ function startScheduler() {
 
   // ── Resumen semanal — lunes 8:00 ──────────────────────────
   cron.schedule("0 8 * * 1", enviarResumenSemanal, { timezone: "America/Montevideo" });
+
+  // ── Backup semanal — lunes 8:05 (snapshot de conteos de Sheets) ──
+  cron.schedule("5 8 * * 1", enviarBackupSemanal, { timezone: "America/Montevideo" });
 
   // ── Resumen mensual — día 1 de cada mes 9:00 ──────────────
   cron.schedule("0 9 1 * *", enviarResumenMensual, { timezone: "America/Montevideo" });
@@ -1705,7 +1840,8 @@ function startScheduler() {
   console.log("  • 20:00 agenda del día siguiente para Nico");
   console.log("  • 20:05 cierre de no-shows automático");
   console.log("  • 21:00 check-in diario + alertas cuponera");
-  console.log("  • lunes 08:00 resumen semanal");
+  console.log("  • lunes 08:00 resumen semanal (datos reales desde Sheets)");
+  console.log("  • lunes 08:05 backup semanal (snapshot de conteos)");
   console.log("  • día 1 09:00 resumen mensual");
   console.log("  • 06:30 (Lun-Sab) responder mensajes overnight (fuera de horario)");
   console.log("  • */4hs verificar salud del sistema");

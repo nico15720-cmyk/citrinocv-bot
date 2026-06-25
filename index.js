@@ -948,8 +948,15 @@ app.post("/api/clientes/:userId/mensaje", async (req, res) => {
   }
 });
 
+// /agenda y /app/agenda/ → redirigen al CRM (que tiene la pantalla de Agenda integrada)
 app.get("/agenda", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "agenda.html"));
+  res.redirect(301, "/app/crm/");
+});
+app.get("/app/agenda", (req, res) => {
+  res.redirect(301, "/app/crm/");
+});
+app.get("/app/agenda/", (req, res) => {
+  res.redirect(301, "/app/crm/");
 });
 
 // ============================================================
@@ -1473,8 +1480,18 @@ app.delete("/api/crm/clientes/:rowIndex", async (req, res) => {
 
 // ── SESIONES ─────────────────────────────────────────────────
 app.get("/api/crm/sesiones", async (req, res) => {
-  try { res.json(await sheetsCrm.readSheet("SESIONES")); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    let rows = await sheetsCrm.readSheet("SESIONES");
+    // Filtro opcional: ?meses=N → últimos N meses
+    const meses = parseInt(req.query.meses);
+    if (meses > 0) {
+      const desde = new Date();
+      desde.setMonth(desde.getMonth() - meses);
+      const desdeStr = `${String(desde.getMonth() + 1).padStart(2,'0')}-${desde.getFullYear()}`;
+      rows = rows.filter(r => (r.Mes_Anio || '') >= desdeStr);
+    }
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post("/api/crm/sesiones", async (req, res) => {
@@ -1500,8 +1517,18 @@ app.delete("/api/crm/sesiones/:rowIndex", async (req, res) => {
 
 // ── VENTAS ───────────────────────────────────────────────────
 app.get("/api/crm/ventas", async (req, res) => {
-  try { res.json(await sheetsCrm.readSheet("VENTAS")); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    let rows = await sheetsCrm.readSheet("VENTAS");
+    // Filtro opcional: ?meses=N → últimos N meses
+    const meses = parseInt(req.query.meses);
+    if (meses > 0) {
+      const desde = new Date();
+      desde.setMonth(desde.getMonth() - meses);
+      const desdeStr = `${String(desde.getMonth() + 1).padStart(2,'0')}-${desde.getFullYear()}`;
+      rows = rows.filter(r => (r.Mes_Anio || '') >= desdeStr);
+    }
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post("/api/crm/ventas", async (req, res) => {
