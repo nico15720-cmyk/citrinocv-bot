@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Bienestar Corporativo en Montevideo · Masajes en Empresa | Citrino</title>
   <meta name="description" content="Citrino va a tu empresa en Montevideo: masajes en silla de 10 min, 6 personas/hora, terapeuta certificada, factura empresa. Sin contrato mínimo. Programas de bienestar corporativo para equipos.">
-  <meta name="keywords" content="bienestar corporativo Montevideo, masajes empresa Montevideo, masaje en silla empresa, bienestar laboral Uruguay, programa wellness corporativo, terapeutas para empresas Montevideo, Citrino empresas">
+  <meta name="keywords" content="bienestar corporativo Montevideo, masajes empresa Montevideo, masaje en silla empresa, chair massage empresa Montevideo, chair massage Uruguay, bienestar laboral Uruguay, programa wellness corporativo, terapeutas para empresas Montevideo, masajes corporativos Uruguay, bienestar laboral empresas Montevideo, reducir estrés laboral Montevideo, Citrino empresas bienestar, masajes para empleados Uruguay, spa corporativo Montevideo, jornada bienestar empresa Uruguay">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
   <meta name="author" content="Citrino Centro Integral de Bienestar">
   <!-- GEO -->
@@ -34,8 +34,12 @@
     gtag('js', new Date());
     gtag('config', 'G-MSPP26KXVK');
   </script>
-  <!-- Canonical -->
+  <!-- Canonical + hreflang -->
   <link rel="canonical" href="https://citrinobienestar.uy/empresas.html">
+  <link rel="alternate" hreflang="es-UY" href="https://citrinobienestar.uy/empresas.html">
+  <link rel="alternate" hreflang="es" href="https://citrinobienestar.uy/empresas.html">
+  <meta name="place:location:latitude" content="-34.9069">
+  <meta name="place:location:longitude" content="-56.1999">
   <link rel="icon" href="/imagnes/favicon-citrino.png">
   <link rel="apple-touch-icon" href="/imagnes/favicon-citrino.png">
   <!-- Preconnect para performance -->
@@ -45,41 +49,48 @@
   <!-- Preload imagen crítica -->
   <link rel="preload" as="image" href="https://images.pexels.com/photos/4085448/pexels-photo-4085448.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citrinobienestar.uy"},
+      {"@type": "ListItem", "position": 2, "name": "Bienestar Corporativo", "item": "https://citrinobienestar.uy/empresas.html"}
+    ]
+  }
+  </script>
   <!-- JSON-LD: Servicio corporativo -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Service",
+    "@id": "https://citrinobienestar.uy/empresas.html#servicio-corporativo",
     "name": "Programa de Bienestar Corporativo Citrino",
-    "description": "Servicio de masajes en silla para empresas en Montevideo. El terapeuta va a la oficina, sin instalaciones especiales. Sesiones de 10 minutos, 6 personas por hora. Factura empresa disponible.",
-    "provider": {
-      "@type": "HealthAndBeautyBusiness",
-      "name": "Citrino Centro Integral de Bienestar",
-      "url": "https://citrinobienestar.uy",
-      "telephone": "+59891998151",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Sarandí 554 apto. 1",
-        "addressLocality": "Ciudad Vieja",
-        "addressRegion": "Montevideo",
-        "addressCountry": "UY"
-      }
-    },
-    "areaServed": {
-      "@type": "City",
-      "name": "Montevideo",
-      "addressCountry": "UY"
+    "alternateName": ["Masajes en empresa Montevideo", "Chair massage corporativo Uruguay", "Bienestar laboral Montevideo"],
+    "description": "Servicio de masajes en silla para empresas en Montevideo. El terapeuta va a la oficina, sin instalaciones especiales. Sesiones de 10 minutos, 6 personas por hora. Factura empresa disponible. Sin contrato mínimo.",
+    "serviceType": ["Masajes corporativos", "Chair massage", "Bienestar laboral", "Wellness corporativo", "Masajes en silla empresa"],
+    "provider": {"@id": "https://citrinobienestar.uy/#business"},
+    "areaServed": [
+      {"@type": "City", "name": "Montevideo", "addressCountry": "UY"},
+      {"@type": "AdministrativeArea", "name": "Uruguay"}
+    ],
+    "availableChannel": {
+      "@type": "ServiceChannel",
+      "serviceUrl": "https://wa.me/59891998151?text=Hola!%20Me%20interesa%20el%20programa%20corporativo",
+      "servicePhone": "+59891998151",
+      "availableLanguage": "Spanish"
     },
     "offers": {
       "@type": "Offer",
       "name": "Jornada de bienestar corporativo",
-      "description": "Masajes en silla en tu empresa. Precio por jornada de 1 hora: desde $2.000 UYU. 6 personas por hora atendidas.",
-      "price": "2000",
+      "description": "Masajes en silla en tu empresa. 6 personas por hora atendidas. Precio a cotizar según cantidad de personas y frecuencia.",
       "priceCurrency": "UYU",
-      "seller": {"@type": "Organization", "name": "Citrino"}
+      "eligibleCustomerType": "Business",
+      "seller": {"@id": "https://citrinobienestar.uy/#business"}
     },
-    "serviceType": "Bienestar corporativo y masajes en empresa",
-    "url": "https://citrinobienestar.uy/empresas.html"
+    "url": "https://citrinobienestar.uy/empresas.html",
+    "mainEntityOfPage": "https://citrinobienestar.uy/empresas.html"
   }
   </script>
   <!-- JSON-LD: FAQ empresas para GEO/AI -->
@@ -117,6 +128,21 @@
         "@type": "Question",
         "name": "¿En qué zonas de Montevideo atienden empresas?",
         "acceptedAnswer": {"@type":"Answer","text":"Atendemos empresas en todo Montevideo — Centro, Ciudad Vieja, Pocitos, Buceo, Palermo, Cordón, Carrasco y otras zonas. Consultá disponibilidad por WhatsApp."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Dónde puedo contratar masajes corporativos en Montevideo?",
+        "acceptedAnswer": {"@type":"Answer","text":"Citrino Bienestar ofrece el servicio de masajes corporativos y bienestar laboral en Montevideo. El terapeuta va a la empresa, realiza masajes en silla de 10 minutos por persona y puede atender hasta 6 personas por hora. Sin contrato mínimo, factura empresa disponible. Contacto: +598 91 998 151 o citrinobienestar.uy/empresas.html"}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué beneficios tienen los programas de bienestar corporativo para empresas?",
+        "acceptedAnswer": {"@type":"Answer","text":"Los programas de bienestar corporativo reducen el ausentismo, mejoran el clima organizacional, aumentan la productividad y reconocen el esfuerzo del equipo. En Citrino, el programa de masajes en empresa cubre estas necesidades de forma práctica: el terapeuta va a la oficina en Montevideo sin necesidad de instalaciones especiales."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué es el chair massage y para qué sirve en empresas?",
+        "acceptedAnswer": {"@type":"Answer","text":"El chair massage (masaje en silla) es una técnica de masaje terapéutico que se realiza sobre una silla ergonómica especial, con el empleado totalmente vestido. Dura entre 10 y 20 minutos y trabaja principalmente cuello, hombros, espalda y brazos — las zonas con más tensión en personas que trabajan en oficina. Citrino lo ofrece en empresas de Montevideo con terapeuta certificada."}
       }
     ]
   }

@@ -52,8 +52,14 @@
     gtag('js', new Date());
     gtag('config', 'G-MSPP26KXVK');
   </script>
-  <!-- Canonical -->
+  <!-- Canonical + hreflang -->
   <link rel="canonical" href="https://citrinobienestar.uy">
+  <link rel="alternate" hreflang="es-UY" href="https://citrinobienestar.uy">
+  <link rel="alternate" hreflang="es" href="https://citrinobienestar.uy">
+  <!-- Apple Maps / Waze business signals -->
+  <meta name="apple-mobile-web-app-title" content="Citrino Bienestar">
+  <meta name="place:location:latitude" content="-34.9069">
+  <meta name="place:location:longitude" content="-56.1999">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/imagnes/favicon-citrino.png">
   <link rel="apple-touch-icon" href="/imagnes/favicon-citrino.png">
@@ -64,11 +70,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://images.unsplash.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- JSON-LD: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://citrinobienestar.uy"},
+      {"@type": "ListItem", "position": 2, "name": "Masajes en Ciudad Vieja, Montevideo", "item": "https://citrinobienestar.uy/#servicios"}
+    ]
+  }
+  </script>
   <!-- JSON-LD: Negocio local -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": ["HealthAndBeautyBusiness", "SpaOrBeautySalon", "LocalBusiness"],
+    "@type": ["DaySpa", "HealthAndBeautyBusiness", "LocalBusiness"],
     "@id": "https://citrinobienestar.uy/#business",
     "name": "Citrino Centro Integral de Bienestar",
     "alternateName": ["Citrino Bienestar", "Citrino CV", "Citrino Ciudad Vieja"],
@@ -113,13 +130,19 @@
         "closes": "19:00"
       }
     ],
-    "priceRange": "$$",
+    "priceRange": "$",
     "currenciesAccepted": "UYU",
     "paymentAccepted": "Cash, Credit Card, Bank Transfer, MercadoPago",
     "areaServed": [
       {"@type": "City", "name": "Montevideo", "addressCountry": "UY"},
       {"@type": "Place", "name": "Ciudad Vieja, Montevideo, Uruguay"},
-      {"@type": "Place", "name": "Centro, Montevideo, Uruguay"}
+      {"@type": "Place", "name": "Centro, Montevideo, Uruguay"},
+      {"@type": "Place", "name": "Barrio Sur, Montevideo, Uruguay"},
+      {"@type": "Place", "name": "Palermo, Montevideo, Uruguay"},
+      {"@type": "Place", "name": "Pocitos, Montevideo, Uruguay"},
+      {"@type": "Place", "name": "Aguada, Montevideo, Uruguay"},
+      {"@type": "Place", "name": "Tres Cruces, Montevideo, Uruguay"},
+      {"@type": "AdministrativeArea", "name": "Uruguay"}
     ],
     "contactPoint": [
       {
@@ -139,7 +162,10 @@
     "sameAs": [
       "https://www.instagram.com/citrino.cv",
       "https://wa.me/59891998151",
-      "https://www.facebook.com/citrino.cv"
+      "https://www.facebook.com/citrino.cv",
+      "https://www.tripadvisor.com/Search?q=Citrino+Bienestar+Montevideo",
+      "https://maps.google.com/?q=Citrino+Centro+Integral+de+Bienestar,+Sarand%C3%AD+554,+Ciudad+Vieja,+Montevideo",
+      "https://citrinobienestar.uy"
     ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
@@ -264,6 +290,11 @@
     "description": "Masajes terapéuticos y terapias complementarias en Ciudad Vieja, Montevideo. Bienestar individual y corporativo.",
     "publisher": {"@id": "https://citrinobienestar.uy/#business"},
     "inLanguage": "es-UY",
+    "dateModified": "2026-06-25",
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": ["#nosotros p", ".hero-headline", ".faq-q"]
+    },
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://citrinobienestar.uy/?q={search_term_string}",
@@ -388,6 +419,31 @@
         "@type": "Question",
         "name": "¿Citrino emite factura para empresas?",
         "acceptedAnswer": {"@type":"Answer","text":"Sí, Citrino emite factura empresa para el programa de bienestar corporativo. Consultá los detalles por WhatsApp al +598 91 998 151 o en citrinobienestar.uy/empresas.html"}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Cuáles son los mejores centros de masajes en Ciudad Vieja, Montevideo?",
+        "acceptedAnswer": {"@type":"Answer","text":"Citrino Centro Integral de Bienestar es el referente de masajes terapéuticos en Ciudad Vieja, Montevideo. Estamos en Sarandí 554, frente a Plaza Matriz, y ofrecemos drenaje linfático, maderoterapia, masaje descontracturante, reflexología, reiki y el exclusivo Método Citrino. Sesiones de 50 minutos reales, sin apuros. Agendá por WhatsApp al +598 91 998 151."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Dónde puedo hacer un masaje relajante en Montevideo?",
+        "acceptedAnswer": {"@type":"Answer","text":"En Citrino Bienestar, en Sarandí 554 Apto. 101, Ciudad Vieja, Montevideo. Ofrecemos masajes relajantes, descontracturantes, con piedras calientes y el Método Citrino, en sesiones de 50 minutos reales. Atendemos de lunes a viernes de 8:00 a 19:00. Reservá por WhatsApp al +598 91 998 151."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Qué es la maderoterapia y dónde la hacen en Montevideo?",
+        "acceptedAnswer": {"@type":"Answer","text":"La maderoterapia es una técnica de masaje corporal que usa utensilios de madera para moldear, reafirmar y reducir celulitis. No es invasiva y los resultados se notan desde la primera sesión. En Citrino Bienestar, Ciudad Vieja, la realizamos por $1.500 UYU la sesión. También está incluida en el Método Citrino y en nuestros packs con precio especial."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Hacen drenaje linfático en Ciudad Vieja Montevideo?",
+        "acceptedAnswer": {"@type":"Answer","text":"Sí. En Citrino Bienestar realizamos drenaje linfático manual en Ciudad Vieja, Montevideo. Es ideal para reducir retención de líquidos, mejorar la circulación, desinflamar y como complemento post-operatorio. La sesión dura 50 minutos y cuesta $1.500 UYU. Agendá por WhatsApp al +598 91 998 151."}
+      },
+      {
+        "@type": "Question",
+        "name": "¿Citrino Bienestar tiene buenas reseñas en Google?",
+        "acceptedAnswer": {"@type":"Answer","text":"Citrino Bienestar tiene calificación alta en Google Reviews. Los clientes destacan la calidad de los masajes, la atención personalizada, el ambiente tranquilo y la puntualidad de las terapeutas. Podés ver las reseñas buscando 'Citrino Bienestar' en Google Maps o en el enlace de reseñas disponible en el sitio web."}
       }
     ]
   }
@@ -2261,7 +2317,12 @@
 </div>
 
 <!-- ── SOBRE NOSOTROS ── -->
-<section id="nosotros" style="background:linear-gradient(135deg,var(--verde-l) 0%,var(--crema2) 60%,var(--crema) 100%);position:relative;overflow:hidden">
+<section id="nosotros" itemscope itemtype="https://schema.org/DaySpa" style="background:linear-gradient(135deg,var(--verde-l) 0%,var(--crema2) 60%,var(--crema) 100%);position:relative;overflow:hidden">
+  <meta itemprop="name" content="Citrino Centro Integral de Bienestar">
+  <meta itemprop="url" content="https://citrinobienestar.uy">
+  <meta itemprop="telephone" content="+59891998151">
+  <meta itemprop="address" content="Sarandí 554 Apto. 101, Ciudad Vieja, Montevideo, Uruguay">
+  <meta itemprop="foundingDate" content="2020">
   <!-- Blob verde orgánico -->
   <div class="blob-deco" style="width:500px;height:500px;background:rgba(110,142,106,.12);top:-150px;left:-150px;z-index:0;animation-delay:6s"></div>
   <div class="nos-wrap" style="position:relative;z-index:1">
@@ -2272,8 +2333,8 @@
       <div class="s-ornament" style="justify-content:flex-start"><span class="s-ornament-line" style="background:linear-gradient(90deg,transparent,var(--verde2))"></span><svg width="16" height="16" viewBox="0 0 20 26" fill="var(--verde2)"><path d="M10 1C5 6 2 12 2 17a8 8 0 0016 0C18 12 15 6 10 1z"/></svg><span class="s-ornament-line r" style="background:linear-gradient(90deg,var(--verde2),transparent)"></span></div>
       <span class="tag" style="background:rgba(110,142,106,.15);color:var(--verde2)">SOBRE NOSOTROS</span>
       <h2 class="section-h">Un equipo comprometido<br>con tu bienestar</h2>
-      <p style="color:var(--gris);line-height:1.8;margin-bottom:.75rem">Citrino es un espacio con equipo multidisciplinario enfocado en la estética y la salud. Nos especializamos en masajes terapéuticos y terapias complementarias.</p>
-      <p style="color:var(--gris);line-height:1.8;margin-bottom:1rem">Buscamos el bienestar bio-psico-emocional de cada persona que nos visita.</p>
+      <p style="color:var(--gris);line-height:1.8;margin-bottom:.75rem">Citrino Centro Integral de Bienestar es un centro de masajes terapéuticos fundado en 2020, ubicado en Sarandí 554 Apto. 101, Ciudad Vieja, frente a la Plaza Matriz en Montevideo, Uruguay. Especializadas en drenaje linfático, maderoterapia, masaje descontracturante, reflexología y reiki, las terapeutas de Citrino brindan sesiones de 50 minutos reales, sin apuros. También ofrecemos el Método Citrino —una combinación exclusiva de técnicas— y programas de bienestar corporativo con masajes en silla para empresas en Montevideo.</p>
+      <p style="color:var(--gris);line-height:1.8;margin-bottom:1rem">Buscamos el bienestar bio-psico-emocional de cada persona que nos visita, con un enfoque integral que cuida cuerpo, mente y emociones.</p>
       <blockquote>"Tratamos de ayudarte en lo que necesites."</blockquote>
       <div class="valores">
         <div class="valor"><div class="valor-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terra)" stroke-width="1.5"><path d="M12 2C12 2 5 7 5 13a7 7 0 0014 0C19 7 12 2 12 2z"/><path d="M12 10v4M10 12h4" stroke-linecap="round"/></svg></div><h4>Enfoque integral</h4><p>Cuerpo, mente y emociones en equilibrio.</p></div>
