@@ -1930,6 +1930,8 @@
          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:65% center;transform:scaleX(-1);transition:transform .1s linear">
   </div>
   <div class="hero-overlay"></div>
+  <!-- Three.js particle canvas — z-index 1, pointer-events none, encima del overlay -->
+  <canvas id="heroParticles" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0;transition:opacity 1.2s ease"></canvas>
   <!-- Destellos retro -->
   <div class="retro-star rs1">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2942,6 +2944,142 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.get
     cur = (cur + 1) % items.length;
     items[cur].classList.add('active');
   }, 4500);
+})();
+
+// ── THREE.JS PARTICLES — Hero ──
+(function () {
+  // No animar si el usuario prefiere reducción de movimiento
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  var canvas = document.getElementById('heroParticles');
+  if (!canvas) return;
+
+  // Verificar soporte WebGL
+  try {
+    var test = document.createElement('canvas');
+    if (!test.getContext('webgl') && !test.getContext('experimental-webgl')) return;
+  } catch (e) { return; }
+
+  // Cargar Three.js de forma diferida (no bloquea LCP)
+  window.addEventListener('load', function () {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    s.onload = initParticles;
+    document.head.appendChild(s);
+  });
+
+  function initParticles() {
+    var isMobile = window.innerWidth < 768;
+    var COUNT    = isMobile ? 55 : 110;
+    var W        = window.innerWidth;
+    var H        = canvas.offsetHeight || window.innerHeight;
+
+    // ── Renderer ──
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+    // ── Escena y cámara ortográfica (2D) ──
+    var scene  = new THREE.Scene();
+    var camera = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, 0.1, 10);
+    camera.position.z = 1;
+
+    // ── Textura: círculo suave degradado terra ──
+    var SZ  = 64;
+    var tc  = document.createElement('canvas');
+    tc.width = tc.height = SZ;
+    var ctx = tc.getContext('2d');
+    var grd = ctx.createRadialGradient(SZ/2, SZ/2, 0, SZ/2, SZ/2, SZ/2);
+    grd.addColorStop(0,   'rgba(184,105,74,1)');
+    grd.addColorStop(0.35,'rgba(184,105,74,0.55)');
+    grd.addColorStop(0.7, 'rgba(200,140,90,0.18)');
+    grd.addColorStop(1,   'rgba(184,105,74,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, SZ, SZ);
+    var texture = new THREE.CanvasTexture(tc);
+
+    // ── Geometría ──
+    var geo       = new THREE.BufferGeometry();
+    var positions = new Float32Array(COUNT * 3);
+    var halfW = W / 2, halfH = H / 2;
+    var vels  = [], phases = [];
+
+    for (var i = 0; i < COUNT; i++) {
+      positions[i*3]   = (Math.random() - 0.5) * W;
+      positions[i*3+1] = (Math.random() - 0.5) * H;
+      positions[i*3+2] = 0;
+      vels.push({
+        vy:        0.06 + Math.random() * 0.12,
+        vx:        (Math.random() - 0.5) * 0.03,
+        sway:      0.25 + Math.random() * 0.55,
+        swaySpeed: 0.0025 + Math.random() * 0.004
+      });
+      phases.push(Math.random() * Math.PI * 2);
+    }
+
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    // ── Material ──
+    var mat = new THREE.PointsMaterial({
+      size:        isMobile ? 14 : 18,
+      map:         texture,
+      transparent: true,
+      opacity:     0.22,
+      sizeAttenuation: false,
+      depthWrite:  false,
+      blending:    THREE.NormalBlending
+    });
+
+    var pts = new THREE.Points(geo, mat);
+    scene.add(pts);
+
+    // ── Fade in suave ──
+    canvas.style.opacity = '1';
+
+    // ── Loop de animación ──
+    var pos  = geo.attributes.position.array;
+    var t    = 0;
+    var rafId;
+
+    function animate() {
+      rafId = requestAnimationFrame(animate);
+      t++;
+      for (var i = 0; i < COUNT; i++) {
+        var v = vels[i];
+        pos[i*3]   += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.12;
+        pos[i*3+1] += v.vy;
+
+        // Rebobinar al salir por arriba
+        if (pos[i*3+1] > halfH + 24) {
+          pos[i*3+1] = -halfH - 24;
+          pos[i*3]   = (Math.random() - 0.5) * W;
+        }
+        // Rebobinar horizontalmente
+        if (pos[i*3]   >  halfW + 24) pos[i*3] = -halfW - 24;
+        if (pos[i*3]   < -halfW - 24) pos[i*3] =  halfW + 24;
+      }
+      geo.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // ── Pausa cuando la pestaña está oculta (ahorra batería) ──
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) cancelAnimationFrame(rafId);
+      else animate();
+    });
+
+    // ── Resize responsive ──
+    window.addEventListener('resize', function () {
+      W = window.innerWidth;
+      H = canvas.offsetHeight || window.innerHeight;
+      halfW = W / 2; halfH = H / 2;
+      renderer.setSize(W, H);
+      camera.left = -halfW; camera.right = halfW;
+      camera.top  =  halfH; camera.bottom = -halfH;
+      camera.updateProjectionMatrix();
+    });
+  }
 })();
 
 // ── GA4 EVENTOS ──
