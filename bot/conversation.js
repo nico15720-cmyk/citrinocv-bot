@@ -1079,7 +1079,7 @@ async function handleIncomingMessage({ userId, text, platform, messageId = null,
     } else {
       // Score alto → pedir reseña Google
       await enviarMensaje(userId,
-        `¡Muchísimas gracias! 💛 Nos alegra mucho saber eso. Si tiene un momento, nos ayudaría muchísimo que nos deje una reseña en Google:\n\nhttps://g.page/r/citrinobienestar/review\n\n¡La esperamos pronto! 🌿`,
+        `¡Muchísimas gracias! 💛 Nos alegra mucho saber eso. Si tiene un momento, nos ayudaría muchísimo que nos deje una reseña en Google:\n\nhttps://g.page/r/CZYH4KTh_70-EBM/review\n\n¡La esperamos pronto! 🌿`,
         canal
       );
     }
