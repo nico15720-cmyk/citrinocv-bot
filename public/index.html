@@ -925,14 +925,21 @@
 
     /* Empresas CTA mejorado */
     .empresas-cta {
-      background: linear-gradient(135deg, #1C3518 0%, #2A4826 50%, #1A2E18 100%) !important;
-      padding: 4rem 5% !important;
-      border-top: 1px solid rgba(255,255,255,.06);
+      background: linear-gradient(135deg, #3B5C36 0%, #4D6E48 45%, #2A4826 100%) !important;
+      padding: 5rem 5% !important;
+      border-top: none;
+      box-shadow: 0 -8px 40px rgba(0,0,0,.18);
     }
     .empresas-cta h2 { letter-spacing: -.02em; line-height: 1.15; }
-    .e-stat { border-radius: 18px; transition: all .3s; }
-    .e-stat:hover { background: rgba(255,255,255,.1); transform: translateY(-3px); }
-    .e-stat .en { font-size: 2.2rem; }
+    .e-stat {
+      border-radius: 18px;
+      background: rgba(255,255,255,.1) !important;
+      border: 1px solid rgba(255,255,255,.18) !important;
+      transition: all .3s;
+    }
+    .e-stat:hover { background: rgba(255,255,255,.18) !important; transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+    .e-stat .en { font-size: 2.2rem; color: #fff !important; }
+    .e-stat .el { color: rgba(255,255,255,.65) !important; }
 
     /* Contacto mejorado */
     .c-ico { border-radius: 14px; transition: all .3s; }
@@ -1654,33 +1661,29 @@
 
     /* ══ HERO REVIEW ROTATOR ══ */
     .hero-reviews {
-      margin-top: 1.4rem;
+      margin-top: 1.2rem;
       display: flex;
-      align-items: flex-start;
-      gap: .65rem;
-      max-width: 460px;
-      background: rgba(255,255,255,.1);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 14px;
-      padding: .6rem .85rem;
+      flex-direction: column;
+      gap: .2rem;
+      max-width: 320px;
+      border-left: 2px solid rgba(255,255,255,.3);
+      padding: .35rem 0 .35rem .75rem;
     }
     .hr-stars {
       display: flex;
       align-items: center;
-      gap: .25rem;
+      gap: .18rem;
       flex-shrink: 0;
-      font-size: .75rem;
+      font-size: .68rem;
       color: #FBBF24;
-      padding-top: .1rem;
       line-height: 1;
+      margin-bottom: .18rem;
     }
-    .hr-glogo { width: 13px; height: 13px; flex-shrink: 0; }
+    .hr-glogo { width: 11px; height: 11px; flex-shrink: 0; }
     .hr-quotes {
       position: relative;
       flex: 1;
-      min-height: 4.8rem;
+      min-height: 3.8rem;
     }
     .hr-item {
       position: absolute;
@@ -1694,20 +1697,21 @@
       display: block;
       font-family: 'Cormorant Garamond', serif;
       font-style: italic;
-      font-size: .93rem;
-      color: rgba(255,255,255,.92);
-      line-height: 1.45;
+      font-size: .87rem;
+      color: rgba(255,255,255,.88);
+      line-height: 1.4;
+      text-shadow: 0 1px 8px rgba(0,0,0,.4);
     }
     .hr-by {
       display: block;
-      font-size: .67rem;
-      color: rgba(255,255,255,.45);
-      margin-top: .22rem;
+      font-size: .63rem;
+      color: rgba(255,255,255,.4);
+      margin-top: .18rem;
       letter-spacing: .03em;
     }
     @media (max-width: 480px) {
       .hero-reviews { max-width: 100%; }
-      .hr-item em { font-size: .88rem; }
+      .hr-item em { font-size: .84rem; }
     }
 
     /* ══ SCROLL PROGRESS BAR ══ */
