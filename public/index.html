@@ -1688,16 +1688,32 @@
       .faq-item { background: var(--crema3) !important; border-color: rgba(208,139,108,.2) !important; }
       .faq-icon { background: var(--crema2) !important; }
       .faq-a p { color: var(--gris) !important; }
+
+      /* Hero reviews — dark mode: overlay oscuro → texto blanco */
+      .hero-reviews { border-left-color: rgba(255,255,255,.3) !important; }
+      .hr-item em { color: rgba(255,255,255,.9) !important; text-shadow: 0 2px 12px rgba(0,0,0,.6) !important; }
+      .hr-by { color: rgba(255,255,255,.45) !important; }
+
+      /* Mobile CTA bar en dark */
+      .mobile-cta-bar { background: rgba(27,21,16,.97) !important; border-top-color: rgba(208,139,108,.2) !important; }
+      .mcb-txt-top { color: var(--gris2) !important; }
+      .mcb-txt-bot { color: var(--oscuro) !important; }
+
+      /* Review float en dark */
+      .review-float { background: rgba(37,28,20,.95) !important; border-color: rgba(208,139,108,.25) !important; }
+      .review-float-lbl { color: var(--oscuro) !important; }
     }
 
     /* ══ HERO REVIEW ROTATOR ══ */
+    /* ══ HERO REVIEW ROTATOR ══ */
+    /* Light mode: overlay es crema casi opaco → texto oscuro */
     .hero-reviews {
       margin-top: 1.2rem;
       display: flex;
       flex-direction: column;
       gap: .2rem;
       max-width: 320px;
-      border-left: 2px solid rgba(255,255,255,.3);
+      border-left: 2px solid rgba(30,22,18,.2);
       padding: .35rem 0 .35rem .75rem;
     }
     .hr-stars {
@@ -1729,14 +1745,14 @@
       font-family: 'Cormorant Garamond', serif;
       font-style: italic;
       font-size: .87rem;
-      color: rgba(255,255,255,.88);
+      color: var(--oscuro);
       line-height: 1.4;
-      text-shadow: 0 1px 8px rgba(0,0,0,.4);
+      text-shadow: none;
     }
     .hr-by {
       display: block;
       font-size: .63rem;
-      color: rgba(255,255,255,.4);
+      color: var(--gris);
       margin-top: .18rem;
       letter-spacing: .03em;
     }
@@ -1773,12 +1789,14 @@
         bottom:calc(4.8rem + env(safe-area-inset-bottom) + .75rem);
         right: auto;
         left: 1.2rem;
-        padding: .4rem;
-        width: 40px; height: 40px;
-        border-radius: 50%;
-        justify-content: center;
+        padding: .38rem .6rem .38rem .42rem;
+        width: auto; height: auto;
+        border-radius: 50px;
+        justify-content: flex-start;
+        gap: .28rem;
       }
-      .review-float-lbl, .review-float-stars { display: none; }
+      .review-float-lbl { display: none; }
+      .review-float-stars { display: block; font-size: .7rem; letter-spacing: .5px; line-height: 1; }
     }
     .mcb-txt { flex:1; min-width:0; }
     .mcb-txt-top { font-size:.58rem; letter-spacing:.18em; color:var(--gris2); font-weight:700; text-transform:uppercase; }
