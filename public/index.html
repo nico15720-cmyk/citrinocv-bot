@@ -531,8 +531,19 @@
       display: flex; align-items: center; justify-content: center;
       background: rgba(193,122,90,.05); transition: all .35s;
       overflow: hidden; flex-shrink: 0;
+      animation: logoPulse 3.8s ease-in-out infinite;
     }
-    .nav-logo:hover .nav-logo-img-wrap { border-color: var(--terra); background: rgba(193,122,90,.1); transform: scale(1.05); }
+    @keyframes logoPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(184,105,74,0), 0 0 0 0 rgba(184,105,74,0); }
+      50%      { box-shadow: 0 0 14px 3px rgba(184,105,74,.22), 0 0 28px 8px rgba(184,105,74,.08); }
+    }
+    .nav-logo:hover .nav-logo-img-wrap {
+      border-color: var(--terra);
+      background: rgba(193,122,90,.1);
+      transform: scale(1.05);
+      animation: none;
+      box-shadow: 0 0 18px 5px rgba(184,105,74,.35), 0 0 36px 12px rgba(184,105,74,.12);
+    }
     .nav-logo img { width: 34px; height: 34px; object-fit: contain; }
     .nav-logo-text { display: flex; flex-direction: column; line-height: 1; }
     .nav-logo-text .nl1 {
@@ -1890,7 +1901,7 @@
 <canvas id="pageParticles" aria-hidden="true" style="position:fixed;inset:0;width:100vw;height:100vh;z-index:999;pointer-events:none;opacity:0;transition:opacity 1.4s ease"></canvas>
 
 <nav id="nav">
-  <a href="/" class="nav-logo">
+  <a href="/" class="nav-logo" id="navLogo">
     <div class="nav-logo-img-wrap">
       <img src="/imagnes/logo-citrino.png" alt="Citrino">
     </div>
@@ -3034,21 +3045,61 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.get
     var pos = geo.attributes.position.array;
     var t = 0, rafId;
 
+    // ── Logo attraction ──
+    var logoEl       = document.getElementById('navLogo');
+    var logoHovered  = false;
+    var logoX        = 0, logoY = 0;   // en coordenadas THREE (centro = 0,0)
+    var ATTRACT_R    = 180;             // radio de atracción (px)
+    var ATTRACT_F    = 0.045;           // fuerza de atracción
+
+    function updateLogoPos() {
+      if (!logoEl) return;
+      var r = logoEl.getBoundingClientRect();
+      // Convertir a coordenadas ortográficas (origen en centro de pantalla)
+      logoX = (r.left + r.width  / 2) - W / 2;
+      logoY = -(r.top  + r.height / 2) + H / 2;
+    }
+
+    if (logoEl) {
+      logoEl.addEventListener('mouseenter', function () {
+        logoHovered = true;
+        updateLogoPos();
+      });
+      logoEl.addEventListener('mouseleave', function () { logoHovered = false; });
+    }
+
     function animate() {
       rafId = requestAnimationFrame(animate);
       t++;
+
       for (var i = 0; i < COUNT; i++) {
         var v = vels[i];
-        pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
-        pos[i*3 + 1] += v.vy;
 
-        if (pos[i*3 + 1] > halfH + 20) {
-          pos[i*3 + 1] = -halfH - 20;
-          pos[i*3]     = (Math.random() - 0.5) * W;
+        if (logoHovered) {
+          var dx = logoX - pos[i*3];
+          var dy = logoY - pos[i*3+1];
+          var dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < ATTRACT_R && dist > 1) {
+            // Atracción suave con un leve giro orbital
+            var angle = Math.atan2(dy, dx) + 0.4;
+            pos[i*3]     += Math.cos(angle) * ATTRACT_F * (1 - dist / ATTRACT_R) * 18;
+            pos[i*3 + 1] += Math.sin(angle) * ATTRACT_F * (1 - dist / ATTRACT_R) * 18;
+          } else {
+            // Fuera del radio — movimiento normal
+            pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
+            pos[i*3 + 1] += v.vy;
+          }
+        } else {
+          // Sin hover — movimiento normal
+          pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
+          pos[i*3 + 1] += v.vy;
         }
-        if (pos[i*3] >  halfW + 20) pos[i*3] = -halfW - 20;
-        if (pos[i*3] < -halfW - 20) pos[i*3] =  halfW + 20;
+
+        if (pos[i*3+1] > halfH+20) { pos[i*3+1] = -halfH-20; pos[i*3] = (Math.random()-0.5)*W; }
+        if (pos[i*3]   >  halfW+20) pos[i*3] = -halfW-20;
+        if (pos[i*3]   < -halfW-20) pos[i*3] =  halfW+20;
       }
+
       geo.attributes.position.needsUpdate = true;
       renderer.render(scene, camera);
     }

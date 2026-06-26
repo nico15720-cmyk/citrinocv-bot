@@ -230,8 +230,18 @@
       border:1.5px solid rgba(196,117,80,.35);
       display:flex; align-items:center; justify-content:center;
       background:rgba(196,117,80,.08); transition:all .35s;
+      animation:logoPulseEmp 3.8s ease-in-out infinite;
     }
-    .nav-logo:hover .nav-logo-ring { border-color:var(--terra); background:rgba(196,117,80,.15); }
+    @keyframes logoPulseEmp {
+      0%,100% { box-shadow: 0 0 0 0 rgba(196,117,80,0), 0 0 0 0 rgba(196,117,80,0); }
+      50%      { box-shadow: 0 0 16px 4px rgba(196,117,80,.3), 0 0 32px 10px rgba(196,117,80,.1); }
+    }
+    .nav-logo:hover .nav-logo-ring {
+      border-color:var(--terra);
+      background:rgba(196,117,80,.15);
+      animation:none;
+      box-shadow: 0 0 20px 6px rgba(196,117,80,.4), 0 0 40px 14px rgba(196,117,80,.15);
+    }
     .nav-logo img { width:26px; height:26px; object-fit:contain; }
     .nav-logo-txt { line-height:1; }
     .nav-logo-txt .nl1 { font-family:'Cormorant Garamond',serif; font-size:1.15rem; font-style:italic; color:var(--cream); letter-spacing:.03em; }
@@ -1497,7 +1507,7 @@
 <canvas id="pageParticles" aria-hidden="true" style="position:fixed;inset:0;width:100vw;height:100vh;z-index:999;pointer-events:none;opacity:0;transition:opacity 1.4s ease"></canvas>
 
 <nav id="nav">
-  <a href="/" class="nav-logo">
+  <a href="/" class="nav-logo" id="navLogo">
     <div class="nav-logo-ring">
       <img src="/imagnes/logo-citrino.png" alt="Citrino">
     </div>
@@ -2532,12 +2542,43 @@
       setTimeout(function () { canvas.style.opacity = '1'; }, 200);
 
       var pos = geo.attributes.position.array, t = 0, rafId;
+
+      // Logo attraction
+      var logoEl      = document.getElementById('navLogo');
+      var logoHovered = false;
+      var logoX = 0, logoY = 0;
+      var ATTRACT_R = 180, ATTRACT_F = 0.045;
+
+      function updateLogoPos() {
+        if (!logoEl) return;
+        var r = logoEl.getBoundingClientRect();
+        logoX = (r.left + r.width  / 2) - W / 2;
+        logoY = -(r.top  + r.height / 2) + H / 2;
+      }
+      if (logoEl) {
+        logoEl.addEventListener('mouseenter', function () { logoHovered = true; updateLogoPos(); });
+        logoEl.addEventListener('mouseleave', function () { logoHovered = false; });
+      }
+
       function animate() {
         rafId = requestAnimationFrame(animate); t++;
         for (var i = 0; i < COUNT; i++) {
           var v = vels[i];
-          pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
-          pos[i*3 + 1] += v.vy;
+          if (logoHovered) {
+            var dx = logoX - pos[i*3], dy = logoY - pos[i*3+1];
+            var dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < ATTRACT_R && dist > 1) {
+              var angle = Math.atan2(dy, dx) + 0.4;
+              pos[i*3]     += Math.cos(angle) * ATTRACT_F * (1 - dist/ATTRACT_R) * 18;
+              pos[i*3 + 1] += Math.sin(angle) * ATTRACT_F * (1 - dist/ATTRACT_R) * 18;
+            } else {
+              pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
+              pos[i*3 + 1] += v.vy;
+            }
+          } else {
+            pos[i*3]     += v.vx + Math.sin(t * v.swaySpeed + phases[i]) * v.sway * 0.1;
+            pos[i*3 + 1] += v.vy;
+          }
           if (pos[i*3+1] >  halfH+20) { pos[i*3+1] = -halfH-20; pos[i*3] = (Math.random()-0.5)*W; }
           if (pos[i*3]   >  halfW+20) pos[i*3] = -halfW-20;
           if (pos[i*3]   < -halfW-20) pos[i*3] =  halfW+20;
