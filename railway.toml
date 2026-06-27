@@ -1,6 +1,5 @@
 [build]
-builder = "nixpacks"
-installCommand = "npm install"
+builder = "dockerfile"
 
 [deploy]
 startCommand = "node index.js"
