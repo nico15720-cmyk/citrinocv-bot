@@ -1,1754 +1,697 @@
 // ============================================================
-// CITRINO BOT v2 — Servidor principal
-// WhatsApp + Facebook + Instagram + Google Calendar + CRM
+//  CITRINO MARKETING PLATFORM – index.js
+//  Servidor Express: WhatsApp webhook + Marketing Platform API
 // ============================================================
 
-require("dotenv").config();
-const express = require("express");
-const path = require("path");
-const { handleIncomingMessage } = require("./bot/conversation");
-const { handleAdminMessage } = require("./bot/admin");
-const { startScheduler } = require("./bot/scheduler");
-
-const OWNER_WHATSAPP = process.env.OWNER_WHATSAPP;
-const modoAdmin = new Set(); // números que activaron /admin temporalmente
-const modoMarta = new Set(); // números que activaron /marta (override admin)
-
-// ── Estado global del bot ─────────────────────────────────────
-let botActivo = true;
-let botModo = "auto"; // "auto" | "pausa" | "off"
-global.getBotActivo = () => botActivo;
-global.getBotModo = () => botModo;
-
-// Parsea strings como "viernes 10:30" o "20/06 10:30" a ISO datetime
-function parsearFechaHoraStr(str) {
-  if (!str) return "";
-  const DIAS = { lunes:1, martes:2, miércoles:3, miercoles:3, jueves:4, viernes:5, sábado:6, sabado:6, domingo:0 };
-  const partes = str.trim().toLowerCase().split(/\s+/);
-  const hora = partes[partes.length - 1]; // ej "10:30"
-  const [hh = 0, mm = 0] = hora.split(":").map(Number);
-  const diaNombre = partes[0];
-  const ahora = new Date();
-
-  if (DIAS.hasOwnProperty(diaNombre)) {
-    // "viernes 10:30" → próximo viernes
-    const diaObj = DIAS[diaNombre];
-    const diff = (diaObj - ahora.getDay() + 7) % 7 || 7;
-    const fecha = new Date(ahora);
-    fecha.setDate(fecha.getDate() + diff);
-    fecha.setHours(hh, mm, 0, 0);
-    return fecha.toISOString();
-  }
-
-  // "20/06 10:30" → DD/MM
-  const matchDDMM = str.match(/(\d{1,2})\/(\d{1,2})/);
-  if (matchDDMM) {
-    const d = parseInt(matchDDMM[1]), m = parseInt(matchDDMM[2]) - 1;
-    const fecha = new Date(ahora.getFullYear(), m, d, hh, mm, 0, 0);
-    return fecha.toISOString();
-  }
-
-  // Fallback: devolver tal cual (best effort)
-  return str;
-}
-
-// ============================================================
-// MESSAGE BATCHING — acumula mensajes durante 8 segundos
-// para que Marta responda después de que la persona termina
-// ============================================================
-const MESSAGE_BATCH_DELAY_MS = 8000;
-const messageBatch = new Map(); // userId → { messages, media, platform, messageId, timer }
-
-function encolarMensaje(userId, texto, platform, messageId, media) {
-  if (!messageBatch.has(userId)) {
-    messageBatch.set(userId, { messages: [], media: null, platform, messageId });
-  }
-  const batch = messageBatch.get(userId);
-  if (texto) batch.messages.push(texto);
-  if (media)  batch.media = media; // guardamos el último media recibido
-  batch.platform  = platform;
-  batch.messageId = messageId || batch.messageId;
-
-  // Resetear el timer cada vez que llega un mensaje nuevo
-  if (batch.timer) clearTimeout(batch.timer);
-  batch.timer = setTimeout(() => procesarBatch(userId), MESSAGE_BATCH_DELAY_MS);
-}
-
-async function procesarBatch(userId) {
-  const batch = messageBatch.get(userId);
-  if (!batch) return;
-  messageBatch.delete(userId);
-
-  const textoFinal = batch.messages.join("\n").trim();
-  await handleIncomingMessage({
-    userId,
-    text: textoFinal,
-    platform: batch.platform,
-    messageId: batch.messageId,
-    media: batch.media,
-  });
-}
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const cron = require('node-cron');
+const fetch = require('node-fetch');
+const { google } = require('googleapis');
 
 const app = express();
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+const PORT = process.env.PORT || 3000;
 
-// 301 redirects — dominios viejos al nuevo
-app.use((req, res, next) => {
-  const h = req.hostname;
-  if (h === 'citrinocv.com'       || h === 'www.citrinocv.com' ||
-      h === 'esteticacitrino.com' || h === 'www.esteticacitrino.com') {
-    return res.redirect(301, 'https://citrinobienestar.uy' + req.originalUrl);
-  }
-  next();
+// ── Middlewares ──────────────────────────────────────────────
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Multer (uploads en memoria para luego subir a Drive) ─────
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
 });
 
-// ============================================================
-// AUTENTICACIÓN — protege rutas admin (solo Nico)
-// ============================================================
-const RUTAS_PROTEGIDAS = ['/api/', '/agenda', '/dashboard', '/inbox', '/finanzas', '/cliente'];
-// Nota: /app/ NO está protegido con Basic Auth (el shell HTML es público)
-// pero la API (/api/) SÍ lo está — sin credenciales no se puede leer ningún dato.
+// ── Rutas de datos ───────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-function adminAuth(req, res, next) {
-  // Webhook y health siempre públicos (Meta y Railway los necesitan)
-  if (req.path.startsWith('/webhook') || req.path.startsWith('/health') || req.path === '/api/teach/seed') return next();
-
-  // Solo aplicar auth a rutas admin
-  if (!RUTAS_PROTEGIDAS.some(r => req.path.startsWith(r))) return next();
-
-  const adminUser = process.env.ADMIN_USER || 'nico';
-  const adminPass = process.env.ADMIN_PASS;
-
-  // Si no hay contraseña configurada, deja pasar (evita bloqueo en dev)
-  if (!adminPass) return next();
-
-  const auth = req.headers.authorization;
-  if (auth?.startsWith('Basic ')) {
-    const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
-    if (user === adminUser && pass === adminPass) return next();
-  }
-
-  // Solo enviar WWW-Authenticate para rutas no-API (evita popup del navegador en fetch())
-  if (!req.path.startsWith('/api/')) {
-    res.set('WWW-Authenticate', 'Basic realm="Citrino Admin"');
-  }
-  return res.status(401).json({ error: 'Acceso restringido — solo staff Citrino' });
+function readJSON(file, def = {}) {
+  const p = path.join(DATA_DIR, file);
+  if (!fs.existsSync(p)) { fs.writeFileSync(p, JSON.stringify(def, null, 2)); return def; }
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return def; }
+}
+function writeJSON(file, data) {
+  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
 }
 
-app.use(adminAuth);
-app.use(express.static(path.join(__dirname, "public")));
-
-// Imágenes de la carpeta "imagnes pag"
-app.use("/imagnes", express.static(path.join(__dirname, "imagnes pag"), {
-  setHeaders: (res) => { res.setHeader('Cache-Control', 'public, max-age=86400'); }
-}));
-
-// Imagen de masaje en silla (empresas.html)
-app.get("/img/masaje-silla.png", (req, res) => {
-  res.sendFile(path.join(__dirname, "Gemini_Generated_Image_o6dwd7o6dwd7o6dw.png"));
-});
-
-// Health check para Railway
-app.get("/health", (req, res) => res.status(200).send("OK"));
-
-// ============================================================
-// WEBHOOK VERIFICATION
-// ============================================================
-app.get("/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
-  if (mode === "subscribe" && token === process.env.VERIFY_TOKEN) {
-    console.log("✅ Webhook verificado");
-    return res.status(200).send(challenge);
-  }
-  return res.sendStatus(403);
-});
-
-// ============================================================
-// WEBHOOK PRINCIPAL — recibe mensajes
-// ============================================================
-app.post("/webhook", async (req, res) => {
-  res.sendStatus(200); // Responder rápido a Meta
-
-  const body = req.body;
-  if (!body.object || !body.entry?.[0]) return;
-
-  const entry = body.entry[0];
-
-  // WhatsApp
-  if (body.object === "whatsapp_business_account") {
-    const msg = entry.changes?.[0]?.value?.messages?.[0];
-    if (!msg) return;
-
-    // Tipos soportados
-    const tiposSoportados = ["text", "image", "document", "audio", "video", "sticker"];
-    if (!tiposSoportados.includes(msg.type)) return;
-
-    // Extraer texto (solo para mensajes de texto)
-    const texto = msg.type === "text" ? msg.text.body.trim() : "";
-
-    // Comandos de modo (solo desde texto)
-    if (msg.type === "text") {
-      // Comando especial: /alerta — Nico activa alerta urgente sobre algo
-      if (texto.toLowerCase().startsWith("/alerta ") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
-        const { enviarAlertaUrgente } = require("./bot/scheduler");
-        const motivo = texto.substring(8).trim();
-        await enviarAlertaUrgente(`⚠️ *Alerta manual de Nico:*\n${motivo}`);
-        const { enviarMensaje } = require("./bot/sender");
-        await enviarMensaje(msg.from, "✅ Alerta enviada", "whatsapp");
-        return;
-      }
-      // Comando /nollego TELEFONO [NOMBRE] — avisa al cliente que lo esperamos
-      // Uso: /nollego 099123456   o   /nollego 099123456 María
-      if (texto.toLowerCase().startsWith("/nollego") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
-        const partes = texto.substring(8).trim().split(/\s+/);
-        const telefonoRaw = partes[0] || "";
-        const nombreCliente = partes.slice(1).join(" ") || "";
-        const { enviarMensaje: enviar } = require("./bot/sender");
-
-        if (!telefonoRaw) {
-          await enviar(msg.from, "⚠️ Uso: /nollego TELEFONO [NOMBRE]\nEj: /nollego 099123456 María", "whatsapp");
-          return;
-        }
-
-        // Normalizar teléfono a formato 598XXXXXXXX
-        const telLimpio = telefonoRaw.replace(/\D/g, "");
-        const dest = telLimpio.startsWith("598") ? telLimpio : `598${telLimpio.replace(/^0/, "")}`;
-
-        const msgEspera = nombreCliente
-          ? `¡Hola ${nombreCliente}! 🌿 Le estamos esperando, ¿está en camino? Si necesita algo, avísenos 😊`
-          : `¡Hola! 🌿 Le estamos esperando para su turno. ¿Está en camino? Avísenos si necesita algo 😊`;
-
-        try {
-          await enviar(dest, msgEspera, "whatsapp");
-          await enviar(msg.from, `✅ Mensaje enviado a ${dest}`, "whatsapp");
-        } catch (e) {
-          await enviar(msg.from, `❌ No pude enviar a ${dest}: ${e.message}`, "whatsapp");
-        }
-        return;
-      }
-      // ── /vino TELEFONO [FECHA HORA] ─────────────────────────────
-      // Marca que el cliente vino hoy. Si se reagendó, envía confirmación.
-      // Si no: envía seguimiento post-sesión y deja pendiente.
-      // Uso: /vino 099123456
-      //      /vino 099123456 viernes 10:30
-      //      /vino 099123456 20/06 10:30
-      if (texto.toLowerCase().startsWith("/vino") && OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) {
-        const partes = texto.substring(5).trim().split(/\s+/);
-        const telefonoRaw = partes[0] || "";
-        const { enviarMensaje: enviar } = require("./bot/sender");
-
-        if (!telefonoRaw) {
-          await enviar(msg.from, "⚠️ Uso: /vino TELEFONO [FECHA HORA]\nEj: /vino 099123456 viernes 10:30", "whatsapp");
-          return;
-        }
-
-        const telLimpio = telefonoRaw.replace(/\D/g, "");
-        const dest = telLimpio.startsWith("598") ? telLimpio : `598${telLimpio.replace(/^0/, "")}`;
-
-        try {
-          const { readSheet, upsertCliente } = require("./bot/sheets-crm");
-          const clientesCRM = await readSheet("CLIENTES");
-          const cliente = clientesCRM.find(c => {
-            const t = String(c.Telefono || c.ID_Cliente || "").replace(/\D/g, "");
-            return t.endsWith(telLimpio.slice(-8)) || t === telLimpio;
-          });
-          const nombre = cliente?.Nombre || "";
-
-          // Marcar Estado=vino y Ultimo_Saludo=hoy
-          const ahora = new Date().toISOString();
-          const update = { Estado: "vino", Ultimo_Saludo: ahora };
-
-          // Parsear fecha+hora de reagendamiento (si la hay)
-          const fechaHoraStr = partes.slice(1).join(" ").trim();
-          let mensajeCliente;
-
-          if (fechaHoraStr) {
-            // Tiene nueva fecha — enviar confirmación
-            // Parsear fechaHoraStr a ISO para que el cron lo procese
-            update.Fecha_Turno = parsearFechaHoraStr(fechaHoraStr);
-            await upsertCliente({ ID_Cliente: telLimpio, ...update });
-
-            mensajeCliente =
-              `¡Hola ${nombre || ""}! 🌿 Muchas gracias por su visita a Citrino 💆‍♀️\n\n` +
-              `Su próxima sesión quedó agendada para el *${fechaHoraStr}*.\n\n` +
-              `Le recordamos el día anterior. ¡Hasta pronto! 🌿`;
-
-            await enviar(dest, mensajeCliente, "whatsapp");
-            await enviar(msg.from, `✅ ${nombre || dest} marcada como vino. Confirmación enviada para el ${fechaHoraStr}.`, "whatsapp");
-          } else {
-            // No reagendó — seguimiento post-sesión
-            update.NOTAS = ((cliente?.NOTAS || "") + " [seguimiento_pendiente]").trim();
-            await upsertCliente({ ID_Cliente: telLimpio, ...update });
-
-            mensajeCliente =
-              `¡Hola ${nombre || ""}! 🌿 ¿Cómo quedó después de su sesión en Citrino?\n\n` +
-              `Esperamos que haya disfrutado mucho 💆 Si quiere repetir, acá estamos.\n\n` +
-              `¿Agendamos el próximo turno?`;
-
-            await enviar(dest, mensajeCliente, "whatsapp");
-            await enviar(msg.from, `✅ ${nombre || dest} marcada como vino. Seguimiento post-sesión enviado. Si no agenda en 3 días te aviso.`, "whatsapp");
-          }
-        } catch (e) {
-          await enviar(msg.from, `❌ Error: ${e.message}`, "whatsapp");
-        }
-        return;
-      }
-
-      if (texto.toLowerCase() === "/admin") {
-        modoAdmin.add(msg.from);
-        modoMarta.delete(msg.from);
-        const { enviarMensaje } = require("./bot/sender");
-        await enviarMensaje(msg.from, "🔑 Modo admin activado.", "whatsapp");
-        return;
-      }
-      if (texto.toLowerCase() === "/marta") {
-        modoMarta.add(msg.from);
-        modoAdmin.delete(msg.from);
-        const { enviarMensaje } = require("./bot/sender");
-        await enviarMensaje(msg.from, "🌿 Modo Marta activado — respondiendo como clienta.", "whatsapp");
-        return;
-      }
-    }
-
-    // Procesar media si la hay (imagen, documento, audio)
-    let media = null;
-    if (msg.type !== "text") {
-      try {
-        const { procesarMensajeMedia } = require("./bot/media");
-        media = await procesarMensajeMedia(msg);
-        console.log(`📎 [WA] Media recibido: tipo=${media?.type}, mimeType=${media?.mimeType || "-"}`);
-      } catch (err) {
-        console.error("❌ Error procesando media:", err.message);
-      }
-    }
-
-    // Verificar si es terapeuta
-    // Verificar si es terapeuta (caché 5 min para no llamar Sheets en cada mensaje)
-    let esTerapeuta = false;
-    let terapeutaData = null;
-    try {
-      if (!global._terapeutasCache || (Date.now() - global._terapeutasCacheTs) > 300000) {
-        const { leerTerapeutas } = require("./bot/terapeutas");
-        global._terapeutasCache = await leerTerapeutas();
-        global._terapeutasCacheTs = Date.now();
-      }
-      const terapeutas = global._terapeutasCache || [];
-      terapeutaData = terapeutas.find(t => t.whatsapp && t.whatsapp.replace(/\D/g, "").endsWith(msg.from.replace(/\D/g, "").slice(-8)));
-      esTerapeuta = !!terapeutaData;
-    } catch {}
-
-    // Si es terapeuta → procesar como mensaje de terapeuta
-    if (esTerapeuta && !modoMarta.has(msg.from)) {
-      if (msg.type === "audio" && process.env.GROQ_API_KEY) {
-        try {
-          const { procesarMensajeMedia } = require("./bot/media");
-          const mediaT = await procesarMensajeMedia(msg);
-          if (mediaT?.type === "audio_transcripto") {
-            const { procesarMensajeTerapeuta } = require("./bot/scheduler");
-            await procesarMensajeTerapeuta(terapeutaData, mediaT.texto);
-            return;
-          }
-        } catch {}
-      }
-      if (msg.type === "text" && texto) {
-        const { procesarMensajeTerapeuta } = require("./bot/scheduler");
-        await procesarMensajeTerapeuta(terapeutaData, texto);
-        return;
-      }
-    }
-
-    // Si es el dueño O está en modo admin → modo admin (salvo que activó /marta)
-    const esAdmin = !modoMarta.has(msg.from) &&
-      ((OWNER_WHATSAPP && msg.from === OWNER_WHATSAPP) || modoAdmin.has(msg.from));
-    if (esAdmin) {
-      if (msg.type === "audio") {
-        // Audio del dueño — transcribir con Gemini si está disponible
-        if (process.env.GROQ_API_KEY && media?.type === "audio_transcripto") {
-          await handleAdminMessage({ text: `[Nico por audio]: ${media.texto}`, platform: "whatsapp" });
-        } else {
-          const { enviarMensaje } = require("./bot/sender");
-          await enviarMensaje(msg.from,
-            "🎤 No pude escuchar el audio. Escribime lo que necesitás.\n\nEj: _Vino María, pagó $1500 débito. No vino Juan._",
-            "whatsapp"
-          );
-        }
-        return;
-      }
-      if (msg.type === "image" || msg.type === "document") {
-        // Imagen del dueño — procesarla con Claude Vision
-        await handleAdminMessage({
-          text: `[El dueño envió una imagen: ${media?.mimeType || "imagen"}. ${media?.caption || ""}]`,
-          platform: "whatsapp",
-          media,
-        });
-        return;
-      }
-      if (msg.type !== "text") return;
-      await handleAdminMessage({
-        text: texto,
-        platform: "whatsapp",
-      });
-      return;
-    }
-
-    // Encolar — espera 8s para juntar mensajes múltiples
-    encolarMensaje(msg.from, texto, "whatsapp", msg.id, media);
-  }
-
-  // Facebook Messenger — DMs y comentarios en publicaciones
-  if (body.object === "page") {
-    // DM directo
-    const msg = entry.messaging?.[0];
-    if (msg?.message?.text && !msg.message.is_echo) {
-      if (botModo !== "off") {
-        encolarMensaje(msg.sender.id, msg.message.text, "facebook", null, null);
-      }
-    }
-
-    // Comentarios en publicaciones → responder en el comentario + enviar DM
-    const changes = entry.changes || [];
-    for (const change of changes) {
-      if (change.field === "feed" && change.value?.item === "comment" && change.value?.verb === "add") {
-        const comentario = change.value;
-        const commentId = comentario.comment_id;
-        const senderId = comentario.from?.id;
-        const texto = comentario.message || "";
-        if (!senderId || !commentId) continue;
-
-        // Responder al comentario con saludo + invitar al privado
-        responderComentarioFB(commentId, senderId, texto).catch(() => {});
-      }
-    }
-  }
-
-  // Instagram — DMs y comentarios
-  if (body.object === "instagram") {
-    const msg = entry.messaging?.[0];
-
-    if (msg) {
-      // Ignorar reactions (llegan como msg.reaction, sin msg.message)
-      if (msg.reaction) {
-        // Reaction recibida — ignorar silenciosamente
-        console.log(`💬 [IG] Reaction ignorada de ${msg.sender?.id} (${msg.reaction?.emoji || ""})`);
-      }
-      // Ignorar echo (mensajes enviados por el bot mismo)
-      else if (msg.message?.is_echo) {
-        // No procesar
-      }
-      // Story Reply — enriquecer el mensaje con contexto de la historia
-      else if (msg.message?.reply_to?.story) {
-        if (botModo !== "off") {
-          const storyId = msg.message.reply_to.story.id || "";
-          const textoPrincipal = msg.message.text || "(Respondió sin texto)";
-          // Inyectar contexto para que Marta sepa que es una respuesta a una historia
-          const textoEnriquecido =
-            `[RESPUESTA A HISTORIA DE CITRINO${storyId ? ` (story_id: ${storyId})` : ""}]\n${textoPrincipal}`;
-          encolarMensaje(msg.sender.id, textoEnriquecido, "instagram", null, null);
-          console.log(`📸 [IG] Story reply de ${msg.sender.id}: "${textoPrincipal.slice(0, 40)}"`);
-        }
-      }
-      // DM con texto normal
-      else if (msg.message?.text) {
-        if (botModo !== "off") {
-          encolarMensaje(msg.sender.id, msg.message.text, "instagram", null, null);
-        }
-      }
-      // Media (imágenes, stickers, audio, video) — notificar al bot para respuesta genérica
-      else if (msg.message?.attachments) {
-        if (botModo !== "off") {
-          const tipo = msg.message.attachments[0]?.type || "media";
-          const textoFallback = `[MEDIA_INSTAGRAM: La persona envió ${tipo === "image" ? "una imagen" : tipo === "audio" ? "un audio" : tipo === "video" ? "un video" : "contenido multimedia"} por Instagram]`;
-          encolarMensaje(msg.sender.id, textoFallback, "instagram", null, null);
-        }
-      }
-    }
-
-    // Comentarios en publicaciones
-    const changes = entry.changes || [];
-    for (const change of changes) {
-      if (change.field === "comments" && change.value?.text) {
-        const comentario = change.value;
-        const senderId = comentario.from?.id;
-        const texto = comentario.text || "";
-        if (!senderId) continue;
-        responderComentarioIG(senderId, texto).catch(() => {});
-      }
-    }
-  }
-});
-
-// ============================================================
-// RESPONDER COMENTARIOS FB/IG → saludo + invitar al DM
-// ============================================================
-async function responderComentarioFB(commentId, senderId, textoOriginal) {
-  if (botModo === "off") return;
-  const axios = require("axios");
-  const token = process.env.META_PAGE_ACCESS_TOKEN;
-  if (!token) return;
-
-  const horaUY = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Montevideo" })).getHours();
-  const saludo = horaUY < 13 ? "¡Buenos días!" : horaUY < 20 ? "¡Buenas tardes!" : "¡Buenas noches!";
-
-  // Responder en el comentario
-  await axios.post(
-    `https://graph.facebook.com/v19.0/${commentId}/replies`,
-    { message: `${saludo} 💛 Ya te contactamos por privado con toda la información 🌿` },
-    { headers: { Authorization: `Bearer ${token}` } }
-  ).catch(() => {});
-
-  // Enviar DM con info
-  if (botModo !== "off") {
-    setTimeout(() => {
-      encolarMensaje(senderId, textoOriginal || "Consulta desde comentario de publicación", "facebook", null, null);
-    }, 2000);
-  }
-}
-
-async function responderComentarioIG(senderId, textoOriginal) {
-  if (botModo === "off") return;
-  // Para Instagram solo enviamos DM (no se puede responder comentarios directamente por API básica)
-  setTimeout(() => {
-    encolarMensaje(senderId, textoOriginal || "Consulta desde comentario de Instagram", "instagram", null, null);
-  }, 2000);
-}
-
-// ── El estado del bot ya se declaró arriba (junto con OWNER_WHATSAPP)
-// ── para evitar "Cannot access before initialization" en los webhooks
-
-// ============================================================
-// CITRINO MIND — La entidad del negocio (chat con el negocio)
-// POST /api/citrino-mind
-// Body: { message: "...", sessionId: "optional-session-id" }
-// Auth: Bearer ADMIN_TOKEN (mismo que el panel admin)
-// ============================================================
-app.post("/api/citrino-mind", async (req, res) => {
+// ── Google Drive client ──────────────────────────────────────
+function getDriveClient() {
   try {
-    // Auth simple por token
-    const authHeader = req.headers.authorization || "";
-    const adminToken = process.env.ADMIN_TOKEN || process.env.WEBHOOK_SECRET;
-    if (adminToken && authHeader !== `Bearer ${adminToken}`) {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
-    }
-
-    const { message, sessionId } = req.body;
-    if (!message) return res.status(400).json({ ok: false, error: "message requerido" });
-
-    const { procesarMensajeMind } = require("./bot/citrino-mind");
-    const resultado = await procesarMensajeMind({
-      message,
-      sessionId: sessionId || "default",
+    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '{}');
+    const auth = new google.auth.GoogleAuth({
+      credentials: sa,
+      scopes: ['https://www.googleapis.com/auth/drive']
     });
-
-    res.json(resultado);
-  } catch (err) {
-    console.error("❌ [/api/citrino-mind]:", err.message);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// GET /api/citrino-mind/datos — solo los datos del negocio (sin conversación)
-app.get("/api/citrino-mind/datos", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization || "";
-    const adminToken = process.env.ADMIN_TOKEN || process.env.WEBHOOK_SECRET;
-    if (adminToken && authHeader !== `Bearer ${adminToken}`) {
-      return res.status(401).json({ ok: false, error: "Unauthorized" });
-    }
-    const { recolectarContextoNegocio } = require("./bot/citrino-mind");
-    const datos = await recolectarContextoNegocio();
-    res.json({ ok: true, datos });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ============================================================
-// API DE CONTROL — Centro de control
-// ============================================================
-
-// Estado actual del bot
-app.get("/api/control/estado", (req, res) => {
-  res.json({ activo: botActivo, modo: botModo });
-});
-
-// Cambiar modo del bot
-app.post("/api/control/modo", async (req, res) => {
-  const { modo } = req.body;
-  if (!["auto", "pausa", "off"].includes(modo)) {
-    return res.status(400).json({ error: "Modo inválido. Usar: auto, pausa, off" });
-  }
-  const modoAnterior = botModo;
-  botModo = modo;
-  botActivo = modo === "auto";
-  console.log(`🎛️ Bot modo cambiado a: ${modo}`);
-  res.json({ ok: true, modo, activo: botActivo });
-
-  // Notificar a Nico si cambió el estado
-  if (modo !== modoAnterior && OWNER_WHATSAPP) {
-    const emojis = { auto: "🟢", pausa: "⏸️", off: "🔴" };
-    const textos = { auto: "ENCENDIDO — Marta está respondiendo", pausa: "EN PAUSA — lee mensajes pero no responde", off: "APAGADO — no responde nada" };
-    const { enviarMensaje: enviar } = require("./bot/sender");
-    enviar(OWNER_WHATSAPP,
-      `${emojis[modo]} *Bot ${textos[modo]}*`,
-      "whatsapp"
-    ).catch(() => {});
-  }
-});
-
-// Actualizar score manual de un cliente
-app.post("/api/clientes/:userId/score", async (req, res) => {
-  try {
-    const { actualizarNotas } = require("./bot/crm");
-    const { score } = req.body; // 1-5
-    await actualizarNotas(req.params.userId, `Score manual: ${score}/5`);
-    res.json({ ok: true });
+    return google.drive({ version: 'v3', auth });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.warn('Drive client error:', e.message);
+    return null;
   }
-});
+}
 
-// Toggle modo Nico (tomar/devolver control desde inbox)
-app.post("/api/clientes/:userId/nicolas", (req, res) => {
-  const { chatsBloqueados } = require("./bot/conversation");
-  const userId = req.params.userId;
-  const activo = req.body.activo !== false;
-  if (activo) chatsBloqueados.add(userId);
-  else chatsBloqueados.delete(userId);
-  res.json({ ok: true, bloqueado: activo });
-});
+// Encuentra o crea carpeta en Drive
+async function ensureDriveFolder(drive, name, parentId = null) {
+  const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false` +
+    (parentId ? ` and '${parentId}' in parents` : '');
+  const res = await drive.files.list({ q, fields: 'files(id,name)', spaces: 'drive' });
+  if (res.data.files.length > 0) return res.data.files[0].id;
+  const meta = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) meta.parents = [parentId];
+  const created = await drive.files.create({ requestBody: meta, fields: 'id' });
+  return created.data.id;
+}
 
-// Enviar mensaje desde el panel
-app.post("/api/clientes/:userId/whatsapp", async (req, res) => {
+// ── WhatsApp notify ──────────────────────────────────────────
+async function notifyWhatsApp(to, message) {
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.META_PAGE_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN;
+  if (!phoneId || !token) return;
   try {
-    const { enviarMensaje } = require("./bot/sender");
-    await enviarMensaje(req.params.userId, req.body.texto, "whatsapp");
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Envío masivo a un segmento
-app.post("/api/campana", async (req, res) => {
-  try {
-    const { leerTodosLosClientes } = require("./bot/crm");
-    const { enviarMensaje } = require("./bot/sender");
-    const { segmento, texto } = req.body;
-    const clientes = await leerTodosLosClientes();
-
-    const filtrados = clientes.filter(c => {
-      if (segmento === "leads") return c.Estado === "lead";
-      if (segmento === "vip") return c.Score >= 4;
-      if (segmento === "cuponera") return c.Cuponera === "si";
-      if (segmento === "inactivos") {
-        const dias = c.UltimoContacto
-          ? Math.floor((Date.now() - new Date(c.UltimoContacto)) / 86400000)
-          : 999;
-        return dias > 30;
-      }
-      return true;
-    });
-
-    // Enviar con delay para no saturar
-    let enviados = 0;
-    for (const c of filtrados) {
-      if (!c.ID) continue;
-      await enviarMensaje(c.ID, texto, c.Canal || "whatsapp").catch(() => {});
-      enviados++;
-      await new Promise(r => setTimeout(r, 1500));
-    }
-    res.json({ ok: true, enviados });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ============================================================
-// DASHBOARD — métricas y templates
-// ============================================================
-app.get("/api/templates", (req, res) => {
-  const { getTemplatesMeta } = require("./bot/scheduler");
-  res.json(getTemplatesMeta());
-});
-
-app.get("/api/stats", async (req, res) => {
-  try {
-    const { getStats } = require("./bot/crm");
-    const stats = await getStats();
-    res.json(stats);
-  } catch (e) {
-    res.json({ error: e.message });
-  }
-});
-
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-app.get("/cliente", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "cliente.html"));
-});
-
-app.get("/inbox", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "inbox.html"));
-});
-
-// Inbox: clientes con actividad en los últimos N días
-app.get("/api/inbox", async (req, res) => {
-  try {
-    const { leerTodosLosClientes } = require("./bot/crm");
-    const dias = parseInt(req.query.dias) || 7;
-    const clientes = await leerTodosLosClientes();
-    const corte = Date.now() - dias * 86400000;
-
-    const inbox = clientes
-      .map(c => {
-        let chats = [];
-        try { const parsed = JSON.parse(c.Chats || "[]"); chats = Array.isArray(parsed) ? parsed : []; } catch {}
-        if (!chats.length) return null;
-        const ultimo = chats[chats.length - 1];
-        if (!ultimo?.fecha || new Date(ultimo.fecha) < corte) return null;
-        // Contar no leídos (mensajes del cliente desde el último del bot)
-        let noLeidos = 0;
-        for (let i = chats.length - 1; i >= 0; i--) {
-          if (chats[i].rol === "bot") break;
-          noLeidos++;
-        }
-        return {
-          id: c.ID,
-          nombre: c.Nombre || c.ID,
-          telefono: c.Teléfono || c.ID,
-          estado: c.Estado,
-          canal: c.Canal,
-          servicio: c.Servicio,
-          ultimoMsg: (ultimo.msg || "").substring(0, 70) + ((ultimo.msg || "").length > 70 ? "…" : ""),
-          ultimaFecha: ultimo.fecha,
-          ultimoRol: ultimo.rol,
-          noLeidos,
-          totalMsgs: chats.length,
-        };
+    await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: to.replace(/\D/g, ''),
+        type: 'text',
+        text: { body: message }
       })
-      .filter(Boolean)
-      .sort((a, b) => new Date(b.ultimaFecha) - new Date(a.ultimaFecha));
+    });
+  } catch (e) { console.warn('WhatsApp notify error:', e.message); }
+}
 
-    res.json(inbox);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// ────────────────────────────────────────────────────────────
+//  META ADS + INSTAGRAM DATA REFRESH
+// ────────────────────────────────────────────────────────────
+async function refreshMetaData() {
+  const token = process.env.META_ACCESS_TOKEN;
+  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_2070126230586031';
+  const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
+  const fbPageId = process.env.FACEBOOK_PAGE_ID || '109950823921393';
+  const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
 
-// ============================================================
-// ADMIN API — gestión de clientes sin tocar el Sheet
-// ============================================================
-app.get("/api/clientes", async (req, res) => {
+  const mktData = readJSON('mkt-data.json', { weeks: [], currentWeek: {}, updatedAt: null });
+
+  if (!token) { console.warn('[MKT] META_ACCESS_TOKEN no configurado'); return; }
+
   try {
-    const { leerTodosLosClientes } = require("./bot/crm");
-    const clientes = await leerTodosLosClientes();
-    res.json(clientes);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+    // ── Meta Ads: campañas activas ───
+    const since = new Date(); since.setDate(since.getDate() - 7);
+    const sinceStr = since.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-// Marcar que un cliente vino
-app.post("/api/clientes/:userId/asistencia", async (req, res) => {
-  try {
-    const { registrarAsistencia } = require("./bot/crm");
-    const { marcarAsistencia } = require("./bot/calendar");
-    const vino = req.body.vino !== false; // true por defecto
-    const estado = vino ? "vino" : "no_vino";
-    await registrarAsistencia(req.params.userId, vino);
-    // Si viene el eventId (ID_Sesion), actualizar también en hoja Sesiones
-    if (req.body.eventId) {
-      await marcarAsistencia(req.body.eventId, estado).catch(() => {});
-    }
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Registrar cuponera
-app.post("/api/clientes/:userId/cuponera", async (req, res) => {
-  try {
-    const { registrarCuponera } = require("./bot/crm");
-    const sesiones = parseInt(req.body.sesiones) || 5;
-    await registrarCuponera(req.params.userId, sesiones);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── PERFIL COMPLETO DE CLIENTE ──────────────────────────────
-// Agrega: CRM + turnos Google Calendar + pagos Finanzas + chats + perfil IA
-app.get("/api/clientes/:userId/perfil-completo", async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const { buscarCliente, obtenerPerfil, obtenerChats } = require("./bot/crm");
-    const { getEventosAgenda } = require("./bot/calendar");
-    const { leerTransacciones } = require("./bot/finanzas");
-
-    const [clienteCRM, perfil, chats, todasTransacciones, eventos] = await Promise.all([
-      buscarCliente(userId),
-      obtenerPerfil(userId),
-      obtenerChats(userId),
-      leerTransacciones(),
-      getEventosAgenda(
-        new Date(Date.now() - 365 * 86400000), // último año
-        new Date(Date.now() + 90 * 86400000)   // + 90 días hacia adelante
-      ),
-    ]);
-
-    // Pagos de este cliente en Finanzas
-    const pagos = todasTransacciones.filter(t =>
-      t.clienteId && (
-        t.clienteId === userId ||
-        t.clienteId.replace(/\D/g, "").includes(userId.replace(/\D/g, "").slice(-8))
-      )
+    const adsRes = await fetch(
+      `https://graph.facebook.com/v18.0/${adAccountId}/campaigns?` +
+      `fields=name,status,objective,insights.date_preset(last_7d){spend,impressions,reach,actions,cost_per_action_type}&` +
+      `access_token=${token}&limit=20`
     );
+    const adsData = await adsRes.json();
 
-    // Turnos de este cliente en Google Calendar
-    const tel = userId.replace(/\D/g, "");
-    const turnos = eventos.filter(ev =>
-      ev.clienteTelefono && ev.clienteTelefono.replace(/\D/g, "").includes(tel.slice(-8))
-    );
+    let totalSpend = 0, totalLeads = 0, totalReach = 0, totalImpressions = 0;
+    const campaigns = [];
 
-    // Stats calculados
-    const datos = clienteCRM?.datos || [];
-    const sesRest = parseInt(datos[7]) || 0;
-    const ahora = new Date();
-
-    // Sesiones usadas = eventos del calendario en el pasado para este cliente
-    const sesionesUsadas = turnos.filter(t => new Date(t.inicio) < ahora).length;
-    // Total compradas = usadas + saldo restante
-    const sesionesCompradas = sesionesUsadas + sesRest;
-
-    // Total pagado (ingresos de Finanzas para este cliente)
-    const totalPagado = pagos.filter(p => p.tipo === "ingreso").reduce((s, p) => s + Math.abs(p.monto), 0);
-
-    // Ventas = registros de Finanzas (packs + sesiones individuales)
-    const ventas = pagos.filter(p => p.tipo === "ingreso").sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-    // Sesiones separadas = eventos del calendario ordenados por fecha desc
-    const sesiones = turnos.sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
-
-    const ultimaSesion = sesiones.find(t => new Date(t.inicio) < ahora);
-    const diasDesdeUltima = ultimaSesion
-      ? Math.floor((ahora - new Date(ultimaSesion.inicio)) / 86400000)
-      : null;
-
-    res.json({
-      info: {
-        id: datos[0] || userId,
-        nombre: datos[1] || "",
-        telefono: datos[2] || userId,
-        canal: datos[3] || "",
-        servicio: datos[4] || "",
-        estado: datos[5] || "lead",
-        cuponera: datos[6] || "no",
-        sesRest,
-        fechaAlta: datos[8] || "",
-        fechaTurno: datos[9] || "",
-        notas: datos[11] || "",
-        ultimoContacto: datos[12] || "",
-      },
-      perfil,
-      stats: {
-        sesionesCompradas,
-        sesionesUsadas,
-        sesRest,
-        totalPagado,
-        diasDesdeUltima,
-        proximoTurno: sesiones.find(ev => new Date(ev.inicio) > ahora) || null,
-      },
-      sesiones,          // eventos del calendario
-      ventas,            // pagos de Finanzas
-      chats: chats.slice(-50),
-    });
-  } catch (e) {
-    console.error("❌ perfil-completo:", e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ── ALTA MANUAL DE CLIENTE + TURNO OPCIONAL ──────────────────
-app.post("/api/clientes/nuevo", async (req, res) => {
-  try {
-    const { registrarCliente, registrarTurno } = require("./bot/crm");
-    const { crearTurno, resolverSlot } = require("./bot/calendar");
-    const { nombre, telefono, servicio, canal, notas, slotLabel, inicioISO, finISO } = req.body;
-
-    if (!nombre || !telefono) return res.status(400).json({ error: "nombre y teléfono requeridos" });
-
-    const userId = telefono.replace(/\s/g, "");
-    await registrarCliente({ userId, nombre, canal: canal || "dashboard", servicio });
-
-    let eventoId = null;
-    if (slotLabel || (inicioISO && finISO)) {
-      let slot;
-      if (inicioISO && finISO) {
-        slot = { inicioISO, finISO, label: slotLabel || inicioISO };
-      } else {
-        const partes = slotLabel.split(" ");
-        slot = await resolverSlot(partes.slice(0, -1).join(" "), partes[partes.length - 1]);
-      }
-      if (slot) {
-        const evento = await crearTurno({ nombre, telefono: userId, servicio: servicio || "Consulta", slot });
-        await registrarTurno(userId, { fechaTurno: slot.inicioISO, eventId: evento.id, servicio });
-        eventoId = evento.id;
-      }
-    }
-
-    if (notas) {
-      const { actualizarNotas } = require("./bot/crm");
-      await actualizarNotas(userId, notas);
-    }
-
-    res.json({ ok: true, userId, eventoId });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Obtener historial de chats de un cliente
-app.get("/api/clientes/:userId/chats", async (req, res) => {
-  try {
-    const { obtenerChats } = require("./bot/crm");
-    const chats = await obtenerChats(req.params.userId);
-    res.json(chats);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Agregar nota a un cliente
-app.post("/api/clientes/:userId/nota", async (req, res) => {
-  try {
-    const { actualizarNotas } = require("./bot/crm");
-    await actualizarNotas(req.params.userId, req.body.nota);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Enviar mensaje manual desde el admin
-app.post("/api/clientes/:userId/mensaje", async (req, res) => {
-  try {
-    const { enviarMensaje } = require("./bot/sender");
-    const { buscarCliente } = require("./bot/crm");
-    const cliente = await buscarCliente(req.params.userId);
-    const canal = cliente?.datos?.[3] || "whatsapp";
-    await enviarMensaje(req.params.userId, req.body.texto, canal);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// /agenda y /app/agenda/ → redirigen al CRM (que tiene la pantalla de Agenda integrada)
-app.get("/agenda", (req, res) => {
-  res.redirect(301, "/app/crm/");
-});
-app.get("/app/agenda", (req, res) => {
-  res.redirect(301, "/app/crm/");
-});
-app.get("/app/agenda/", (req, res) => {
-  res.redirect(301, "/app/crm/");
-});
-
-// ============================================================
-// API DE AGENDA — para el dashboard de calendario
-// ============================================================
-
-// Obtener eventos del Google Calendar con info del CRM cruzada
-app.get("/api/agenda/eventos", async (req, res) => {
-  try {
-    const { getEventosAgenda } = require("./bot/calendar");
-    const { leerTodosLosClientes } = require("./bot/crm");
-
-    const desde = req.query.desde ? new Date(req.query.desde) : new Date();
-    const hasta = req.query.hasta
-      ? new Date(req.query.hasta)
-      : new Date(Date.now() + 21 * 86400000); // 3 semanas
-
-    const [eventos, clientes] = await Promise.all([
-      getEventosAgenda(desde, hasta),
-      leerTodosLosClientes(),
-    ]);
-
-    // Cruzar eventos con datos del CRM por número de teléfono
-    const eventosConCRM = eventos.map((ev) => {
-      const tel = ev.clienteTelefono?.replace(/\D/g, ""); // solo números
-      const clienteCRM = tel
-        ? clientes.find((c) => {
-            const cTel = (c.ID || c.Teléfono || "").replace(/\D/g, "");
-            return cTel && cTel.includes(tel.slice(-9)); // últimos 9 dígitos
-          })
-        : null;
-
-      return {
-        ...ev,
-        crm: clienteCRM
-          ? {
-              nombre: clienteCRM.Nombre,
-              estado: clienteCRM.Estado,
-              canal: clienteCRM.Canal,
-              cuponera: clienteCRM.Cuponera,
-              sesRest: clienteCRM["Ses.Rest."],
-              notas: clienteCRM.Notas,
-              fechaAlta: clienteCRM.FechaAlta,
-            }
-          : null,
-      };
-    });
-
-    res.json(eventosConCRM);
-  } catch (e) {
-    console.error("❌ /api/agenda/eventos:", e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Obtener configuración de terapeutas (desde Sheets)
-app.get("/api/agenda/terapeutas", async (req, res) => {
-  try {
-    const { leerTerapeutas } = require("./bot/terapeutas");
-    const terapeutas = await leerTerapeutas();
-    res.json(terapeutas.map(({ id, nombre, color, horarios }) => ({ id, nombre, color, horarios })));
-  } catch (e) {
-    // Fallback a config hardcoded
-    const { TERAPEUTAS } = require("./bot/calendar");
-    res.json(TERAPEUTAS.map(({ id, nombre, color, horarios }) => ({ id, nombre, color, horarios })));
-  }
-});
-
-// CRUD de terapeutas
-app.get("/api/terapeutas", async (req, res) => {
-  try {
-    const { leerTerapeutas } = require("./bot/terapeutas");
-    res.json(await leerTerapeutas());
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/terapeutas", async (req, res) => {
-  try {
-    const { guardarTerapeuta } = require("./bot/terapeutas");
-    const id = await guardarTerapeuta(req.body);
-    res.json({ ok: true, id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/terapeutas/:id", async (req, res) => {
-  try {
-    const { guardarTerapeuta } = require("./bot/terapeutas");
-    await guardarTerapeuta({ ...req.body, id: req.params.id });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/terapeutas/:id", async (req, res) => {
-  try {
-    const { eliminarTerapeuta } = require("./bot/terapeutas");
-    await eliminarTerapeuta(req.params.id);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Obtener slots disponibles (para mostrar en la agenda)
-app.get("/api/agenda/disponibilidad", async (req, res) => {
-  try {
-    const { getDisponibilidad } = require("./bot/calendar");
-    const slots = await getDisponibilidad();
-    res.json(slots);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Crear turno desde el dashboard de agenda
-app.post("/api/agenda/turno", async (req, res) => {
-  try {
-    const { crearTurno, resolverSlot, getDisponibilidad } = require("./bot/calendar");
-    const { registrarTurno, registrarCliente } = require("./bot/crm");
-    const { nombre, telefono, servicio, slotLabel, inicioISO, finISO, terapeutaId, fecha, hora } = req.body;
-
-    if (!nombre || !servicio) {
-      return res.status(400).json({ error: "nombre y servicio son requeridos" });
-    }
-
-    let slot;
-    if (inicioISO && finISO) {
-      // Slot manual con ISO directo
-      slot = {
-        inicioISO,
-        finISO,
-        label: slotLabel || inicioISO,
-        horaInicio: inicioISO.slice(11, 16),
-        horaFin: finISO.slice(11, 16),
-      };
-    } else if (fecha && hora) {
-      // Formato del frontend: fecha="2026-06-15", hora="10:00"
-      const finDate = new Date(`${fecha}T${hora}:00-03:00`);
-      finDate.setMinutes(finDate.getMinutes() + 90);
-      const hFin = `${String(finDate.getHours()).padStart(2,"0")}:${String(finDate.getMinutes()).padStart(2,"0")}`;
-      slot = {
-        inicioISO: `${fecha}T${hora}:00-03:00`,
-        finISO:    `${fecha}T${hFin}:00-03:00`,
-        horaInicio: hora,
-        horaFin:    hFin,
-        fecha,
-        terapeutaId: terapeutaId || null,
-        terapeutaNombre: null,
-      };
-    } else if (slotLabel) {
-      const partes = slotLabel.split(" ");
-      const dia = partes.slice(0, -1).join(" ");
-      const hora = partes[partes.length - 1];
-      slot = await resolverSlot(dia, hora);
-    }
-
-    if (!slot) return res.status(400).json({ error: "Slot no encontrado o inválido" });
-
-    const userId = telefono || `manual_${Date.now()}`;
-    // Inyectar terapeutaId en el slot si vino del request
-    if (terapeutaId && slot) slot.terapeutaId = terapeutaId;
-    const evento = await crearTurno({ nombre, telefono: userId, servicio, slot, terapeutaId });
-
-    // Registrar en CRM
-    await registrarCliente({ userId, nombre, servicio, canal: "dashboard" });
-    await registrarTurno(userId, { fechaTurno: slot.inicioISO, eventId: evento.id, servicio });
-
-    res.json({ ok: true, eventoId: evento.id, link: evento.htmlLink });
-  } catch (e) {
-    console.error("❌ /api/agenda/turno POST:", e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Cancelar turno desde el dashboard
-app.delete("/api/agenda/turno/:eventId", async (req, res) => {
-  try {
-    const { cancelarTurno } = require("./bot/calendar");
-    await cancelarTurno(req.params.eventId);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Alias para cancelar desde la nueva agenda UI
-app.delete("/api/agenda/cancelar/:eventId", async (req, res) => {
-  try {
-    const { cancelarTurno } = require("./bot/calendar");
-    await cancelarTurno(req.params.eventId);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ============================================================
-// CLIENTE TIPO — análisis agregado de perfiles aprendidos
-// ============================================================
-// Changelog de cambios aplicados por WhatsApp
-app.get("/api/changelog", async (req, res) => {
-  try {
-    const { leerChangelog } = require("./bot/self-fix");
-    const log = await leerChangelog();
-    res.json(log);
-  } catch (e) {
-    res.json([]);
-  }
-});
-
-app.get("/api/cliente-tipo", async (req, res) => {
-  try {
-    const Anthropic = require("@anthropic-ai/sdk");
-    const { obtenerTodosLosPerfiles } = require("./bot/crm");
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const perfiles = await obtenerTodosLosPerfiles();
-    if (perfiles.length === 0) {
-      return res.json({ mensaje: "Todavía no hay suficientes perfiles para analizar.", perfiles: [] });
-    }
-
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 800,
-      system: `Sos una analista de marketing para Citrino, un spa de masajes en Montevideo, Uruguay.
-Analizá los perfiles de clientes y generá un resumen útil y accionable para el negocio.`,
-      messages: [{
-        role: "user",
-        content: `Acá están los perfiles de ${perfiles.length} clientes:\n\n${JSON.stringify(perfiles, null, 2)}\n\nGenerá:
-1. Perfil del "cliente tipo" de Citrino (quién es, qué busca, cuándo viene)
-2. Horarios más demandados
-3. Servicios más populares
-4. Cómo comunicarse mejor con estos clientes
-5. Oportunidades de venta (qué más podrían querer)
-
-Usá un tono práctico y directo, como si le hablaras al dueño del negocio.`,
-      }],
-    });
-
-    res.json({
-      perfiles_analizados: perfiles.length,
-      analisis: response.content[0].text,
-      perfiles_raw: perfiles,
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ============================================================
-// API FINANZAS
-// ============================================================
-app.get("/finanzas", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "finanzas.html"));
-});
-
-app.get("/api/finanzas/resumen", async (req, res) => {
-  try {
-    const { getResumenMes } = require("./bot/finanzas");
-    const resumen = await getResumenMes(req.query.mes || null);
-    res.json(resumen);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get("/api/finanzas/transacciones", async (req, res) => {
-  try {
-    const { leerTransacciones } = require("./bot/finanzas");
-    let transacciones = await leerTransacciones();
-    // Filtrar por mes si se pide
-    if (req.query.mes) transacciones = transacciones.filter(t => t.fecha?.startsWith(req.query.mes));
-    if (req.query.tipo) transacciones = transacciones.filter(t => t.tipo === req.query.tipo);
-    res.json(transacciones.reverse()); // más recientes primero
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/finanzas/ingreso", async (req, res) => {
-  try {
-    const { registrarIngreso } = require("./bot/finanzas");
-    const { clienteId, servicio, monto, descripcion, notas } = req.body;
-    if (!monto) return res.status(400).json({ error: "monto requerido" });
-    await registrarIngreso({ clienteId, servicio, monto: Number(monto), descripcion, notas });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/finanzas/cuponera", async (req, res) => {
-  try {
-    const { registrarIngresoCuponera } = require("./bot/finanzas");
-    const { clienteId, sesiones, monto, descripcion } = req.body;
-    await registrarIngresoCuponera({ clienteId, sesiones: Number(sesiones) || 4, monto: Number(monto), descripcion });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/finanzas/gasto", async (req, res) => {
-  try {
-    const { registrarGasto } = require("./bot/finanzas");
-    const { categoria, descripcion, monto, notas } = req.body;
-    if (!monto || !descripcion) return res.status(400).json({ error: "monto y descripción requeridos" });
-    await registrarGasto({ categoria, descripcion, monto: Number(monto), notas });
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Scan ticket con Claude Vision — sube imagen, devuelve monto+descripción
-app.post("/api/finanzas/scan-ticket", async (req, res) => {
-  try {
-    const Anthropic = require("@anthropic-ai/sdk");
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const { imageBase64, mimeType } = req.body;
-    if (!imageBase64) return res.status(400).json({ error: "imageBase64 requerido" });
-
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 200,
-      messages: [{
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mimeType || "image/jpeg", data: imageBase64 }
-          },
-          {
-            type: "text",
-            text: `Analizá este ticket o comprobante de gasto. Extraé los datos principales.
-Respondé SOLO con JSON válido, sin texto adicional:
-{"monto": 1500, "descripcion": "descripción breve del gasto", "categoria": "Insumos|Alquiler|Servicios|Marketing|Personal|Equipamiento|Mantenimiento|Otros"}
-Si no podés leer el monto, ponés 0. Si no identificás la categoría, ponés "Otros".`,
+    if (adsData.data) {
+      for (const c of adsData.data) {
+        let spend = 0, leads = 0, reach = 0, impressions = 0, cpl = 0;
+        if (c.insights && c.insights.data && c.insights.data[0]) {
+          const ins = c.insights.data[0];
+          spend = parseFloat(ins.spend || 0);
+          reach = parseInt(ins.reach || 0);
+          impressions = parseInt(ins.impressions || 0);
+          if (ins.actions) {
+            const leadAction = ins.actions.find(a => a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead');
+            if (leadAction) leads = parseInt(leadAction.value || 0);
           }
-        ]
-      }]
-    });
-
-    const txt = response.content[0].text.trim().replace(/```json\n?|\n?```/g, "");
-    const data = JSON.parse(txt);
-    res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message, monto: 0, descripcion: "", categoria: "Otros" }); }
-});
-
-// ============================================================
-// EL CEREBRO — Plataforma de enseñanza
-// ============================================================
-app.get("/teach", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "teach", "index.html"));
-});
-
-app.get("/api/teach/status", (req, res) => {
-  const { getSessionInfo } = require("./bot/teach");
-  res.json(getSessionInfo());
-});
-
-app.post("/api/teach/chat", async (req, res) => {
-  try {
-    const { chat } = require("./bot/teach");
-    const reply = await chat(req.body.message || "");
-    res.json({ reply });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/teach/audio", async (req, res) => {
-  try {
-    const { chat } = require("./bot/teach");
-    const Groq = require("groq-sdk");
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const buf = Buffer.from(req.body.audio, "base64");
-    // Determinar extensión según mimeType enviado por el cliente
-    const mimeType = req.body.mimeType || "audio/webm";
-    const ext = mimeType.includes("mp4") ? "mp4"
-              : mimeType.includes("ogg") ? "ogg"
-              : mimeType.includes("wav") ? "wav"
-              : "webm";
-    const tmpPath = require("os").tmpdir() + "/teach_audio_" + Date.now() + "." + ext;
-    fs.writeFileSync(tmpPath, buf);
-    const transcripcion = await groq.audio.transcriptions.create({
-      file: fs.createReadStream(tmpPath),
-      model: "whisper-large-v3",
-      language: "es",
-    });
-    fs.unlinkSync(tmpPath);
-    const text = transcripcion.text.trim();
-    if (!text) return res.json({ transcripcion: "", reply: "No escuché nada. ¿Podés repetir?" });
-    const reply = await chat(text);
-    res.json({ transcripcion: text, reply });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/teach/upload", async (req, res) => {
-  try {
-    const { addFile } = require("./bot/teach");
-    const { filename, content } = req.body;
-    const text = Buffer.from(content, "base64").toString("utf8");
-    const message = await addFile(filename, text);
-    res.json({ message });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/teach/end", async (req, res) => {
-  try {
-    const { endSession } = require("./bot/teach");
-    const result = await endSession();
-    res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── CRUD de conocimiento (Google Sheets) ──────────────────────
-app.get("/api/teach/conocimiento", async (req, res) => {
-  try {
-    const { readConocimientoSheet } = require("./bot/teach");
-    res.json(await readConocimientoSheet());
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/teach/conocimiento", async (req, res) => {
-  try {
-    const { appendConocimientoRows, rebuildMdCache } = require("./bot/teach");
-    const { categoria, contenido } = req.body;
-    const fecha = new Date().toLocaleDateString("es-UY", { day:"numeric", month:"long", year:"numeric", timeZone:"America/Montevideo" });
-    await appendConocimientoRows([{ Fecha: fecha, Categoria: categoria || "General", Contenido: contenido, Fuente: "manual" }]);
-    await rebuildMdCache();
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/teach/conocimiento/:rowIndex", async (req, res) => {
-  try {
-    const { updateConocimientoRow, rebuildMdCache } = require("./bot/teach");
-    await updateConocimientoRow(parseInt(req.params.rowIndex), req.body);
-    await rebuildMdCache();
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/teach/conocimiento/:rowIndex", async (req, res) => {
-  try {
-    const { deleteConocimientoRow, rebuildMdCache } = require("./bot/teach");
-    await deleteConocimientoRow(parseInt(req.params.rowIndex));
-    await rebuildMdCache();
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── Seed inicial de conocimiento ─────────────────────────────
-app.post("/api/teach/seed", async (req, res) => {
-  try {
-    const { seedConocimiento } = require("./bot/seed-conocimiento");
-    const result = await seedConocimiento();
-    res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── FLUJOS ─────────────────────────────────────────────────
-app.get("/api/teach/flujos", async (req, res) => {
-  try {
-    const { readFlujos } = require("./bot/teach");
-    res.json(await readFlujos());
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.post("/api/teach/flujos", async (req, res) => {
-  try {
-    const { appendFlujo, rebuildFlujosMdCache } = require("./bot/teach");
-    const id = await appendFlujo(req.body);
-    await rebuildFlujosMdCache();
-    res.json({ ok: true, id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.put("/api/teach/flujos/:rowIndex", async (req, res) => {
-  try {
-    const { updateFlujo, rebuildFlujosMdCache } = require("./bot/teach");
-    await updateFlujo(Number(req.params.rowIndex), req.body);
-    await rebuildFlujosMdCache();
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.delete("/api/teach/flujos/:rowIndex", async (req, res) => {
-  try {
-    const { deleteFlujo, rebuildFlujosMdCache } = require("./bot/teach");
-    await deleteFlujo(Number(req.params.rowIndex));
-    await rebuildFlujosMdCache();
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── Auto-aprendizaje manual (trigger desde panel) ────────────
-app.post("/api/teach/auto-learn", async (req, res) => {
-  try {
-    const { autoAprendizajeDesdeConversaciones } = require("./bot/consciousness");
-    const result = await autoAprendizajeDesdeConversaciones();
-    res.json(result);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ============================================================
-// API CRM — CRUD para las 4 hojas del React CRM
-// CLIENTES, SESIONES, VENTAS, GASTOS (hojas separadas del bot)
-// ============================================================
-const sheetsCrm = require("./bot/sheets-crm");
-
-// ── CLIENTES ─────────────────────────────────────────────────
-app.get("/api/crm/clientes", async (req, res) => {
-  try { res.json(await sheetsCrm.readSheet("CLIENTES")); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/crm/clientes", async (req, res) => {
-  try {
-    await sheetsCrm.appendRow("CLIENTES", req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/crm/clientes/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.updateRow("CLIENTES", parseInt(req.params.rowIndex), req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/crm/clientes/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.deleteRow("CLIENTES", parseInt(req.params.rowIndex));
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── SESIONES ─────────────────────────────────────────────────
-app.get("/api/crm/sesiones", async (req, res) => {
-  try {
-    let rows = await sheetsCrm.readSheet("SESIONES");
-    // Filtro opcional: ?meses=N → últimos N meses
-    const meses = parseInt(req.query.meses);
-    if (meses > 0) {
-      const desde = new Date();
-      desde.setMonth(desde.getMonth() - meses);
-      const desdeStr = `${String(desde.getMonth() + 1).padStart(2,'0')}-${desde.getFullYear()}`;
-      rows = rows.filter(r => (r.Mes_Anio || '') >= desdeStr);
-    }
-    res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/crm/sesiones", async (req, res) => {
-  try {
-    await sheetsCrm.appendRow("SESIONES", req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/crm/sesiones/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.updateRow("SESIONES", parseInt(req.params.rowIndex), req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/crm/sesiones/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.deleteRow("SESIONES", parseInt(req.params.rowIndex));
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── VENTAS ───────────────────────────────────────────────────
-app.get("/api/crm/ventas", async (req, res) => {
-  try {
-    let rows = await sheetsCrm.readSheet("VENTAS");
-    // Filtro opcional: ?meses=N → últimos N meses
-    const meses = parseInt(req.query.meses);
-    if (meses > 0) {
-      const desde = new Date();
-      desde.setMonth(desde.getMonth() - meses);
-      const desdeStr = `${String(desde.getMonth() + 1).padStart(2,'0')}-${desde.getFullYear()}`;
-      rows = rows.filter(r => (r.Mes_Anio || '') >= desdeStr);
-    }
-    res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/crm/ventas", async (req, res) => {
-  try {
-    await sheetsCrm.appendRow("VENTAS", req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/crm/ventas/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.updateRow("VENTAS", parseInt(req.params.rowIndex), req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/crm/ventas/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.deleteRow("VENTAS", parseInt(req.params.rowIndex));
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── GASTOS ───────────────────────────────────────────────────
-app.get("/api/crm/gastos", async (req, res) => {
-  try { res.json(await sheetsCrm.readSheet("GASTOS")); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/crm/gastos", async (req, res) => {
-  try {
-    await sheetsCrm.appendRow("GASTOS", req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/crm/gastos/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.updateRow("GASTOS", parseInt(req.params.rowIndex), req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/crm/gastos/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.deleteRow("GASTOS", parseInt(req.params.rowIndex));
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── HORARIOS ─────────────────────────────────────────────────
-app.get("/api/crm/horarios", async (req, res) => {
-  try { res.json(await sheetsCrm.readSheet("HORARIOS")); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post("/api/crm/horarios", async (req, res) => {
-  try {
-    await sheetsCrm.appendRow("HORARIOS", req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.put("/api/crm/horarios/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.updateRow("HORARIOS", parseInt(req.params.rowIndex), req.body);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete("/api/crm/horarios/:rowIndex", async (req, res) => {
-  try {
-    await sheetsCrm.deleteRow("HORARIOS", parseInt(req.params.rowIndex));
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── IMPORTACIÓN MASIVA ────────────────────────────────────────
-// POST /api/crm/import — body: { CLIENTES: [...], SESIONES: [...], VENTAS: [...], GASTOS: [...] }
-app.post("/api/crm/import", async (req, res) => {
-  try {
-    const { CLIENTES, SESIONES, VENTAS, GASTOS } = req.body;
-    const results = {};
-
-    if (CLIENTES?.length) {
-      await sheetsCrm.bulkImport("CLIENTES", CLIENTES);
-      results.clientes = CLIENTES.length;
-    }
-    if (SESIONES?.length) {
-      await sheetsCrm.bulkImport("SESIONES", SESIONES);
-      results.sesiones = SESIONES.length;
-    }
-    if (VENTAS?.length) {
-      await sheetsCrm.bulkImport("VENTAS", VENTAS);
-      results.ventas = VENTAS.length;
-    }
-    if (GASTOS?.length) {
-      await sheetsCrm.bulkImport("GASTOS", GASTOS);
-      results.gastos = GASTOS.length;
+          cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
+        }
+        totalSpend += spend;
+        totalLeads += leads;
+        totalReach += reach;
+        totalImpressions += impressions;
+        campaigns.push({ name: c.name, status: c.status, spend, leads, cpl, reach, impressions });
+      }
     }
 
-    console.log("✅ Importación CRM completada:", results);
-    res.json({ ok: true, imported: results });
-  } catch (e) {
-    console.error("❌ /api/crm/import:", e.message);
-    res.status(500).json({ error: e.message });
-  }
+    // ── Instagram organic ───
+    let igFollowers = 0, igReach = 0, igImpressions = 0, igMediaCount = 0;
+    try {
+      const igRes = await fetch(
+        `https://graph.facebook.com/v18.0/${igBusinessId}?` +
+        `fields=followers_count,media_count,website&access_token=${igToken}`
+      );
+      const igData = await igRes.json();
+      igFollowers = igData.followers_count || 0;
+      igMediaCount = igData.media_count || 0;
+
+      const igInsRes = await fetch(
+        `https://graph.facebook.com/v18.0/${igBusinessId}/insights?` +
+        `metric=reach,impressions,profile_views&period=week&access_token=${igToken}`
+      );
+      const igIns = await igInsRes.json();
+      if (igIns.data) {
+        const rData = igIns.data.find(d => d.name === 'reach');
+        const iData = igIns.data.find(d => d.name === 'impressions');
+        if (rData && rData.values) igReach = rData.values.reduce((s, v) => s + v.value, 0);
+        if (iData && iData.values) igImpressions = iData.values.reduce((s, v) => s + v.value, 0);
+      }
+    } catch (e) { console.warn('[MKT] IG error:', e.message); }
+
+    // ── Facebook page ───
+    let fbFans = 0, fbReach = 0, fbImpressions = 0;
+    try {
+      const fbRes = await fetch(
+        `https://graph.facebook.com/v18.0/${fbPageId}?` +
+        `fields=fan_count,followers_count&access_token=${igToken}`
+      );
+      const fbData = await fbRes.json();
+      fbFans = fbData.fan_count || fbData.followers_count || 0;
+
+      const fbInsRes = await fetch(
+        `https://graph.facebook.com/v18.0/${fbPageId}/insights/page_impressions,page_reach?` +
+        `period=week&access_token=${igToken}`
+      );
+      const fbIns = await fbInsRes.json();
+      if (fbIns.data) {
+        const fbR = fbIns.data.find(d => d.name === 'page_reach');
+        const fbI = fbIns.data.find(d => d.name === 'page_impressions');
+        if (fbR && fbR.values) fbReach = fbR.values.reduce((s, v) => s + v.value, 0);
+        if (fbI && fbI.values) fbImpressions = fbI.values.reduce((s, v) => s + v.value, 0);
+      }
+    } catch (e) { console.warn('[MKT] FB error:', e.message); }
+
+    const weekData = {
+      weekOf: sinceStr,
+      updatedAt: new Date().toISOString(),
+      meta: { spend: totalSpend, leads: totalLeads, cpl: totalLeads > 0 ? parseFloat((totalSpend / totalLeads).toFixed(2)) : 0, reach: totalReach, impressions: totalImpressions },
+      campaigns,
+      instagram: { followers: igFollowers, reach: igReach, impressions: igImpressions, mediaCount: igMediaCount },
+      facebook: { fans: fbFans, reach: fbReach, impressions: fbImpressions }
+    };
+
+    // Guardar semana en histórico (por mes)
+    const monthKey = sinceStr.substring(0, 7); // YYYY-MM
+    if (!mktData.byMonth) mktData.byMonth = {};
+    if (!mktData.byMonth[monthKey]) mktData.byMonth[monthKey] = { weeks: [] };
+
+    const existIdx = mktData.byMonth[monthKey].weeks.findIndex(w => w.weekOf === sinceStr);
+    if (existIdx >= 0) mktData.byMonth[monthKey].weeks[existIdx] = weekData;
+    else mktData.byMonth[monthKey].weeks.push(weekData);
+
+    mktData.currentWeek = weekData;
+    mktData.updatedAt = weekData.updatedAt;
+
+    writeJSON('mkt-data.json', mktData);
+    console.log('[MKT] Datos actualizados:', new Date().toISOString());
+  } catch (e) { console.error('[MKT] Error refresh:', e.message); }
+}
+
+// ── Cron: lunes 9am Montevideo (UTC-3 → 12:00 UTC) ──────────
+cron.schedule('0 12 * * 1', refreshMetaData, { timezone: 'America/Montevideo' });
+
+// ────────────────────────────────────────────────────────────
+//  RUTAS ESTÁTICAS
+// ────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  const mktPath = path.join(__dirname, 'public', 'metricasmkt.html');
+  if (fs.existsSync(mktPath)) return res.sendFile(mktPath);
+  res.redirect('/mkt');
+});
+app.get('/mkt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'metricasmkt.html')));
+app.get('/metricasmkt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'metricasmkt.html')));
+
+// ────────────────────────────────────────────────────────────
+//  API: MÉTRICAS PRINCIPALES
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/data', (req, res) => {
+  res.json(readJSON('mkt-data.json', { currentWeek: {}, byMonth: {}, updatedAt: null }));
 });
 
-// ── STATS AVANZADOS ──────────────────────────────────────────
-app.get("/api/stats/float", async (req, res) => {
-  try {
-    const { getFloat } = require("./bot/stats");
-    res.json(await getFloat());
-  } catch (e) { res.status(500).json({ error: e.message }); }
+app.post('/api/mkt/refresh', async (req, res) => {
+  await refreshMetaData();
+  res.json({ ok: true, data: readJSON('mkt-data.json') });
 });
 
-app.get("/api/stats/ranking", async (req, res) => {
-  try {
-    const { getRankingClientes } = require("./bot/stats");
-    res.json(await getRankingClientes(parseInt(req.query.limit) || 30));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+// ────────────────────────────────────────────────────────────
+//  API: NOTAS
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/notes', (req, res) => {
+  res.json(readJSON('mkt-notes.json', []));
 });
 
-app.get("/api/stats/completos", async (req, res) => {
-  try {
-    const { getStatsCompletos } = require("./bot/stats");
-    res.json(await getStatsCompletos(req.query.mes || null));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+app.post('/api/mkt/notes', (req, res) => {
+  const notes = readJSON('mkt-notes.json', []);
+  const note = {
+    id: Date.now().toString(),
+    ...req.body,
+    createdAt: new Date().toISOString()
+  };
+  notes.unshift(note);
+  writeJSON('mkt-notes.json', notes);
+  res.json(note);
 });
 
-app.get("/api/tokens", (req, res) => {
-  const { getResumenTokens } = require("./bot/token-tracker");
-  res.json(getResumenTokens());
+app.patch('/api/mkt/notes/:id', (req, res) => {
+  const notes = readJSON('mkt-notes.json', []);
+  const idx = notes.findIndex(n => n.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  notes[idx] = { ...notes[idx], ...req.body, updatedAt: new Date().toISOString() };
+  writeJSON('mkt-notes.json', notes);
+  res.json(notes[idx]);
 });
 
-app.get("/api/clientes/:userId/ltv", async (req, res) => {
-  try {
-    const { getLTVCliente } = require("./bot/stats");
-    const ltv = await getLTVCliente(req.params.userId);
-    res.json({ ltv });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+app.post('/api/mkt/notes/:id/comment', (req, res) => {
+  const notes = readJSON('mkt-notes.json', []);
+  const idx = notes.findIndex(n => n.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  if (!notes[idx].comments) notes[idx].comments = [];
+  notes[idx].comments.push({ text: req.body.text, author: req.body.author || 'Equipo', at: new Date().toISOString() });
+  notes[idx].updatedAt = new Date().toISOString();
+  writeJSON('mkt-notes.json', notes);
+  res.json(notes[idx]);
 });
 
-// ============================================================
-// TEST SIMULATOR — Panel de prueba del bot (dry-run)
-// ============================================================
-app.post("/api/test/simulate", async (req, res) => {
-  try {
-    const { simulateMessage } = require("./bot/simulator");
-    const { phone = "59899000001", text, model, clearHistory } = req.body;
-    if (!text) return res.status(400).json({ error: "Falta el campo 'text'" });
-    const result = await simulateMessage({ phone, text, model, clearHistory });
-    res.json(result);
-  } catch (e) {
-    console.error("❌ Simulator error:", e.message);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-app.delete("/api/test/historial/:phone", (req, res) => {
-  const { clearHistorialTest } = require("./bot/simulator");
-  clearHistorialTest(req.params.phone);
+app.delete('/api/mkt/notes/:id', (req, res) => {
+  let notes = readJSON('mkt-notes.json', []);
+  notes = notes.filter(n => n.id !== req.params.id);
+  writeJSON('mkt-notes.json', notes);
   res.json({ ok: true });
 });
 
-// Panel de test — página HTML estática
-app.get("/app/test", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "app", "test", "index.html"));
+// ────────────────────────────────────────────────────────────
+//  API: TAREAS
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/tasks', (req, res) => {
+  res.json(readJSON('mkt-tasks.json', []));
 });
 
-// ============================================================
-// INICIAR
-// ============================================================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-  console.log(`🚀 Citrino Bot v2 corriendo en puerto ${PORT}`);
-
-  // Inicializar CRM y Finanzas
-  try {
-    const { inicializarSheet } = require("./bot/crm");
-    await inicializarSheet();
-  } catch (err) {
-    console.warn("⚠️ No se pudo inicializar el Sheet CRM:", err.message);
-  }
-  try {
-    const { inicializarHojaFinanzas } = require("./bot/finanzas");
-    await inicializarHojaFinanzas();
-  } catch (err) {
-    console.warn("⚠️ No se pudo inicializar la hoja Finanzas:", err.message);
-  }
-  try {
-    const { inicializarHojaTerapeutas } = require("./bot/terapeutas");
-    await inicializarHojaTerapeutas();
-  } catch (err) {
-    console.warn("⚠️ No se pudo inicializar la hoja Terapeutas:", err.message);
-  }
-
-  startScheduler(); // recordatorios + remarketing
-
-  // Reconstruir caches al arrancar (Railway no persiste archivos entre deploys)
-  // Reintenta hasta 3 veces con pausa de 5s para tolerar Sheets API flaky al cold start
-  (async () => {
-    const { rebuildMdCache, rebuildFlujosMdCache } = require("./bot/teach");
-    for (let intento = 1; intento <= 3; intento++) {
-      try {
-        const [conocRows, flujoRows] = await Promise.all([rebuildMdCache(), rebuildFlujosMdCache()]);
-        console.log(`🧠 Caches reconstruidos al arrancar (intento ${intento}).`);
-        // Verificar que el .md efectivamente se escribió
-        const fs = require("fs"), path = require("path");
-        const mdPath = path.join(__dirname, "CONOCIMIENTO.md");
-        const existe = fs.existsSync(mdPath);
-        const tamanio = existe ? fs.statSync(mdPath).size : 0;
-        console.log(`📚 CONOCIMIENTO.md: ${existe ? `${tamanio} bytes` : "vacío/no creado"}`);
-        break; // éxito, salir del loop
-      } catch (err) {
-        console.error(`❌ Error reconstruyendo caches (intento ${intento}/3): ${err.message}`);
-        if (intento < 3) await new Promise(r => setTimeout(r, 5000));
-        else console.error("⛔ Cache de conocimiento NO disponible. El bot funcionará sin él.");
-      }
-    }
-  })();
+app.post('/api/mkt/tasks', (req, res) => {
+  const tasks = readJSON('mkt-tasks.json', []);
+  const task = {
+    id: Date.now().toString(),
+    text: req.body.text,
+    priority: req.body.priority || 'normal',
+    assignTo: req.body.assignTo || 'nico',
+    category: req.body.category || 'otro',
+    createdBy: req.body.createdBy || 'equipo',
+    done: false,
+    createdAt: new Date().toISOString()
+  };
+  tasks.unshift(task);
+  writeJSON('mkt-tasks.json', tasks);
+  res.json(task);
 });
+
+app.patch('/api/mkt/tasks/:id', (req, res) => {
+  const tasks = readJSON('mkt-tasks.json', []);
+  const idx = tasks.findIndex(t => t.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  if (req.body.toggle) {
+    tasks[idx].done = !tasks[idx].done;
+    tasks[idx].doneAt = tasks[idx].done ? new Date().toISOString() : null;
+  } else {
+    tasks[idx] = { ...tasks[idx], ...req.body, updatedAt: new Date().toISOString() };
+  }
+  writeJSON('mkt-tasks.json', tasks);
+  res.json(tasks[idx]);
+});
+
+app.delete('/api/mkt/tasks/:id', (req, res) => {
+  let tasks = readJSON('mkt-tasks.json', []);
+  tasks = tasks.filter(t => t.id !== req.params.id);
+  writeJSON('mkt-tasks.json', tasks);
+  res.json({ ok: true });
+});
+
+// ── API: reporte externo (recibe JSON del análisis semanal de Cowork) ──
+app.post('/api/mkt/weekly-report', (req, res) => {
+  const report = { ...req.body, receivedAt: new Date().toISOString() };
+  writeJSON('weekly-report.json', report);
+  res.json({ ok: true });
+});
+
+app.get('/api/mkt/weekly-report', (req, res) => {
+  res.json(readJSON('weekly-report.json', { content: null, receivedAt: null }));
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: ACCIONES DE MARKETING (con trazabilidad)
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/actions', (req, res) => {
+  res.json(readJSON('mkt-actions.json', []));
+});
+
+app.post('/api/mkt/actions', (req, res) => {
+  const actions = readJSON('mkt-actions.json', []);
+  const mktData = readJSON('mkt-data.json', {});
+  const action = {
+    id: Date.now().toString(),
+    ...req.body,
+    status: 'pending',
+    snapshotAtCreation: mktData.currentWeek || {},
+    createdAt: new Date().toISOString(),
+    rating: null,
+    ratingComment: null,
+    evaluatedAt: null
+  };
+  actions.unshift(action);
+  writeJSON('mkt-actions.json', actions);
+  res.json(action);
+});
+
+app.patch('/api/mkt/actions/:id', (req, res) => {
+  const actions = readJSON('mkt-actions.json', []);
+  const idx = actions.findIndex(a => a.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  actions[idx] = { ...actions[idx], ...req.body };
+  if (req.body.rating !== undefined) {
+    actions[idx].status = 'evaluated';
+    actions[idx].evaluatedAt = new Date().toISOString();
+    const mktData = readJSON('mkt-data.json', {});
+    actions[idx].snapshotAtEvaluation = mktData.currentWeek || {};
+  }
+  writeJSON('mkt-actions.json', actions);
+  res.json(actions[idx]);
+});
+
+app.delete('/api/mkt/actions/:id', (req, res) => {
+  let actions = readJSON('mkt-actions.json', []);
+  actions = actions.filter(a => a.id !== req.params.id);
+  writeJSON('mkt-actions.json', actions);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: TICKETS
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/tickets', (req, res) => {
+  res.json(readJSON('mkt-tickets.json', []));
+});
+
+app.post('/api/mkt/tickets', async (req, res) => {
+  const tickets = readJSON('mkt-tickets.json', []);
+  const ticket = {
+    id: Date.now().toString(),
+    ...req.body,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    messages: []
+  };
+  tickets.unshift(ticket);
+  writeJSON('mkt-tickets.json', tickets);
+
+  // Notificar a Nico por WhatsApp
+  const ownerPhone = process.env.OWNER_WHATSAPP || '59891998151';
+  const msg = `🎫 *Nuevo ticket en Citrino MKT*\n\n*${ticket.title || 'Sin título'}*\n${ticket.description || ''}\n\nPrioridad: ${ticket.priority || 'normal'}\nCreado por: ${ticket.author || 'equipo'}\n\nID: #${ticket.id.slice(-6)}`;
+  await notifyWhatsApp(ownerPhone, msg);
+
+  res.json(ticket);
+});
+
+app.patch('/api/mkt/tickets/:id', (req, res) => {
+  const tickets = readJSON('mkt-tickets.json', []);
+  const idx = tickets.findIndex(t => t.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  tickets[idx] = { ...tickets[idx], ...req.body, updatedAt: new Date().toISOString() };
+  writeJSON('mkt-tickets.json', tickets);
+  res.json(tickets[idx]);
+});
+
+app.post('/api/mkt/tickets/:id/message', (req, res) => {
+  const tickets = readJSON('mkt-tickets.json', []);
+  const idx = tickets.findIndex(t => t.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  const msg = { text: req.body.text, author: req.body.author, at: new Date().toISOString() };
+  if (!tickets[idx].messages) tickets[idx].messages = [];
+  tickets[idx].messages.push(msg);
+  tickets[idx].updatedAt = new Date().toISOString();
+  writeJSON('mkt-tickets.json', tickets);
+  res.json(tickets[idx]);
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: RESEÑAS
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/reviews', (req, res) => {
+  res.json(readJSON('mkt-reviews.json', { reviews: [], summary: { total: 0, avg: 0 } }));
+});
+
+app.post('/api/mkt/reviews', (req, res) => {
+  const data = readJSON('mkt-reviews.json', { reviews: [], summary: { total: 0, avg: 0 } });
+  const review = { id: Date.now().toString(), ...req.body, createdAt: new Date().toISOString() };
+  data.reviews.unshift(review);
+  const total = data.reviews.length;
+  const avg = total > 0 ? (data.reviews.reduce((s, r) => s + (r.rating || 0), 0) / total) : 0;
+  data.summary = { total, avg: parseFloat(avg.toFixed(2)) };
+  writeJSON('mkt-reviews.json', data);
+  res.json(data);
+});
+
+app.delete('/api/mkt/reviews/:id', (req, res) => {
+  const data = readJSON('mkt-reviews.json', { reviews: [], summary: {} });
+  data.reviews = data.reviews.filter(r => r.id !== req.params.id);
+  const total = data.reviews.length;
+  const avg = total > 0 ? (data.reviews.reduce((s, r) => s + (r.rating || 0), 0) / total) : 0;
+  data.summary = { total, avg: parseFloat(avg.toFixed(2)) };
+  writeJSON('mkt-reviews.json', data);
+  res.json(data);
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: COMPETIDORES
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/competitors', (req, res) => {
+  res.json(readJSON('mkt-competitors.json', []));
+});
+
+app.post('/api/mkt/competitors', (req, res) => {
+  const items = readJSON('mkt-competitors.json', []);
+  const item = { id: Date.now().toString(), ...req.body, createdAt: new Date().toISOString(), updates: [] };
+  items.push(item);
+  writeJSON('mkt-competitors.json', items);
+  res.json(item);
+});
+
+app.patch('/api/mkt/competitors/:id', (req, res) => {
+  const items = readJSON('mkt-competitors.json', []);
+  const idx = items.findIndex(c => c.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  if (req.body.update) {
+    if (!items[idx].updates) items[idx].updates = [];
+    items[idx].updates.unshift({ text: req.body.update, at: new Date().toISOString() });
+    delete req.body.update;
+  }
+  items[idx] = { ...items[idx], ...req.body, updatedAt: new Date().toISOString() };
+  writeJSON('mkt-competitors.json', items);
+  res.json(items[idx]);
+});
+
+app.delete('/api/mkt/competitors/:id', (req, res) => {
+  let items = readJSON('mkt-competitors.json', []);
+  items = items.filter(c => c.id !== req.params.id);
+  writeJSON('mkt-competitors.json', items);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: CONTENIDO (calendario)
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/content', (req, res) => {
+  res.json(readJSON('mkt-content.json', []));
+});
+
+app.post('/api/mkt/content', (req, res) => {
+  const items = readJSON('mkt-content.json', []);
+  const item = { id: Date.now().toString(), ...req.body, createdAt: new Date().toISOString() };
+  items.unshift(item);
+  writeJSON('mkt-content.json', items);
+  res.json(item);
+});
+
+app.patch('/api/mkt/content/:id', (req, res) => {
+  const items = readJSON('mkt-content.json', []);
+  const idx = items.findIndex(c => c.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Not found' });
+  items[idx] = { ...items[idx], ...req.body, updatedAt: new Date().toISOString() };
+  writeJSON('mkt-content.json', items);
+  res.json(items[idx]);
+});
+
+app.delete('/api/mkt/content/:id', (req, res) => {
+  let items = readJSON('mkt-content.json', []);
+  items = items.filter(c => c.id !== req.params.id);
+  writeJSON('mkt-content.json', items);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: SUBIDA A GOOGLE DRIVE
+// ────────────────────────────────────────────────────────────
+app.post('/api/mkt/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+
+  const drive = getDriveClient();
+  if (!drive) return res.status(500).json({ error: 'Google Drive no configurado' });
+
+  try {
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = now.toLocaleString('es-ES', { month: 'long', timeZone: 'America/Montevideo' });
+    month[0] = month[0].toUpperCase();
+
+    // Estructura: Citrino Marketing / 2026 / Junio / tipo
+    const rootId = await ensureDriveFolder(drive, 'Citrino Marketing');
+    const yearId = await ensureDriveFolder(drive, year, rootId);
+    const monthId = await ensureDriveFolder(drive, month.charAt(0).toUpperCase() + month.slice(1), yearId);
+
+    // Subcarpeta por tipo
+    const tipo = req.body.tipo || 'General';
+    const tipoMap = { imagen: 'Imágenes', video: 'Videos', documento: 'Documentos', reel: 'Reels' };
+    const tipoFolder = tipoMap[tipo.toLowerCase()] || tipo;
+    const tipoId = await ensureDriveFolder(drive, tipoFolder, monthId);
+
+    // Subir archivo
+    const { Readable } = require('stream');
+    const stream = Readable.from(req.file.buffer);
+    const uploaded = await drive.files.create({
+      requestBody: {
+        name: req.body.nombre || req.file.originalname,
+        parents: [tipoId],
+        description: req.body.descripcion || ''
+      },
+      media: { mimeType: req.file.mimetype, body: stream },
+      fields: 'id,name,webViewLink,webContentLink'
+    });
+
+    // Hacer público (solo lectura)
+    await drive.permissions.create({
+      fileId: uploaded.data.id,
+      requestBody: { role: 'reader', type: 'anyone' }
+    });
+
+    // Guardar en contenido
+    const contentItems = readJSON('mkt-content.json', []);
+    const contentItem = {
+      id: Date.now().toString(),
+      nombre: uploaded.data.name,
+      tipo: tipo.toLowerCase(),
+      driveId: uploaded.data.id,
+      driveUrl: uploaded.data.webViewLink,
+      fecha: now.toISOString().split('T')[0],
+      descripcion: req.body.descripcion || '',
+      autor: req.body.autor || 'Lucía',
+      red: req.body.red || 'instagram',
+      status: 'subido',
+      createdAt: now.toISOString()
+    };
+    contentItems.unshift(contentItem);
+    writeJSON('mkt-content.json', contentItems);
+
+    res.json({ ok: true, file: uploaded.data, contentItem });
+  } catch (e) {
+    console.error('[Drive] Error upload:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: REPORTES
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/reports/weekly', (req, res) => {
+  const mktData = readJSON('mkt-data.json', { currentWeek: {}, byMonth: {} });
+  res.json({ report: 'weekly', data: mktData.currentWeek, generatedAt: new Date().toISOString() });
+});
+
+app.get('/api/mkt/reports/monthly', (req, res) => {
+  const { month } = req.query; // YYYY-MM
+  const mktData = readJSON('mkt-data.json', { byMonth: {} });
+  const key = month || new Date().toISOString().substring(0, 7);
+  const monthData = mktData.byMonth?.[key] || { weeks: [] };
+
+  // Agregar semanas del mes
+  let totalSpend = 0, totalLeads = 0, totalReach = 0;
+  let igFollowers = 0, fbFans = 0;
+  for (const w of monthData.weeks) {
+    totalSpend += w.meta?.spend || 0;
+    totalLeads += w.meta?.leads || 0;
+    totalReach += w.meta?.reach || 0;
+    if (w.instagram?.followers > igFollowers) igFollowers = w.instagram.followers;
+    if (w.facebook?.fans > fbFans) fbFans = w.facebook.fans;
+  }
+
+  const notes = readJSON('mkt-notes.json', []).filter(n => n.createdAt?.startsWith(key));
+  const actions = readJSON('mkt-actions.json', []).filter(a => a.createdAt?.startsWith(key));
+  const tickets = readJSON('mkt-tickets.json', []).filter(t => t.createdAt?.startsWith(key));
+
+  res.json({
+    report: 'monthly', month: key,
+    meta: { spend: totalSpend, leads: totalLeads, cpl: totalLeads > 0 ? parseFloat((totalSpend / totalLeads).toFixed(2)) : 0, reach: totalReach },
+    instagram: { followers: igFollowers },
+    facebook: { fans: fbFans },
+    weeks: monthData.weeks,
+    notes: notes.length,
+    actions: actions.length,
+    actionEvaluated: actions.filter(a => a.rating).length,
+    tickets: tickets.length,
+    ticketsResolved: tickets.filter(t => t.status === 'closed').length,
+    generatedAt: new Date().toISOString()
+  });
+});
+
+app.get('/api/mkt/reports/quarterly', (req, res) => {
+  const { q, year } = req.query; // q = 1|2|3|4, year = 2026
+  const y = parseInt(year || new Date().getFullYear());
+  const quarter = parseInt(q || Math.ceil((new Date().getMonth() + 1) / 3));
+  const months = { 1: ['01','02','03'], 2: ['04','05','06'], 3: ['07','08','09'], 4: ['10','11','12'] };
+  const keys = (months[quarter] || []).map(m => `${y}-${m}`);
+
+  const mktData = readJSON('mkt-data.json', { byMonth: {} });
+  let totalSpend = 0, totalLeads = 0, byMonth = {};
+  for (const key of keys) {
+    const md = mktData.byMonth?.[key] || { weeks: [] };
+    let ms = 0, ml = 0;
+    for (const w of md.weeks) { ms += w.meta?.spend || 0; ml += w.meta?.leads || 0; }
+    byMonth[key] = { spend: ms, leads: ml, cpl: ml > 0 ? parseFloat((ms/ml).toFixed(2)) : 0 };
+    totalSpend += ms; totalLeads += ml;
+  }
+
+  res.json({
+    report: 'quarterly', quarter: `Q${quarter}`, year: y, months: keys,
+    total: { spend: totalSpend, leads: totalLeads, cpl: totalLeads > 0 ? parseFloat((totalSpend/totalLeads).toFixed(2)) : 0 },
+    byMonth, generatedAt: new Date().toISOString()
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+//  WHATSAPP WEBHOOK (existente del bot)
+// ────────────────────────────────────────────────────────────
+app.get('/webhook', (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'citrino2026';
+  if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === VERIFY_TOKEN) {
+    res.status(200).send(req.query['hub.challenge']);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+app.post('/webhook', (req, res) => {
+  // El bot principal maneja los mensajes aquí
+  // Este archivo puede extenderse con la lógica completa del bot
+  res.sendStatus(200);
+});
+
+// ────────────────────────────────────────────────────────────
+//  INICIO
+// ────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`[CITRINO] Servidor corriendo en puerto ${PORT}`);
+  console.log(`[CITRINO] Dashboard MKT: /mkt`);
+});
+
+module.exports = app;
