@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Citrino · Marketing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F5EFE8;
+  --bg2: #EDE5DA;
+  --bg3: #E4D9CC;
+  --card: #FFFCF8;
+  --border: rgba(160,110,55,0.18);
+  --shadow: 0 2px 16px rgba(100,60,20,0.07);
+  --gold: #B8733A;
+  --gold2: #D4904E;
+  --goldbg: rgba(184,115,58,0.1);
+  --text: #2A1A08;
+  --text2: #7A5C35;
+  --text3: #A88860;
+  --green: #3D7A4A;
+  --greenbg: rgba(61,122,74,0.1);
+  --red: #B04040;
+  --redbg: rgba(176,64,64,0.1);
+  --blue: #3A6FA0;
+  --bluebg: rgba(58,111,160,0.1);
+  --yellow: #A07830;
+  --yellowbg: rgba(160,120,48,0.1);
+  --sidebar: 230px;
+  --radius: 10px;
+  --font: 'Georgia', serif;
+  --sans: -apple-system, 'Segoe UI', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+#app{display:flex;height:100vh}
+
+/* SIDEBAR */
+#sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;overflow-y:auto}
+.logo-area{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:var(--font);font-size:18px;color:var(--gold);letter-spacing:1.5px}
+.logo-tagline{font-size:10px;color:var(--text3);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px}
+nav{padding:12px 0;flex:1}
+.nav-group{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:14px 18px 5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border-left:2px solid transparent;position:relative}
+.nav-item:hover{color:var(--text);background:rgba(160,110,55,0.07)}
+.nav-item.active{color:var(--gold);background:var(--goldbg);border-left-color:var(--gold);font-weight:500}
+.nav-icon{width:18px;text-align:center;font-size:14px;opacity:.7}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;border-radius:8px;padding:1px 6px;font-weight:600}
+.sidebar-bottom{padding:14px 16px;border-top:1px solid var(--border)}
+.user-switcher{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .15s}
+.user-switcher:hover{border-color:var(--gold)}
+.user-row{display:flex;align-items:center;gap:10px}
+.user-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.user-dot.nico{background:var(--gold)}
+.user-dot.lucia{background:#8A60A0}
+.user-info{flex:1;min-width:0}
+.user-nm{font-size:12px;font-weight:600;color:var(--text)}
+.user-rl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.switch-hint{font-size:10px;color:var(--text3);margin-top:6px;opacity:.7}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-family:var(--font);font-size:17px;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.btn-refresh{background:var(--goldbg);border:1px solid rgba(184,115,58,0.3);color:var(--gold);padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
+.btn-refresh:hover{background:rgba(184,115,58,0.18)}
+.ts{font-size:11px;color:var(--text3)}
+
+/* PAGES */
+#content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+
+/* GRID */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:6px}
+.kpi-val{font-family:var(--font);font-size:26px;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px}
+.kpi-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;margin-top:6px;font-weight:600}
+.kpi-badge.up{background:var(--redbg);color:var(--red)}
+.kpi-badge.ok{background:var(--greenbg);color:var(--green)}
+.kpi-badge.warn{background:var(--yellowbg);color:var(--yellow)}
+.kpi-accent{position:absolute;right:-10px;top:-10px;width:50px;height:50px;border-radius:50%;opacity:.06}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-main{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:16px}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2)}
+.card-body{padding:16px 18px}
+.card-body.np{padding:0}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:9px 14px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500}
+td{padding:10px 14px;border-bottom:1px solid rgba(160,110,55,0.08);color:var(--text);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(160,110,55,0.03)}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:var(--greenbg);color:var(--green)}
+.badge.red{background:var(--redbg);color:var(--red)}
+.badge.yellow{background:var(--yellowbg);color:var(--yellow)}
+.badge.blue{background:var(--bluebg);color:var(--blue)}
+.badge.gray{background:rgba(0,0,0,0.06);color:var(--text2)}
+.badge.gold{background:var(--goldbg);color:var(--gold)}
+
+/* PROGRESS */
+.prog-wrap{background:rgba(0,0,0,0.06);border-radius:20px;height:7px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .8s ease}
+
+/* TASKS */
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.task-item:last-child{border-bottom:none}
+.task-cb{width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all .15s;background:var(--bg2)}
+.task-cb.done{background:var(--green);border-color:var(--green);color:#fff}
+.task-cb.done::after{content:'✓';font-size:10px}
+.task-text{flex:1;font-size:13px;color:var(--text);line-height:1.4}
+.task-text.done{text-decoration:line-through;color:var(--text3)}
+.task-meta{font-size:10px;color:var(--text3);margin-top:3px}
+.task-author{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.task-author.nico{background:var(--goldbg);color:var(--gold)}
+.task-author.lucia{background:rgba(138,96,160,0.12);color:#8A60A0}
+.task-priority.high{color:var(--red);font-size:10px}
+.task-priority.normal{color:var(--text3);font-size:10px}
+
+/* FORM */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.fg{flex:1;min-width:140px}
+.fl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);display:block;margin-bottom:5px;font-weight:500}
+.fi,.fs,.ft{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border .15s}
+.fi:focus,.fs:focus,.ft:focus{border-color:var(--gold);background:var(--card)}
+.fs option{background:var(--bg2)}
+.ft{resize:vertical;min-height:72px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;cursor:pointer;font-size:13px;border:none;transition:all .15s;font-family:var(--sans);font-weight:500}
+.btn-primary{background:var(--gold);color:#fff}
+.btn-primary:hover{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--gold);border:1px solid rgba(184,115,58,0.35)}
+.btn-outline:hover{background:var(--goldbg)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3)}
+.btn-danger{background:var(--redbg);color:var(--red);border:1px solid rgba(176,64,64,0.2)}
+.btn-sm{padding:5px 11px;font-size:12px}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:500}
+
+/* NOTES */
+.note-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.note-type{font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}
+.note-text{font-size:13px;color:var(--text);line-height:1.5}
+.note-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.note-meta{font-size:11px;color:var(--text3)}
+.comment-thread{background:var(--bg2);border-radius:7px;padding:10px;margin-top:8px}
+.comment-item{padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.comment-item:last-child{border-bottom:none}
+.comment-add{display:flex;gap:8px;margin-top:8px}
+
+/* TICKET */
+.tkt{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.tkt-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px}
+.tkt-desc{font-size:12px;color:var(--text2);margin-bottom:10px}
+.tkt-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tkt-meta{font-size:11px;color:var(--text3)}
+
+/* REVIEWS */
+.rev-sum{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;gap:24px;align-items:center;margin-bottom:16px;box-shadow:var(--shadow)}
+.rev-big{font-family:var(--font);font-size:52px;color:var(--gold);line-height:1;text-align:center}
+.rev-bar-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:5px}
+.rev-bar-bg{flex:1;height:5px;background:rgba(0,0,0,0.07);border-radius:3px;overflow:hidden}
+.rev-bar-fill{height:100%;background:var(--gold);border-radius:3px}
+.rev-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+
+/* STARS */
+.stars{display:flex;gap:3px;cursor:pointer}
+.star{font-size:22px;color:rgba(184,115,58,0.2);transition:color .1s;line-height:1}
+.star.on{color:var(--gold)}
+
+/* UPLOAD */
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg2)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--gold);background:var(--goldbg)}
+#fileInput{display:none}
+
+/* CONTENT GRID */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:transform .15s;box-shadow:var(--shadow)}
+.ccard:hover{transform:translateY(-2px)}
+.cthumb{height:100px;display:flex;align-items:center;justify-content:center;background:var(--bg3);font-size:28px}
+.cinfo{padding:10px 12px}
+.cname{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmeta{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* CHART */
+.chart-wrap{height:190px;position:relative}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(30,15,5,0.35);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.modal-title{font-family:var(--font);font-size:17px;color:var(--text);margin-bottom:18px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;z-index:200;background:var(--text);color:var(--bg);border-radius:8px;padding:10px 16px;font-size:13px;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* COMP */
+.comp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+
+/* ACTION */
+.action-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.snap-row{display:flex;gap:14px;background:var(--bg2);border-radius:7px;padding:10px;margin:8px 0;flex-wrap:wrap}
+.snap-item{font-size:11px;color:var(--text2)}
+.snap-lbl{opacity:.6;margin-bottom:2px}
+.snap-val{font-weight:600;color:var(--gold)}
+
+/* SECTION HEADER */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-family:var(--font);font-size:15px;color:var(--text)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* SUGGESTIONS (brief items) */
+.suggestion-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.suggestion-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:5px}
+.suggestion-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:5px}
+.suggestion-text{font-size:12px;color:var(--text2);line-height:1.5}
+.suggestion-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.suggestion-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--text3)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo-area">
+    <div class="logo-name">CITRINO</div>
+    <div class="logo-tagline">Marketing</div>
+  </div>
+  <nav>
+    <div class="nav-group">Principal</div>
+    <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
+    <div class="nav-item" onclick="nav('tasks')"><span class="nav-icon">☐</span> Tareas <span class="nav-badge" id="task-badge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="nav('campaigns')"><span class="nav-icon">◎</span> Campañas</div>
+    <div class="nav-item" onclick="nav('social')"><span class="nav-icon">◉</span> Redes Sociales</div>
+    <div class="nav-group">Contenido</div>
+    <div class="nav-item" onclick="nav('content')"><span class="nav-icon">▦</span> Contenido & Drive</div>
+    <div class="nav-item" onclick="nav('actions')"><span class="nav-icon">◈</span> Acciones MKT</div>
+    <div class="nav-group">Análisis</div>
+    <div class="nav-item" onclick="nav('reviews')"><span class="nav-icon">★</span> Reseñas & SEO</div>
+    <div class="nav-item" onclick="nav('competitors')"><span class="nav-icon">◐</span> Competidores</div>
+    <div class="nav-item" onclick="nav('reports')"><span class="nav-icon">▣</span> Reportes</div>
+    <div class="nav-group">Equipo</div>
+    <div class="nav-item" onclick="nav('tickets')"><span class="nav-icon">◫</span> Tickets <span class="nav-badge" id="ticket-badge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="nav('notes')"><span class="nav-icon">◧</span> Notas</div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-switcher" onclick="switchUser()">
+      <div class="user-row">
+        <div class="user-dot" id="udot">N</div>
+        <div class="user-info">
+          <div class="user-nm" id="uname">Nico</div>
+          <div class="user-rl" id="urole">Admin</div>
+        </div>
+      </div>
+      <div class="switch-hint">Clic para cambiar usuario</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <span class="ts" id="last-ts">–</span>
+      <button class="btn-refresh" onclick="refreshData()">↻ Actualizar</button>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-lbl">CPL actual</div><div class="kpi-val" id="k-cpl">$U 59</div><div class="kpi-sub">Objetivo: $U 47</div><div class="kpi-badge up" id="k-cpl-badge">↑ 25% sobre óptimo</div><div class="kpi-accent" style="background:var(--red)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Inversión / día</div><div class="kpi-val">$U 300</div><div class="kpi-sub">3 campañas activas</div><div class="kpi-badge warn">Fragmentado</div><div class="kpi-accent" style="background:var(--yellow)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Leads semana</div><div class="kpi-val" id="k-leads">0</div><div class="kpi-sub">Meta Ads</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Seguidores IG</div><div class="kpi-val" id="k-ig">–</div><div class="kpi-sub">Instagram</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Reseñas</div><div class="kpi-val" id="k-rev">–</div><div class="kpi-sub" id="k-rev-avg">★ –</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
+      </div>
+
+      <div class="grid-main">
+        <div>
+          <!-- Objetivo -->
+          <div class="card">
+            <div class="card-head"><span class="card-title">Objetivo — mediados de agosto</span><span class="badge gold">CPL ≤ $U 47</span></div>
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px"><span id="obj-label">0 / 100 leads</span><span id="obj-pct">0%</span></div>
+              <div class="prog-wrap"><div class="prog-fill" id="obj-bar" style="width:0%"></div></div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px" id="obj-days"></div>
+            </div>
+          </div>
+          <!-- CPL chart -->
+          <div class="card">
+            <div class="card-head"><span class="card-title">Historial CPL</span></div>
+            <div class="card-body"><div class="chart-wrap"><canvas id="chart-cpl"></canvas></div></div>
+          </div>
+        </div>
+
+        <!-- Right: Brief + Tasks -->
+        <div>
+          <!-- Sugerencias del brief -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><span class="card-title">Brief Julio 2026</span><span class="badge green">Activo</span></div>
+            <div class="card-body" style="padding:10px 14px">
+              <div class="suggestion-card" style="border-left-color:var(--green)">
+                <div class="suggestion-label" style="color:var(--green)">A · Pronto</div>
+                <div class="suggestion-title">Unificar campañas de conversaciones</div>
+                <div class="suggestion-text">Apostar a "Masajes-Mensajes" ($U 52) con presupuesto completo. Esperar 7–10 días sin modificar.</div>
+                <div class="suggestion-tags"><span class="suggestion-tag">Conversaciones</span><span class="suggestion-tag">Sin inversión extra</span></div>
+              </div>
+              <div class="suggestion-card" style="border-left-color:var(--yellow)">
+                <div class="suggestion-label" style="color:var(--yellow)">B · Evaluar</div>
+                <div class="suggestion-title">Repensar tráfico al perfil</div>
+                <div class="suggestion-text">$U 100/día → campaña de reconocimiento invernal. Construir audiencia remarketing (hoy 511, meta: 1.500+).</div>
+                <div class="suggestion-tags"><span class="suggestion-tag">Reconocimiento</span><span class="suggestion-tag">Invierno</span></div>
+              </div>
+              <div class="suggestion-card" style="border-left-color:var(--blue)">
+                <div class="suggestion-label" style="color:var(--blue)">C · Mediano plazo</div>
+                <div class="suggestion-title">Reactivar campaña ganadora pausada</div>
+                <div class="suggestion-text">"Mensajes 2026 – Público + Adulto": 670 contactos a $U 47. Refrescar creativos con ángulo invernal.</div>
+                <div class="suggestion-tags"><span class="suggestion-tag">Campaña estrella</span><span class="suggestion-tag">A/B anuncios</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tareas rápidas -->
+          <div class="card">
+            <div class="card-head"><span class="card-title">Tareas pendientes</span><button class="btn btn-outline btn-sm" onclick="nav('tasks')">Ver todas</button></div>
+            <div class="card-body" id="dash-tasks-preview">
+              <div class="empty" style="padding:16px"><div class="empty-text">Sin tareas por ahora</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="page-tasks">
+      <div class="grid-main">
+        <div>
+          <div class="tabs">
+            <div class="tab active" onclick="filterTasks('all',this)">Todas</div>
+            <div class="tab" onclick="filterTasks('pending',this)">Pendientes</div>
+            <div class="tab" onclick="filterTasks('done',this)">Completadas</div>
+          </div>
+          <div id="tasks-list"></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Nueva tarea</span></div>
+            <div class="card-body">
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Tarea</label><input class="fi" id="task-text" placeholder="Describí la tarea..."></div>
+              <div class="form-row">
+                <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="task-priority"><option value="high">Alta</option><option value="normal" selected>Normal</option><option value="low">Baja</option></select></div>
+                <div class="fg"><label class="fl">Asignada a</label><select class="fs" id="task-assign"><option value="nico">Nico</option><option value="lucia">Lucía</option></select></div>
+              </div>
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Categoría</label><select class="fs" id="task-cat"><option value="ads">Publicidad</option><option value="contenido">Contenido</option><option value="admin">Admin</option><option value="seo">SEO / Web</option><option value="otro">Otro</option></select></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="createTask()">Crear tarea</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Resumen</span></div>
+            <div class="card-body" id="tasks-stats" style="font-size:13px;color:var(--text2);line-height:2">–</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGNS -->
+    <div class="page" id="page-campaigns">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Campañas activas</span><span class="ts" id="camp-ts">–</span></div>
+        <div class="card-body np">
+          <table>
+            <thead><tr><th>Campaña</th><th>Estado</th><th>Contactos</th><th>CPL</th><th>Inversión</th><th>Alcance</th></tr></thead>
+            <tbody id="camp-tbody">
+              <tr><td>Masajes Junio</td><td><span class="badge green">Activa</span></td><td>60</td><td><span class="badge red">$U 67,83</span></td><td>$U 4.069</td><td>6.460</td></tr>
+              <tr><td>Masajes-Mensajes</td><td><span class="badge green">Activa</span></td><td>41</td><td><span class="badge yellow">$U 52,03</span></td><td>$U 2.133</td><td>3.882</td></tr>
+              <tr><td>Tráfico al perfil 2026</td><td><span class="badge green">Activa</span></td><td>1.550 visitas*</td><td>$U 1,24/visita</td><td>$U 1.918</td><td>17.001</td></tr>
+              <tr style="opacity:.6"><td>Mensajes 2026 – Público + Adulto ⭐</td><td><span class="badge gray">Pausada</span></td><td>670</td><td><span class="badge green">$U 47,07</span></td><td>$U 31.536</td><td>42.366</td></tr>
+              <tr style="opacity:.6"><td>Seminario Gustavo Juárez</td><td><span class="badge gray">Pausada</span></td><td>120</td><td><span class="badge green">$U 38,29</span></td><td>$U 4.594</td><td>8.224</td></tr>
+            </tbody>
+          </table>
+          <div style="padding:10px 14px;font-size:11px;color:var(--text3)">* Las visitas al perfil no equivalen a contactos ni rastrean conversiones.</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Distribución sugerida · $U 300/día</span></div>
+          <div class="card-body">
+            <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px"><span>💬 Conversaciones</span><span style="font-weight:600;color:var(--text)">$U 200</span></div><div class="prog-wrap"><div class="prog-fill" style="width:67%"></div></div></div>
+            <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px"><span>🎬 Reconocimiento / Audiencia</span><span style="font-weight:600;color:var(--text)">$U 100</span></div><div class="prog-wrap"><div class="prog-fill" style="width:33%;background:var(--blue)"></div></div></div>
+            <div style="font-size:12px;color:var(--text3)">Remarketing (agosto+): a definir cuando audiencia llegue a 1.500+</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Hoy vs. Objetivo</span></div>
+          <div class="card-body">
+            <div style="display:flex;gap:24px;justify-content:center;padding:10px 0">
+              <div style="text-align:center"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Hoy</div><div style="font-family:var(--font);font-size:32px;color:var(--red)">$U 59</div><div style="font-size:11px;color:var(--text3)">por contacto</div></div>
+              <div style="display:flex;align-items:center;font-size:20px;color:var(--text3)">→</div>
+              <div style="text-align:center"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Objetivo</div><div style="font-family:var(--font);font-size:32px;color:var(--green)">$U 47</div><div style="font-size:11px;color:var(--text3)">por contacto</div></div>
+            </div>
+            <div style="font-size:12px;color:var(--text3);text-align:center;margin-top:8px">A $U 47/contacto con $U 200/día → ~4–5 leads/día</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Historial mensual</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-campaigns"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- SOCIAL -->
+    <div class="page" id="page-social">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Instagram</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Seguidores</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-followers">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Posts semana</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-posts">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Alcance semanal</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-reach">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Impresiones</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-impressions">–</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Facebook</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Fans</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="fb-fans">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Alcance semanal</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="fb-reach">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Impresiones</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="fb-impressions">–</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Ideas creativas — Brief Julio</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+            <div style="background:var(--bg2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">🧊 El frío como disparador</div><div style="font-size:12px;color:var(--text2)">El frío tensa los músculos — ese dolor es la urgencia.</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">"El frío apretó. Nosotras soltamos. 🍋"</div></div>
+            <div style="background:var(--bg2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">✨ Antes / Después emocional</div><div style="font-size:12px;color:var(--text2)">No el resultado físico, sino el estado emocional.</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">"Entrás tensa. Salís diferente."</div></div>
+            <div style="background:var(--bg2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">💆 Problema específico</div><div style="font-size:12px;color:var(--text2)">Nombrar el dolor concreto convierte mejor.</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">"¿Cuello y hombros tensos toda la semana? Turno hoy."</div></div>
+            <div style="background:var(--bg2);border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">🎁 Pack invernal</div><div style="font-size:12px;color:var(--text2)">Los packs tienen menor resistencia que la sesión individual.</div><div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic">"Pack julio: 4 sesiones para atravesar el invierno bien."</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Evolución de seguidores</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-social"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="page" id="page-content">
+      <div class="grid-main">
+        <div>
+          <div class="sec-head"><div class="sec-title">Contenido & Drive</div><button class="btn btn-primary btn-sm" onclick="openModal('upload-modal')">+ Subir archivo</button></div>
+          <div class="tabs">
+            <div class="tab active" onclick="filterContent('all',this)">Todo</div>
+            <div class="tab" onclick="filterContent('imagen',this)">Imágenes</div>
+            <div class="tab" onclick="filterContent('reel',this)">Reels</div>
+            <div class="tab" onclick="filterContent('video',this)">Videos</div>
+            <div class="tab" onclick="filterContent('documento',this)">Docs</div>
+          </div>
+          <div class="cgrid" id="content-grid"><div class="empty"><div class="empty-icon">▦</div><div class="empty-text">Subí el primer archivo</div></div></div>
+        </div>
+        <div>
+          <div class="card"><div class="card-head"><span class="card-title">Stats</span></div><div class="card-body" id="content-stats" style="font-size:13px;color:var(--text2);line-height:2">–</div></div>
+          <div class="card"><div class="card-head"><span class="card-title">Esta semana</span></div><div class="card-body" id="content-week" style="font-size:12px;color:var(--text2)">–</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="page" id="page-actions">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Registrar acción</span></div>
+          <div class="card-body">
+            <div class="fg" style="margin-bottom:10px"><label class="fl">Descripción</label><input class="fi" id="action-title" placeholder="Ej: Publicidad winter sale"></div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">Tipo</label><select class="fs" id="action-type"><option value="ads">Publicidad pagada</option><option value="post">Post orgánico</option><option value="email">Email</option><option value="oferta">Oferta / Promo</option><option value="seo">SEO / Web</option><option value="otro">Otro</option></select></div>
+              <div class="fg"><label class="fl">Evaluar en (semanas)</label><input class="fi" id="action-weeks" type="number" min="1" max="12" value="2"></div>
+            </div>
+            <div class="fg" style="margin-bottom:12px"><label class="fl">Detalle / objetivos</label><textarea class="ft" id="action-desc" placeholder="¿Qué esperás lograr?"></textarea></div>
+            <button class="btn btn-primary" onclick="createAction()">Registrar con snapshot</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Aprendizaje acumulado</span></div>
+          <div class="card-body" id="actions-learning" style="font-size:13px;color:var(--text2)">–</div>
+        </div>
+      </div>
+      <div id="actions-list"></div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="page" id="page-reviews">
+      <div class="rev-sum">
+        <div style="text-align:center;min-width:110px"><div class="rev-big" id="rev-avg-big">–</div><div id="rev-stars-row" style="display:flex;justify-content:center;gap:3px;margin:4px 0"></div><div style="font-size:11px;color:var(--text3)" id="rev-total">0 reseñas</div></div>
+        <div style="flex:1" id="rev-bars"></div>
+        <div style="min-width:190px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Impacto SEO/GEO</div><div id="rev-seo" style="font-size:12px;color:var(--text2);line-height:1.8">–</div></div>
+      </div>
+      <div class="grid-main">
+        <div><div class="sec-head"><div class="sec-title">Reseñas registradas</div><button class="btn btn-primary btn-sm" onclick="openModal('review-modal')">+ Agregar</button></div><div id="reviews-list"></div></div>
+        <div class="card"><div class="card-head"><span class="card-title">Consejos</span></div><div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.9"><div style="margin-bottom:8px">★ Respondé todas en &lt;24h</div><div style="margin-bottom:8px">★ Pedí reseña después de cada sesión</div><div style="margin-bottom:8px">★ +4.5⭐ mejora ranking Google Maps</div><div style="margin-bottom:8px">★ Palabras clave en reseñas → SEO local</div><div>★ Responder críticas muestra profesionalismo</div></div></div>
+      </div>
+    </div>
+
+    <!-- COMPETITORS -->
+    <div class="page" id="page-competitors">
+      <div class="grid-main">
+        <div><div class="sec-head"><div class="sec-title">Competidores</div><button class="btn btn-primary btn-sm" onclick="openModal('comp-modal')">+ Agregar</button></div><div id="competitors-list"></div></div>
+        <div class="card"><div class="card-head"><span class="card-title">Análisis</span></div><div class="card-body" id="comp-analysis" style="font-size:13px;color:var(--text2)">Agregá competidores para ver el análisis comparativo.</div></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div class="tabs">
+        <div class="tab active" onclick="loadReport('weekly',this)">Semanal (Meta Ads)</div>
+        <div class="tab" onclick="loadReport('monthly',this)">Mensual</div>
+        <div class="tab" onclick="loadReport('q1',this)">Q1</div>
+        <div class="tab" onclick="loadReport('q2',this)">Q2</div>
+        <div class="tab" onclick="loadReport('q3',this)">Q3</div>
+        <div class="tab" onclick="loadReport('q4',this)">Q4</div>
+        <div class="tab" onclick="loadReport('analysis',this)">🍋 Análisis Cowork</div>
+      </div>
+      <div id="report-content"></div>
+    </div>
+
+    <!-- TICKETS -->
+    <div class="page" id="page-tickets">
+      <div class="grid-main">
+        <div><div class="sec-head"><div class="sec-title">Tickets abiertos</div></div><div id="tickets-list"></div></div>
+        <div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Nuevo ticket</span></div>
+            <div class="card-body">
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Título</label><input class="fi" id="tkt-title" placeholder="Problema o mejora"></div>
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Descripción</label><textarea class="ft" id="tkt-desc" placeholder="Detallá qué querés cambiar"></textarea></div>
+              <div class="form-row">
+                <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="tkt-pri"><option value="low">Baja</option><option value="normal" selected>Normal</option><option value="high">Alta</option></select></div>
+                <div class="fg"><label class="fl">Tipo</label><select class="fs" id="tkt-type"><option value="mejora">Mejora</option><option value="bug">Error</option><option value="pedido">Pedido</option><option value="consulta">Consulta</option></select></div>
+              </div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="createTicket()">Enviar ticket</button>
+              <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:7px">Nico recibe notificación por WhatsApp</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="page" id="page-notes">
+      <div class="grid-main">
+        <div id="notes-list"></div>
+        <div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Nueva nota</span></div>
+            <div class="card-body">
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Tipo</label><select class="fs" id="note-type"><option value="observacion">Observación</option><option value="accion">Acción</option><option value="idea">Idea</option><option value="resultado">Resultado</option></select></div>
+              <div class="fg" style="margin-bottom:12px"><label class="fl">Nota</label><textarea class="ft" id="note-text" placeholder="Escribí tu nota..." style="min-height:110px"></textarea></div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="createNote()">Guardar nota</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MODALS -->
+<div class="overlay" id="upload-modal">
+  <div class="modal">
+    <div class="modal-title">Subir archivo a Drive</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:28px;margin-bottom:8px">↑</div>
+      <div style="font-size:13px;color:var(--text2)">Hacé clic o arrastrá tu archivo</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Imágenes · Videos · Reels · Docs · Máx 100MB</div>
+      <div id="file-sel" style="margin-top:8px;font-size:12px;color:var(--gold);display:none"></div>
+    </div>
+    <input type="file" id="fileInput">
+    <div class="form-row" style="margin-top:14px">
+      <div class="fg"><label class="fl">Nombre</label><input class="fi" id="up-name" placeholder="Nombre"></div>
+      <div class="fg"><label class="fl">Tipo</label><select class="fs" id="up-tipo"><option value="imagen">Imagen</option><option value="reel">Reel</option><option value="video">Video</option><option value="documento">Documento</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Red destino</label><select class="fs" id="up-red"><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="ambas">Ambas</option></select></div>
+      <div class="fg"><label class="fl">Autor</label><input class="fi" id="up-autor" value="Lucía"></div>
+    </div>
+    <div class="fg"><label class="fl">Descripción / caption</label><textarea class="ft" id="up-desc" placeholder="Caption o descripción"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('upload-modal')">Cancelar</button>
+      <button class="btn btn-primary" id="up-btn" onclick="uploadFile()">Subir a Drive</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="review-modal">
+  <div class="modal">
+    <div class="modal-title">Agregar reseña</div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Nombre</label><input class="fi" id="rev-name" placeholder="Nombre del cliente"></div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Calificación</label><div class="stars" id="modal-stars"><span class="star" onclick="setRating(1)">★</span><span class="star" onclick="setRating(2)">★</span><span class="star" onclick="setRating(3)">★</span><span class="star" onclick="setRating(4)">★</span><span class="star" onclick="setRating(5)">★</span></div></div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Texto</label><textarea class="ft" id="rev-text" placeholder="Texto de la reseña..."></textarea></div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Fuente</label><select class="fs" id="rev-src"><option value="google">Google</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="directo">Directo</option></select></div>
+      <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="rev-date"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('review-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitReview()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="comp-modal">
+  <div class="modal">
+    <div class="modal-title">Agregar competidor</div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Nombre</label><input class="fi" id="comp-name" placeholder="Nombre"></div>
+      <div class="fg"><label class="fl">URL / @cuenta</label><input class="fi" id="comp-url" placeholder="@instagram o web"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Seguidores IG</label><input class="fi" id="comp-ig" type="number" placeholder="0"></div>
+      <div class="fg"><label class="fl">Rating Google</label><input class="fi" id="comp-rating" type="number" step="0.1" placeholder="4.5"></div>
+    </div>
+    <div class="fg"><label class="fl">Observación</label><textarea class="ft" id="comp-notes" placeholder="¿Qué hacen bien?"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('comp-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitComp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="eval-modal">
+  <div class="modal">
+    <div class="modal-title">Evaluar acción</div>
+    <div id="eval-title" style="font-size:13px;color:var(--text2);margin-bottom:16px"></div>
+    <div class="fg" style="margin-bottom:14px">
+      <label class="fl">Calificación del resultado (1–10)</label>
+      <div class="stars" id="eval-stars" style="flex-wrap:wrap;gap:4px">
+        <span class="star" onclick="setEvalRating(1)">★</span><span class="star" onclick="setEvalRating(2)">★</span><span class="star" onclick="setEvalRating(3)">★</span><span class="star" onclick="setEvalRating(4)">★</span><span class="star" onclick="setEvalRating(5)">★</span><span class="star" onclick="setEvalRating(6)">★</span><span class="star" onclick="setEvalRating(7)">★</span><span class="star" onclick="setEvalRating(8)">★</span><span class="star" onclick="setEvalRating(9)">★</span><span class="star" onclick="setEvalRating(10)">★</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">1 = no funcionó · 10 = excelente</div>
+    </div>
+    <div class="fg"><label class="fl">¿Qué pasó? ¿Qué aprendiste?</label><textarea class="ft" id="eval-comment" placeholder="Describí el resultado real..."></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('eval-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitEval()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+const S = {
+  user: { name:'Nico', role:'Admin', key:'nico' },
+  revRating: 0, evalRating: 0, evalId: null,
+  contentFilter: 'all', taskFilter: 'all',
+  charts: {}
+};
+
+// ── USER SWITCH ───────────────────────────────────────────
+const USERS = [
+  { name:'Nico', role:'Admin', key:'nico' },
+  { name:'Lucía', role:'Marketing', key:'lucia' }
+];
+function switchUser() {
+  const idx = USERS.findIndex(u => u.key === S.user.key);
+  S.user = USERS[(idx + 1) % USERS.length];
+  document.getElementById('uname').textContent = S.user.name;
+  document.getElementById('urole').textContent = S.user.role;
+  const dot = document.getElementById('udot');
+  dot.textContent = S.user.name[0];
+  dot.className = 'user-dot ' + S.user.key;
+  toast('Usuario: ' + S.user.name);
+}
+
+// ── NAV ───────────────────────────────────────────────────
+const TITLES = { dashboard:'Dashboard', tasks:'Tareas', campaigns:'Campañas', social:'Redes Sociales', content:'Contenido & Drive', actions:'Acciones MKT', reviews:'Reseñas & SEO', competitors:'Competidores', reports:'Reportes', tickets:'Tickets', notes:'Notas' };
+function nav(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x => { if (x.getAttribute('onclick')?.includes("'" + p + "'")) x.classList.add('active'); });
+  document.getElementById('page-title').textContent = TITLES[p] || p;
+  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')) };
+  if (loaders[p]) loaders[p]();
+}
+
+// ── API ───────────────────────────────────────────────────
+async function api(method, path, body) {
+  try {
+    const o = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) o.body = JSON.stringify(body);
+    return await (await fetch(path, o)).json();
+  } catch(e) { return null; }
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// ── FORMAT ────────────────────────────────────────────────
+const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n || 0);
+const fmtD = s => s ? new Date(s).toLocaleDateString('es-UY', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '–';
+const fmtM = n => '$U ' + parseFloat(n || 0).toLocaleString('es-UY', { minimumFractionDigits:0, maximumFractionDigits:0 });
+
+// ── LOAD DATA ─────────────────────────────────────────────
+async function loadData() {
+  const d = await api('GET', '/api/mkt/data');
+  if (d) { renderDashboard(d); renderCampaignsData(d); renderSocialData(d); }
+  loadTaskBadge();
+  loadTicketBadge();
+}
+
+async function refreshData() {
+  document.querySelector('.btn-refresh').textContent = '↻ Actualizando...';
+  const r = await api('POST', '/api/mkt/refresh');
+  if (r) { const d = r.data || r; renderDashboard(d); renderCampaignsData(d); renderSocialData(d); toast('✓ Datos actualizados'); }
+  else toast('Error al actualizar');
+  document.querySelector('.btn-refresh').textContent = '↻ Actualizar';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+function renderDashboard(d) {
+  const w = d.currentWeek || {}, m = w.meta || {}, ig = w.instagram || {};
+  const cpl = m.leads > 0 ? m.cpl : 59;
+  document.getElementById('k-cpl').textContent = fmtM(cpl);
+  document.getElementById('k-leads').textContent = m.leads || 0;
+  document.getElementById('k-ig').textContent = ig.followers ? fmt(ig.followers) : '–';
+  if (d.updatedAt) document.getElementById('last-ts').textContent = 'Act. ' + fmtD(d.updatedAt);
+  api('GET', '/api/mkt/reviews').then(rv => {
+    if (!rv) return;
+    document.getElementById('k-rev').textContent = rv.summary?.total || 0;
+    document.getElementById('k-rev-avg').textContent = '★ ' + (rv.summary?.avg || '–');
+  });
+  const leads = m.leads || 0, target = 100;
+  const pct = Math.min(100, Math.round(leads / target * 100));
+  document.getElementById('obj-label').textContent = leads + ' / ' + target + ' leads';
+  document.getElementById('obj-pct').textContent = pct + '%';
+  document.getElementById('obj-bar').style.width = pct + '%';
+  const days = Math.max(0, Math.round((new Date(new Date().getFullYear(), 7, 15) - new Date()) / 86400000));
+  document.getElementById('obj-days').textContent = days + ' días hasta mediados de agosto';
+  buildCplChart(d);
+  loadTasks();
+}
+
+function buildCplChart(d) {
+  const bm = d.byMonth || {}, labels = [], values = [];
+  Object.entries(bm).sort().forEach(([m, md]) => md.weeks?.forEach((w, i) => { labels.push(m + ' S' + (i+1)); values.push(w.meta?.cpl || 0); }));
+  if (!labels.length) { labels.push('Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'); values.push(47, 47, 52, 55, 59, 59); }
+  const ctx = document.getElementById('chart-cpl');
+  if (S.charts.cpl) S.charts.cpl.destroy();
+  S.charts.cpl = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'CPL ($U)', data: values, borderColor: '#B8733A', backgroundColor: 'rgba(184,115,58,0.08)', tension: 0.4, fill: true, pointBackgroundColor: '#B8733A', pointRadius: 4, pointHoverRadius: 6 },
+      { label: 'Objetivo', data: labels.map(() => 47), borderColor: 'rgba(61,122,74,0.5)', borderDash: [6,3], pointRadius: 0, tension: 0 }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#7A5C35', boxWidth:12, font:{ size:11 } } } }, scales:{ x:{ grid:{ display:false }, ticks:{ color:'#A88860', font:{ size:10 } } }, y:{ grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ color:'#A88860', font:{ size:10 } } } } }
+  });
+}
+
+// ── CAMPAIGNS DATA ────────────────────────────────────────
+function renderCampaignsData(d) {
+  const w = d.currentWeek || {}, camps = w.campaigns || [];
+  if (d.updatedAt) document.getElementById('camp-ts').textContent = fmtD(d.updatedAt);
+  if (!camps.length) return;
+  const tbody = document.getElementById('camp-tbody');
+  tbody.innerHTML = camps.map(c => {
+    const cls = c.cpl > 55 ? 'red' : c.cpl > 47 ? 'yellow' : 'green';
+    return `<tr><td>${c.name}</td><td><span class="badge ${c.status==='ACTIVE'?'green':'gray'}">${c.status}</span></td><td>${c.leads}</td><td><span class="badge ${cls}">${c.leads > 0 ? fmtM(c.cpl) : '–'}</span></td><td>${fmtM(c.spend)}</td><td>${fmt(c.reach)}</td></tr>`;
+  }).join('');
+  buildCampaignsChart(camps);
+}
+
+function buildCampaignsChart(camps) {
+  // Usar datos del brief si no hay API
+  const data = camps.length ? camps : [
+    { name: 'Masajes Junio', cpl: 67.83, spend: 4069, leads: 60 },
+    { name: 'Masajes-Mensajes', cpl: 52.03, spend: 2133, leads: 41 },
+    { name: 'Tráfico al perfil', cpl: 1.24, spend: 1918, leads: 0 },
+    { name: 'Mensajes + Adulto ⭐', cpl: 47.07, spend: 31536, leads: 670 }
+  ];
+  const active = data.filter(c => c.leads > 0 || c.cpl > 0);
+  const labels = active.map(c => c.name.length > 20 ? c.name.substring(0,19)+'…' : c.name);
+  const cpls = active.map(c => c.cpl || 0);
+  const spends = active.map(c => c.spend || 0);
+  const ctx = document.getElementById('chart-campaigns');
+  if (!ctx) return;
+  if (S.charts.campaigns) S.charts.campaigns.destroy();
+  S.charts.campaigns = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'CPL ($U)', data: cpls, backgroundColor: cpls.map(v => v > 55 ? 'rgba(176,64,64,0.7)' : v > 47 ? 'rgba(160,120,48,0.7)' : 'rgba(61,122,74,0.7)'), borderRadius: 5, yAxisID: 'y' },
+        { label: 'Inversión ($U)', data: spends, backgroundColor: 'rgba(184,115,58,0.15)', borderColor: 'rgba(184,115,58,0.5)', borderWidth: 1, type: 'line', tension: 0.3, yAxisID: 'y2', pointRadius: 5, pointBackgroundColor: 'rgba(184,115,58,0.7)' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:'#7A5C35', boxWidth:12, font:{ size:11 } } } },
+      scales: {
+        x: { grid: { display:false }, ticks: { color:'#A88860', font:{ size:10 } } },
+        y: { position:'left', grid: { color:'rgba(0,0,0,0.04)' }, ticks: { color:'#A88860', font:{ size:10 } }, title: { display:true, text:'CPL ($U)', color:'#A88860', font:{ size:10 } } },
+        y2: { position:'right', grid: { display:false }, ticks: { color:'#B8733A', font:{ size:10 } }, title: { display:true, text:'Inversión ($U)', color:'#B8733A', font:{ size:10 } } }
+      }
+    }
+  });
+}
+
+// ── SOCIAL ────────────────────────────────────────────────
+function renderSocialData(d) {
+  const w = d.currentWeek || {}, ig = w.instagram || {}, fb = w.facebook || {};
+  document.getElementById('ig-followers').textContent = fmt(ig.followers || 0);
+  document.getElementById('ig-posts').textContent = ig.mediaCount || 0;
+  document.getElementById('ig-reach').textContent = fmt(ig.reach || 0);
+  document.getElementById('ig-impressions').textContent = fmt(ig.impressions || 0);
+  document.getElementById('fb-fans').textContent = fmt(fb.fans || 0);
+  document.getElementById('fb-reach').textContent = fmt(fb.reach || 0);
+  document.getElementById('fb-impressions').textContent = fmt(fb.impressions || 0);
+  const bm = d.byMonth || {}, labels = [], igD = [], fbD = [];
+  Object.entries(bm).sort().forEach(([m, md]) => { const l = md.weeks?.[md.weeks.length-1]; if (l) { labels.push(m); igD.push(l.instagram?.followers || 0); fbD.push(l.facebook?.fans || 0); }});
+  const ctx = document.getElementById('chart-social');
+  if (S.charts.social) S.charts.social.destroy();
+  S.charts.social = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels.length ? labels : ['–'], datasets: [{ label:'IG Seguidores', data: igD.length ? igD : [0], borderColor:'#B8733A', tension:.4, pointRadius:4 }, { label:'FB Fans', data: fbD.length ? fbD : [0], borderColor:'#3A6FA0', tension:.4, pointRadius:4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#7A5C35', boxWidth:12, font:{ size:11 } } } }, scales:{ x:{ grid:{ display:false }, ticks:{ color:'#A88860', font:{ size:10 } } }, y:{ grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ color:'#A88860', font:{ size:10 } } } } }
+  });
+}
+
+// ── TASKS ─────────────────────────────────────────────────
+async function loadTasks() {
+  const tasks = await api('GET', '/api/mkt/tasks') || [];
+  renderTasks(tasks);
+  updateTaskBadge(tasks.filter(t => !t.done).length);
+  renderTasksPreview(tasks);
+}
+
+function renderTasksPreview(tasks) {
+  const pending = tasks.filter(t => !t.done).slice(0, 4);
+  const el = document.getElementById('dash-tasks-preview');
+  if (!pending.length) { el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-text">Sin tareas pendientes ✓</div></div>'; return; }
+  el.innerHTML = pending.map(t => `
+    <div class="task-item">
+      <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
+      <div style="flex:1">
+        <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
+        <div style="display:flex;gap:6px;margin-top:3px"><span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span><span style="font-size:10px;color:var(--text3)">${t.category || ''}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderTasks(tasks) {
+  const list = document.getElementById('tasks-list');
+  if (!list) return;
+  const filtered = S.taskFilter === 'all' ? tasks : S.taskFilter === 'done' ? tasks.filter(t => t.done) : tasks.filter(t => !t.done);
+  const pending = tasks.filter(t => !t.done).length;
+  const stats = document.getElementById('tasks-stats');
+  if (stats) stats.innerHTML = `Pendientes: <strong style="color:var(--gold)">${pending}</strong><br>Completadas: <strong style="color:var(--green)">${tasks.filter(t=>t.done).length}</strong><br>Total: <strong>${tasks.length}</strong>`;
+  if (!filtered.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">☐</div><div class="empty-text">Sin tareas en esta categoría</div></div>'; return; }
+  list.innerHTML = filtered.map(t => `
+    <div class="task-item" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)">
+      <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
+      <div style="flex:1">
+        <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
+        <div style="display:flex;gap:8px;margin-top:5px;align-items:center">
+          <span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>
+          <span class="badge ${t.priority === 'high' ? 'red' : t.priority === 'low' ? 'gray' : 'yellow'}" style="font-size:10px">${t.priority}</span>
+          <span style="font-size:11px;color:var(--text3)">${t.category || ''}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">${fmtD(t.createdAt)}</span>
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="deleteTask('${t.id}')">✕</button>
+    </div>`).join('');
+}
+
+function filterTasks(f, el) { S.taskFilter = f; document.querySelectorAll('#page-tasks .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); loadTasks(); }
+async function createTask() {
+  const text = document.getElementById('task-text').value.trim();
+  if (!text) { toast('Escribí la tarea'); return; }
+  await api('POST', '/api/mkt/tasks', { text, priority: document.getElementById('task-priority').value, assignTo: document.getElementById('task-assign').value, category: document.getElementById('task-cat').value, createdBy: S.user.key });
+  document.getElementById('task-text').value = '';
+  toast('✓ Tarea creada');
+  loadTasks();
+}
+async function toggleTask(id) { await api('PATCH', '/api/mkt/tasks/' + id, { toggle: true }); loadTasks(); }
+async function deleteTask(id) { await api('DELETE', '/api/mkt/tasks/' + id); loadTasks(); }
+async function loadTaskBadge() { const t = await api('GET', '/api/mkt/tasks') || []; updateTaskBadge(t.filter(x => !x.done).length); }
+function updateTaskBadge(n) { const b = document.getElementById('task-badge'); b.style.display = n > 0 ? 'inline-block' : 'none'; b.textContent = n; }
+
+// ── CONTENT ───────────────────────────────────────────────
+async function loadContent() { const items = await api('GET', '/api/mkt/content') || []; renderContent(items); }
+function renderContent(items) {
+  const f = S.contentFilter === 'all' ? items : items.filter(i => i.tipo === S.contentFilter);
+  const icons = { imagen:'🖼', reel:'🎬', video:'📹', documento:'📄' };
+  document.getElementById('content-grid').innerHTML = f.length ? f.map(i => `<div class="ccard"><div class="cthumb">${icons[i.tipo]||'📁'}</div><div class="cinfo"><div class="cname" title="${i.nombre}">${i.nombre}</div><div class="cmeta">${i.red||''} · ${fmtD(i.fecha)}</div>${i.driveUrl?`<a href="${i.driveUrl}" target="_blank" style="font-size:11px;color:var(--gold);display:block;margin-top:4px">Drive →</a>`:''}</div></div>`).join('') : '<div class="empty"><div class="empty-icon">▦</div><div class="empty-text">Sin contenido</div></div>';
+  document.getElementById('content-stats').innerHTML = `Total: <strong>${items.length}</strong><br>Imágenes: <strong>${items.filter(i=>i.tipo==='imagen').length}</strong><br>Reels: <strong>${items.filter(i=>i.tipo==='reel').length}</strong><br>Videos: <strong>${items.filter(i=>i.tipo==='video').length}</strong><br>Docs: <strong>${items.filter(i=>i.tipo==='documento').length}</strong>`;
+  const now = new Date(), wk = items.filter(i => i.fecha && (now - new Date(i.fecha)) / 86400000 < 7 && new Date(i.fecha) <= now);
+  document.getElementById('content-week').innerHTML = wk.length ? wk.map(i => `<div style="margin-bottom:8px;padding:8px;background:var(--bg2);border-radius:6px"><div style="font-size:12px;font-weight:500">${i.nombre}</div><div style="font-size:11px;color:var(--text3)">${i.red||''} · ${fmtD(i.fecha)}</div></div>`).join('') : '<div style="color:var(--text3)">Sin publicaciones esta semana</div>';
+}
+function filterContent(tipo, el) { S.contentFilter = tipo; document.querySelectorAll('#page-content .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); loadContent(); }
+
+document.getElementById('fileInput').addEventListener('change', function() { if (this.files[0]) { document.getElementById('file-sel').style.display='block'; document.getElementById('file-sel').textContent='✓ '+this.files[0].name; if (!document.getElementById('up-name').value) document.getElementById('up-name').value=this.files[0].name; } });
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files; if (f[0]) { const fi = document.getElementById('fileInput'); const dt = new DataTransfer(); dt.items.add(f[0]); fi.files = dt.files; document.getElementById('file-sel').style.display='block'; document.getElementById('file-sel').textContent='✓ '+f[0].name; document.getElementById('up-name').value=f[0].name; } });
+async function uploadFile() {
+  const fi = document.getElementById('fileInput');
+  if (!fi.files[0]) { toast('Seleccioná un archivo'); return; }
+  const btn = document.getElementById('up-btn'); btn.textContent='Subiendo...'; btn.disabled=true;
+  const fd = new FormData(); fd.append('file',fi.files[0]); fd.append('nombre',document.getElementById('up-name').value||fi.files[0].name); fd.append('tipo',document.getElementById('up-tipo').value); fd.append('red',document.getElementById('up-red').value); fd.append('autor',document.getElementById('up-autor').value||'Lucía'); fd.append('descripcion',document.getElementById('up-desc').value);
+  try { const r = await fetch('/api/mkt/upload',{method:'POST',body:fd}); const data = await r.json(); if (data.ok) { toast('✓ Subido a Google Drive'); closeModal('upload-modal'); fi.value=''; document.getElementById('file-sel').style.display='none'; document.getElementById('up-name').value=''; document.getElementById('up-desc').value=''; loadContent(); } else toast('Error: '+data.error); }
+  catch(e) { toast('Error de conexión'); }
+  btn.textContent='Subir a Drive'; btn.disabled=false;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────
+async function loadActions() { const acts = await api('GET', '/api/mkt/actions') || []; renderActions(acts); }
+function renderActions(acts) {
+  const list = document.getElementById('actions-list');
+  if (!list) return;
+  list.innerHTML = acts.length ? acts.map(a => {
+    const snap = a.snapshotAtCreation?.meta || {};
+    return `<div class="action-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div style="font-size:14px;font-weight:500;margin-bottom:4px">${a.title||'–'}</div><span class="badge ${a.status==='evaluated'?'green':'yellow'}">${a.status==='evaluated'?'Evaluada':'Pendiente'}</span> <span class="badge gray">${a.type||''}</span></div>
+        <div style="display:flex;gap:7px">${a.rating?`<span style="font-size:13px;color:var(--gold);font-weight:600">${a.rating}/10</span>`:`<button class="btn btn-outline btn-sm" onclick="openEvalModal('${a.id}','${(a.title||'').replace(/'/g,'')}')">Evaluar</button>`}<button class="btn btn-danger btn-sm" onclick="deleteAction('${a.id}')">✕</button></div>
+      </div>
+      ${a.description?`<div style="font-size:12px;color:var(--text2);margin-top:7px">${a.description}</div>`:''}
+      <div class="snap-row"><div class="snap-item"><div class="snap-lbl">Inversión</div><div class="snap-val">${fmtM(snap.spend)}</div></div><div class="snap-item"><div class="snap-lbl">Leads</div><div class="snap-val">${snap.leads||0}</div></div><div class="snap-item"><div class="snap-lbl">CPL</div><div class="snap-val">${snap.cpl?fmtM(snap.cpl):'–'}</div></div></div>
+      ${a.ratingComment?`<div style="font-size:12px;color:var(--text2);background:var(--greenbg);border-radius:7px;padding:10px;margin-top:8px">${a.ratingComment}</div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-top:7px">${fmtD(a.createdAt)}</div>
+    </div>`;
+  }).join('') : '<div class="empty"><div class="empty-icon">◈</div><div class="empty-text">Registrá tu primera acción</div></div>';
+  const ev = acts.filter(a => a.rating);
+  const el = document.getElementById('actions-learning');
+  if (el) el.innerHTML = ev.length ? `Evaluadas: <strong style="color:var(--gold)">${ev.length}</strong><br>Exitosas (7-10): <strong style="color:var(--green)">${ev.filter(a=>a.rating>=7).length}</strong><br>Poco efectivas (1-4): <strong style="color:var(--red)">${ev.filter(a=>a.rating<=4).length}</strong>` : '<div style="color:var(--text3)">Evaluá tus acciones para ver patrones</div>';
+}
+async function createAction() { const t = document.getElementById('action-title').value.trim(); if (!t) { toast('Escribí la descripción'); return; } await api('POST','/api/mkt/actions',{title:t,type:document.getElementById('action-type').value,description:document.getElementById('action-desc').value,evalWeeks:document.getElementById('action-weeks').value}); document.getElementById('action-title').value=''; document.getElementById('action-desc').value=''; toast('✓ Acción registrada con snapshot'); loadActions(); }
+async function deleteAction(id) { await api('DELETE','/api/mkt/actions/'+id); loadActions(); }
+function openEvalModal(id, title) { S.evalId=id; S.evalRating=0; document.getElementById('eval-title').textContent=title; document.getElementById('eval-comment').value=''; document.querySelectorAll('#eval-stars .star').forEach(s=>s.classList.remove('on')); openModal('eval-modal'); }
+function setEvalRating(n) { S.evalRating=n; document.querySelectorAll('#eval-stars .star').forEach((s,i)=>s.classList.toggle('on',i<n)); }
+async function submitEval() { if (!S.evalRating) { toast('Seleccioná un puntaje'); return; } await api('PATCH','/api/mkt/actions/'+S.evalId,{rating:S.evalRating,ratingComment:document.getElementById('eval-comment').value}); closeModal('eval-modal'); toast('✓ Evaluación guardada'); loadActions(); }
+
+// ── REVIEWS ───────────────────────────────────────────────
+function setRating(n) { S.revRating=n; document.querySelectorAll('#modal-stars .star').forEach((s,i)=>s.classList.toggle('on',i<n)); }
+async function loadReviews() { const d = await api('GET','/api/mkt/reviews') || { reviews:[], summary:{} }; renderRevSummary(d.summary, d.reviews||[]); renderRevList(d.reviews||[]); }
+function renderRevSummary(sum, revs) {
+  const avg = sum?.avg||0;
+  document.getElementById('rev-avg-big').textContent=avg?avg.toFixed(1):'–';
+  document.getElementById('rev-total').textContent=(sum?.total||0)+' reseñas';
+  document.getElementById('rev-stars-row').innerHTML=[1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(avg)?'var(--gold)':'rgba(184,115,58,0.2)'}">★</span>`).join('');
+  document.getElementById('rev-bars').innerHTML=[5,4,3,2,1].map(n=>{const c=(revs).filter(r=>r.rating===n).length;const p=sum?.total?Math.round(c/sum.total*100):0;return`<div class="rev-bar-row"><span style="width:12px;text-align:right">${n}</span><span style="color:var(--gold)">★</span><div class="rev-bar-bg"><div class="rev-bar-fill" style="width:${p}%"></div></div><span style="width:24px;text-align:right">${c}</span></div>`;}).join('');
+  const seo=avg>=4.5?'Excelente para SEO local':avg>=4?'Bueno, apuntá a 4.5+':avg>=3?'Mejorable — pedí más reseñas':'Crítico — respondé las críticas';
+  document.getElementById('rev-seo').innerHTML=`<div style="color:var(--gold);font-weight:500;margin-bottom:6px">${seo}</div><div>Google Maps prioriza 4.5+ ⭐ y +50 reseñas</div><div style="margin-top:4px">GEO: reseñas con keywords mejoran posición en IA</div>`;
+}
+function renderRevList(revs) {
+  document.getElementById('reviews-list').innerHTML=revs.length?revs.map(r=>`<div class="rev-item"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><div><div style="font-size:13px;font-weight:500">${r.name||'Anónimo'}</div><div>${[1,2,3,4,5].map(i=>`<span style="color:${i<=r.rating?'var(--gold)':'rgba(184,115,58,0.2)'}">★</span>`).join('')}</div></div><div style="display:flex;gap:6px"><span class="badge ${r.source==='google'?'blue':'gray'}">${r.source||'–'}</span><button class="btn btn-danger btn-sm" onclick="deleteReview('${r.id}')">✕</button></div></div>${r.text?`<div style="font-size:12px;color:var(--text2)">"${r.text}"</div>`:''}<div style="font-size:11px;color:var(--text3);margin-top:5px">${fmtD(r.date||r.createdAt)}</div></div>`).join(''):'<div class="empty"><div class="empty-icon">★</div><div class="empty-text">Sin reseñas registradas</div></div>';
+}
+async function submitReview() { if (!S.revRating) { toast('Seleccioná una calificación'); return; } await api('POST','/api/mkt/reviews',{name:document.getElementById('rev-name').value,rating:S.revRating,text:document.getElementById('rev-text').value,source:document.getElementById('rev-src').value,date:document.getElementById('rev-date').value}); closeModal('review-modal'); S.revRating=0; document.querySelectorAll('#modal-stars .star').forEach(s=>s.classList.remove('on')); document.getElementById('rev-name').value=''; document.getElementById('rev-text').value=''; toast('✓ Reseña guardada'); loadReviews(); }
+async function deleteReview(id) { await api('DELETE','/api/mkt/reviews/'+id); loadReviews(); }
+
+// ── COMPETITORS ───────────────────────────────────────────
+async function loadCompetitors() {
+  const items = await api('GET','/api/mkt/competitors') || [];
+  document.getElementById('competitors-list').innerHTML=items.length?items.map(c=>`<div class="comp-card"><div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:500">${c.name}</div><div style="font-size:11px;color:var(--gold)">${c.url||''}</div></div><button class="btn btn-danger btn-sm" onclick="deleteComp('${c.id}')">✕</button></div><div style="display:flex;gap:16px;margin:8px 0"><div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${fmt(c.igFollowers||0)}</strong> seg. IG</div><div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${c.googleRating||'–'} ⭐</strong> Google</div></div>${c.notes?`<div style="font-size:12px;color:var(--text2)">${c.notes}</div>`:''}<div style="margin-top:10px;display:flex;gap:7px"><input class="fi" style="flex:1;padding:6px 10px;font-size:12px" id="cu-${c.id}" placeholder="Agregar observación..."><button class="btn btn-outline btn-sm" onclick="updateComp('${c.id}')">+</button></div>${c.updates?.length?`<div style="font-size:11px;color:var(--text3);margin-top:6px">${fmtD(c.updates[0].at)}: ${c.updates[0].text}</div>`:''}</div>`).join(''):'<div class="empty"><div class="empty-icon">◐</div><div class="empty-text">Agregá tu primer competidor</div></div>';
+}
+async function submitComp() { const n=document.getElementById('comp-name').value.trim(); if(!n){toast('Ingresá un nombre');return;} await api('POST','/api/mkt/competitors',{name:n,url:document.getElementById('comp-url').value,igFollowers:parseInt(document.getElementById('comp-ig').value)||0,googleRating:parseFloat(document.getElementById('comp-rating').value)||0,notes:document.getElementById('comp-notes').value}); closeModal('comp-modal'); ['comp-name','comp-url','comp-ig','comp-rating','comp-notes'].forEach(id=>document.getElementById(id).value=''); toast('✓ Competidor agregado'); loadCompetitors(); }
+async function updateComp(id) { const i=document.getElementById('cu-'+id); if(!i.value.trim())return; await api('PATCH','/api/mkt/competitors/'+id,{update:i.value}); toast('✓ Guardado'); loadCompetitors(); }
+async function deleteComp(id) { await api('DELETE','/api/mkt/competitors/'+id); loadCompetitors(); }
+
+// ── TICKETS ───────────────────────────────────────────────
+async function loadTickets() {
+  const tickets = await api('GET','/api/mkt/tickets') || [];
+  const open = tickets.filter(t => t.status !== 'closed');
+  document.getElementById('tickets-list').innerHTML=open.length?open.map(t=>`<div class="tkt"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div class="tkt-title">${t.title}</div><div style="display:flex;gap:6px;margin-top:4px"><span class="badge ${t.priority==='high'?'red':t.priority==='normal'?'yellow':'gray'}">${t.priority}</span><span class="badge blue">${t.type}</span></div></div><button class="btn btn-outline btn-sm" onclick="closeTicket('${t.id}')">✓ Resolver</button></div>${t.description?`<div class="tkt-desc">${t.description}</div>`:''}<div class="tkt-foot"><span class="tkt-meta">#${t.id.slice(-6)} · ${fmtD(t.createdAt)} · ${t.author||'equipo'}</span></div></div>`).join(''):'<div class="empty"><div class="empty-icon">◫</div><div class="empty-text">Sin tickets abiertos</div></div>';
+  updateTicketBadge(open.length);
+}
+async function loadTicketBadge() { const t = await api('GET','/api/mkt/tickets') || []; updateTicketBadge(t.filter(x=>x.status!=='closed').length); }
+function updateTicketBadge(n) { const b=document.getElementById('ticket-badge'); b.style.display=n>0?'inline-block':'none'; b.textContent=n; }
+async function createTicket() { const t=document.getElementById('tkt-title').value.trim(); if(!t){toast('Escribí un título');return;} await api('POST','/api/mkt/tickets',{title:t,description:document.getElementById('tkt-desc').value,priority:document.getElementById('tkt-pri').value,type:document.getElementById('tkt-type').value,author:S.user.name}); ['tkt-title','tkt-desc'].forEach(id=>document.getElementById(id).value=''); toast('✓ Ticket enviado — Nico recibe WhatsApp'); loadTickets(); }
+async function closeTicket(id) { await api('PATCH','/api/mkt/tickets/'+id,{status:'closed'}); toast('✓ Resuelto'); loadTickets(); }
+
+// ── NOTES ─────────────────────────────────────────────────
+async function loadNotes() {
+  const notes = await api('GET','/api/mkt/notes') || [];
+  const colors = { observacion:'#B8733A', accion:'#3A6FA0', idea:'#8A60A0', resultado:'#3D7A4A' };
+  document.getElementById('notes-list').innerHTML=notes.length?notes.map(n=>`<div class="note-card" style="border-left-color:${colors[n.type]||'var(--gold)'}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;color:${colors[n.type]||'var(--gold)'}">${n.type||'nota'}</span><div style="display:flex;align-items:center;gap:7px"><span style="font-size:11px;color:var(--text3)">${fmtD(n.createdAt)} · ${n.author||'–'}</span><button class="btn btn-danger btn-sm" onclick="deleteNote('${n.id}')">✕</button></div></div><div class="note-text">${n.text||''}</div>${n.comments?.length?`<div class="comment-thread">${n.comments.map(c=>`<div class="comment-item"><strong style="color:var(--gold)">${c.author}</strong>: ${c.text} <span style="float:right;opacity:.5">${fmtD(c.at)}</span></div>`).join('')}</div>`:''}<div class="comment-add"><input class="fi" style="flex:1;padding:5px 9px;font-size:12px" id="nc-${n.id}" placeholder="Comentar..."><button class="btn btn-outline btn-sm" onclick="addComment('${n.id}')">+</button></div></div>`).join(''):'<div class="empty"><div class="empty-icon">◧</div><div class="empty-text">Sin notas aún</div></div>';
+}
+async function createNote() { const t=document.getElementById('note-text').value.trim(); if(!t){toast('Escribí algo');return;} await api('POST','/api/mkt/notes',{type:document.getElementById('note-type').value,text:t,author:S.user.name}); document.getElementById('note-text').value=''; toast('✓ Nota guardada'); loadNotes(); }
+async function deleteNote(id) { await api('DELETE','/api/mkt/notes/'+id); loadNotes(); }
+async function addComment(id) { const i=document.getElementById('nc-'+id); if(!i.value.trim())return; await api('POST','/api/mkt/notes/'+id+'/comment',{text:i.value,author:S.user.name}); i.value=''; loadNotes(); }
+
+// ── REPORTS ───────────────────────────────────────────────
+async function loadReport(type, el) {
+  if (el) { document.querySelectorAll('#page-reports .tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); }
+  if (type === 'analysis') { loadWeeklyAnalysis(); return; }
+  const rc = document.getElementById('report-content');
+  const now = new Date(); let d;
+  if (type==='weekly') { d=await api('GET','/api/mkt/reports/weekly'); const m=d?.data?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Semanal</span><span class="ts">${fmtD(d?.generatedAt)}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">${[['Inversión',fmtM(m.spend)],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl):'–'],['Alcance',fmt(m.reach||0)]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
+  else if (type==='monthly') { const month=now.toISOString().substring(0,7); d=await api('GET','/api/mkt/reports/monthly?month='+month); const m=d?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Mensual — ${month}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">${[['Inversión',fmtM(m.spend)],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl):'–'],['Notas',d?.notes||0],['Acciones',d?.actions||0],['Tickets',d?.tickets||0]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
+  else { const qN=type.replace('q',''); d=await api('GET',`/api/mkt/reports/quarterly?q=${qN}&year=${now.getFullYear()}`); const t=d?.total||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte ${d?.quarter} ${d?.year}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">${[['Inversión total',fmtM(t.spend)],['Leads totales',t.leads||0],['CPL promedio',t.leads>0?fmtM(t.cpl):'–']].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div>${(d?.months||[]).map(m=>{const md=d?.byMonth[m]||{};return`<div style="display:flex;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px;margin-bottom:8px;font-size:13px"><span style="font-weight:500">${m}</span><span style="color:var(--text2)">${fmtM(md.spend)} · ${md.leads||0} leads</span></div>`;}).join('')}</div></div>`; }
+}
+
+// ── WEEKLY ANALYSIS (from Cowork scheduled task) ──────────
+async function loadWeeklyAnalysis() {
+  const rc = document.getElementById('report-content');
+  rc.innerHTML = '<div class="empty"><div class="empty-icon">🍋</div><div class="empty-text">Cargando análisis semanal...</div></div>';
+  const d = await api('GET', '/api/mkt/weekly-report');
+  if (!d || !d.content) {
+    rc.innerHTML = `<div class="card"><div class="card-head"><span class="card-title">🍋 Análisis Semanal Cowork</span></div><div class="card-body"><div style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:12px">📅</div><div style="font-size:14px;color:var(--text2);margin-bottom:8px">Sin análisis disponible aún</div><div style="font-size:12px;color:var(--text3)">El análisis semanal se genera automáticamente cada lunes a las 9am.<br>También podés ejecutarlo manualmente desde la tarea programada en Cowork.</div></div></div></div>`;
+    return;
+  }
+  // Renderizar markdown como HTML básico
+  const md = d.content
+    .replace(/^# (.+)$/gm, '<h2 style="font-family:var(--font);font-size:18px;color:var(--text);margin:20px 0 10px">$1</h2>')
+    .replace(/^## (.+)$/gm, '<h3 style="font-size:14px;font-weight:600;color:var(--gold);margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/🔴/g, '<span style="color:var(--red)">🔴</span>')
+    .replace(/🟡/g, '<span style="color:var(--yellow)">🟡</span>')
+    .replace(/🟢/g, '<span style="color:var(--green)">🟢</span>')
+    .replace(/✅/g, '<span style="color:var(--green)">✅</span>')
+    .replace(/❌/g, '<span style="color:var(--red)">❌</span>')
+    .replace(/\n\n/g, '</p><p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px">')
+    .replace(/\n/g, '<br>');
+  rc.innerHTML = `<div class="card"><div class="card-head"><span class="card-title">🍋 Análisis Semanal</span><span class="ts">${d.receivedAt ? fmtD(d.receivedAt) : '–'}</span></div><div class="card-body"><p style="font-size:13px;color:var(--text2);line-height:1.7">${md}</p></div></div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('rev-date').value = new Date().toISOString().split('T')[0];
+loadData();
+setInterval(() => { loadTaskBadge(); loadTicketBadge(); }, 90000);
+</script>
+</body>
+</html>
