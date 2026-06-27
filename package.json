@@ -1,7 +1,7 @@
 {
   "name": "citrino-mkt-platform",
   "version": "2.0.0",
-  "description": "Citrino Bienestar – Marketing Platform",
+  "description": "Citrino Bienestar - Marketing Platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
