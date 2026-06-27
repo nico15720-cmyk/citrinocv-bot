@@ -21,6 +21,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Health check (Railway) ───────────────────────────────────
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+
 // ── Multer (uploads en memoria para luego subir a Drive) ─────
 const upload = multer({
   storage: multer.memoryStorage(),
