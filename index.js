@@ -101,7 +101,10 @@ async function refreshMetaData() {
 
   const mktData = readJSON('mkt-data.json', { weeks: [], currentWeek: {}, updatedAt: null });
 
-  if (!token) { console.warn('[MKT] META_ACCESS_TOKEN no configurado'); return; }
+  if (!token) {
+    console.warn('[MKT] META_ACCESS_TOKEN no configurado');
+    return { ok: false, error: 'META_ACCESS_TOKEN no está en Railway → Variables. Agregalo para activar Meta Ads.' };
+  }
 
   // Helper: extrae leads/conversaciones de cualquier tipo de campaña Meta
   function extractLeads(actions) {
@@ -136,6 +139,13 @@ async function refreshMetaData() {
       `access_token=${token}&limit=20`
     );
     const adsData = await adsRes.json();
+
+    // Detectar error de Meta API (token expirado, inválido, etc.)
+    if (adsData.error) {
+      const msg = adsData.error.message || JSON.stringify(adsData.error);
+      console.error('[MKT] Meta API error:', msg);
+      return { ok: false, error: `Meta API: ${msg}` };
+    }
 
     let totalSpend = 0, totalLeads = 0, totalReach = 0, totalImpressions = 0;
     const campaigns = [];
@@ -229,7 +239,11 @@ async function refreshMetaData() {
 
     writeJSON('mkt-data.json', mktData);
     console.log('[MKT] Datos actualizados:', new Date().toISOString());
-  } catch (e) { console.error('[MKT] Error refresh:', e.message); }
+    return { ok: true };
+  } catch (e) {
+    console.error('[MKT] Error refresh:', e.message);
+    return { ok: false, error: e.message };
+  }
 }
 
 // ── AI Insights con Claude ────────────────────────────────────
@@ -519,8 +533,46 @@ app.get('/api/mkt/data', (req, res) => {
 });
 
 app.post('/api/mkt/refresh', async (req, res) => {
-  await refreshMetaData();
-  res.json({ ok: true, data: readJSON('mkt-data.json') });
+  const metaResult = await refreshMetaData();
+  let reviewsResult = { ok: true, skipped: true };
+  if (process.env.GOOGLE_PLACE_ID && process.env.GOOGLE_API_KEY) {
+    try { await refreshReviews(); reviewsResult = { ok: true }; }
+    catch(e) { reviewsResult = { ok: false, error: e.message }; }
+  }
+  const data = readJSON('mkt-data.json');
+  res.json({
+    ok: metaResult?.ok !== false,
+    metaError: metaResult?.ok === false ? metaResult.error : null,
+    reviewsError: reviewsResult?.ok === false ? reviewsResult.error : null,
+    data
+  });
+});
+
+// ── System Status ────────────────────────────────────────────
+app.get('/api/mkt/status', (req, res) => {
+  const has = (k) => !!process.env[k];
+  const mask = (k) => process.env[k] ? process.env[k].substring(0, 6) + '...' : null;
+  const mktData = readJSON('mkt-data.json', {});
+  const reviewsData = readJSON('mkt-reviews.json', {});
+  res.json({
+    variables: {
+      META_ACCESS_TOKEN:     { ok: has('META_ACCESS_TOKEN'),     preview: mask('META_ACCESS_TOKEN') },
+      META_AD_ACCOUNT_ID:    { ok: has('META_AD_ACCOUNT_ID'),    preview: mask('META_AD_ACCOUNT_ID') },
+      GOOGLE_CLIENT_ID:      { ok: has('GOOGLE_CLIENT_ID'),      preview: mask('GOOGLE_CLIENT_ID') },
+      GOOGLE_PLACE_ID:       { ok: has('GOOGLE_PLACE_ID'),       preview: mask('GOOGLE_PLACE_ID') },
+      GOOGLE_API_KEY:        { ok: has('GOOGLE_API_KEY'),        preview: mask('GOOGLE_API_KEY') },
+      ANTHROPIC_API_KEY:     { ok: has('ANTHROPIC_API_KEY'),     preview: mask('ANTHROPIC_API_KEY') },
+      GOOGLE_SERVICE_ACCOUNT_JSON: { ok: has('GOOGLE_SERVICE_ACCOUNT_JSON'), preview: has('GOOGLE_SERVICE_ACCOUNT_JSON') ? 'configurado' : null },
+      GOOGLE_SHEETS_ID:      { ok: has('GOOGLE_SHEETS_ID'),      preview: mask('GOOGLE_SHEETS_ID') },
+      WHATSAPP_PHONE_NUMBER_ID: { ok: has('WHATSAPP_PHONE_NUMBER_ID'), preview: mask('WHATSAPP_PHONE_NUMBER_ID') },
+    },
+    dataStatus: {
+      metaLastUpdated: mktData.updatedAt || null,
+      reviewsCount: reviewsData.reviews?.length || 0,
+      reviewsRating: reviewsData.summary?.googleRating || reviewsData.summary?.avg || null,
+      reviewsLastUpdated: reviewsData.summary?.lastUpdated || null,
+    }
+  });
 });
 
 // ── AI Insights ──────────────────────────────────────────────

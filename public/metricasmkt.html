@@ -994,6 +994,13 @@ body.is-admin .admin-only-block{display:block}
 
 <!-- ADMIN PAGE -->
 <div class="page" id="page-admin" style="display:none">
+  <!-- Estado del sistema -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head"><span class="card-title">🔌 Estado del sistema</span><button class="btn btn-outline btn-sm" onclick="loadSystemStatus()">↺ Refresh</button></div>
+    <div class="card-body" id="system-status-body">
+      <div class="empty"><div class="empty-text">Cargando estado...</div></div>
+    </div>
+  </div>
   <div class="grid-2">
     <div class="card">
       <div class="card-head"><span class="card-title">⚙ Prompt del motor IA</span><span class="ts">Solo Admin</span></div>
@@ -1172,7 +1179,7 @@ function nav(p, pushState = true) {
   el.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(x => { if (x.getAttribute('onclick')?.includes("'" + p + "'")) x.classList.add('active'); });
   document.getElementById('page-title').textContent = TITLES[p] || p;
-  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')), admin:() => { loadAIPrompt(); loadWhitelist(); } };
+  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')), admin:() => { loadAIPrompt(); loadWhitelist(); loadSystemStatus(); } };
   if (loaders[p]) loaders[p]();
   // history API — permite back/forward del browser
   if (pushState) {
@@ -1322,8 +1329,18 @@ async function loadData() {
 async function refreshData() {
   document.querySelector('.btn-refresh').textContent = '↻ Actualizando...';
   const r = await api('POST', '/api/mkt/refresh');
-  if (r) { const d = r.data || r; renderDashboard(d); renderCampaignsData(d); renderSocialData(d); toast('✓ Datos actualizados'); }
-  else toast('Error al actualizar');
+  if (r) {
+    const d = r.data || r;
+    renderDashboard(d); renderCampaignsData(d); renderSocialData(d); checkAlerts(d);
+    if (r.metaError) {
+      toast('⚠ Meta: ' + r.metaError, 'error');
+    } else {
+      toast('✓ Datos actualizados');
+    }
+    if (r.reviewsError) toast('⚠ Reviews: ' + r.reviewsError, 'warn');
+  } else {
+    toast('Error al actualizar datos');
+  }
   document.querySelector('.btn-refresh').textContent = '↻ Actualizar';
 }
 
@@ -1975,6 +1992,46 @@ Analizás los datos semanales de campañas Meta Ads, Instagram y Facebook.
 Respondé SIEMPRE con JSON válido: { "estado": "bien|atencion|critico", "resumen": "...", "insights": ["...","...","..."], "acciones": ["...","..."], "alerta": "..." }
 Sé específico con números y contexto del negocio. Máx 600 tokens.`;
 
+async function loadSystemStatus() {
+  const el = document.getElementById('system-status-body');
+  if (!el) return;
+  const s = await api('GET', '/api/mkt/status');
+  if (!s) { el.innerHTML = '<div class="empty"><div class="empty-text">No se pudo cargar el estado</div></div>'; return; }
+  const vars = s.variables || {};
+  const ds = s.dataStatus || {};
+  const row = (label, v, hint) => {
+    const icon = v.ok ? '✅' : '❌';
+    const preview = v.preview ? `<span style="font-size:10px;color:var(--text3);margin-left:6px">${v.preview}</span>` : '';
+    const hintHtml = hint ? `<span style="font-size:10px;color:var(--text3);margin-left:6px">${hint}</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">${icon} <span style="font-size:12px;font-weight:500">${label}</span>${preview}${hintHtml}</div>`;
+  };
+  const metaAge = ds.metaLastUpdated ? Math.round((Date.now()-new Date(ds.metaLastUpdated))/3600000) + 'h atrás' : 'sin datos';
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase">Variables Railway</div>
+        ${row('META_ACCESS_TOKEN', vars.META_ACCESS_TOKEN, vars.META_ACCESS_TOKEN?.ok ? '' : '→ ir a developers.facebook.com')}
+        ${row('META_AD_ACCOUNT_ID', vars.META_AD_ACCOUNT_ID)}
+        ${row('GOOGLE_CLIENT_ID', vars.GOOGLE_CLIENT_ID)}
+        ${row('GOOGLE_PLACE_ID', vars.GOOGLE_PLACE_ID)}
+        ${row('GOOGLE_API_KEY', vars.GOOGLE_API_KEY)}
+        ${row('ANTHROPIC_API_KEY', vars.ANTHROPIC_API_KEY)}
+        ${row('GOOGLE_SERVICE_ACCOUNT_JSON', vars.GOOGLE_SERVICE_ACCOUNT_JSON)}
+        ${row('GOOGLE_SHEETS_ID', vars.GOOGLE_SHEETS_ID)}
+        ${row('WHATSAPP_PHONE_NUMBER_ID', vars.WHATSAPP_PHONE_NUMBER_ID)}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase">Estado de datos</div>
+        <div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">📊 Meta Ads: <strong>${metaAge}</strong></div>
+        <div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">⭐ Reseñas: <strong>${ds.reviewsCount} reviews</strong> · ${ds.reviewsRating ? '★'+parseFloat(ds.reviewsRating).toFixed(1) : 'sin rating'}</div>
+        <div style="font-size:12px;padding:4px 0;color:var(--text3)">${ds.reviewsLastUpdated ? 'Reviews act. ' + fmtD(ds.reviewsLastUpdated) : 'Reviews: sin sincronizar'}</div>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-outline btn-sm" style="justify-content:center" onclick="refreshData()">↻ Actualizar Meta + Reviews</button>
+          <button class="btn btn-outline btn-sm" style="justify-content:center;color:var(--blue)" onclick="window.open('https://developers.facebook.com/tools/explorer/','_blank')">🔑 Renovar token Meta</button>
+        </div>
+      </div>
+    </div>`;
+}
 async function loadAIPrompt() {
   const r = await api('GET', '/api/mkt/admin/prompt');
   const prompt = r?.prompt || DEFAULT_AI_PROMPT;
