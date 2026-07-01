@@ -941,6 +941,90 @@ app.delete('/api/mkt/competitors/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Analizar web de un competidor (PageSpeed)
+app.post('/api/mkt/competitors/:id/analyze-web', async (req, res) => {
+  const items = readJSON('mkt-competitors.json', []);
+  const comp = items.find(c => c.id === req.params.id);
+  if (!comp || !comp.url) return res.json({ ok: false, error: 'No URL configurada para este competidor' });
+
+  try {
+    const url = comp.url.startsWith('http') ? comp.url : 'https://' + comp.url;
+    const r = await fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile`);
+    const d = await r.json();
+    if (d.error) return res.json({ ok: false, error: d.error.message });
+    const cats = d.lighthouseResult?.categories || {};
+    comp.webScores = {
+      performance: Math.round((cats.performance?.score || 0) * 100),
+      seo:         Math.round((cats.seo?.score || 0) * 100),
+      accessibility: Math.round((cats.accessibility?.score || 0) * 100),
+      analyzedAt: new Date().toISOString()
+    };
+    writeJSON('mkt-competitors.json', items);
+    res.json({ ok: true, scores: comp.webScores });
+  } catch(e) { res.json({ ok: false, error: e.message }); }
+});
+
+// Análisis competitivo completo con IA
+app.post('/api/mkt/competitors/analyze-ai', async (req, res) => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.json({ ok: false, error: 'ANTHROPIC_API_KEY no configurada' });
+
+  const competitors = readJSON('mkt-competitors.json', []);
+  const ps = readJSON('mkt-pagespeed.json', {});
+  const reviews = readJSON('mkt-reviews.json', { summary: {} });
+
+  if (!competitors.length) return res.json({ ok: false, error: 'No hay competidores cargados' });
+
+  const citrino = {
+    name: 'Citrino',
+    seoScore: ps.current?.mobile?.scores?.seo || '?',
+    performance: ps.current?.mobile?.scores?.performance || '?',
+    reviews: reviews.summary?.googleRating || reviews.summary?.avg || '?',
+    totalReviews: reviews.summary?.googleTotal || reviews.summary?.total || 0
+  };
+
+  const compList = competitors.map(c =>
+    `- ${c.name}: ${c.igFollowers || 0} seg IG, ${c.googleRating || '?'}⭐ Google, web SEO: ${c.webScores?.seo || '?'}, velocidad: ${c.webScores?.performance || '?'}`
+  ).join('\n');
+
+  const prompt = `Sos el analista de marketing de Citrino Centro Integral de Bienestar (masajes terapéuticos, Montevideo).
+Analizá la posición competitiva vs los competidores.
+
+CITRINO:
+- SEO web: ${citrino.seoScore}/100 | Velocidad: ${citrino.performance}/100
+- Google: ${citrino.reviews}⭐ (${citrino.totalReviews} reseñas)
+
+COMPETIDORES:
+${compList}
+
+Respondé en JSON sin markdown:
+{
+  "posicion": "lider|competitivo|desventaja",
+  "fortalezas": ["fortaleza 1 (máx 12 palabras)", "fortaleza 2"],
+  "amenazas": ["amenaza 1", "amenaza 2"],
+  "acciones": ["acción concreta 1", "acción 2", "acción 3"],
+  "resumen": "Una frase de posicionamiento (máx 20 palabras)"
+}`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await r.json();
+    if (data.error) return res.json({ ok: false, error: data.error.message });
+    const analysis = JSON.parse(data.content[0].text.trim());
+    analysis.generatedAt = new Date().toISOString();
+    writeJSON('mkt-comp-analysis.json', analysis);
+    res.json({ ok: true, analysis });
+  } catch(e) { res.json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/mkt/competitors/analysis', (req, res) => {
+  res.json(readJSON('mkt-comp-analysis.json', null));
+});
+
 // ────────────────────────────────────────────────────────────
 //  API: CONTENIDO (calendario)
 // ────────────────────────────────────────────────────────────

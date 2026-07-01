@@ -469,6 +469,7 @@ body.is-admin .admin-only-block{display:block}
         <div class="kpi"><div class="kpi-lbl">Alcance pagado</div><div class="kpi-val" id="k-reach">–</div><div class="kpi-sub">Meta Ads (todas las redes)</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
         <div class="kpi"><div class="kpi-lbl">Seguidores IG</div><div class="kpi-val" id="k-ig">–</div><div class="kpi-sub">Instagram orgánico</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
         <div class="kpi"><div class="kpi-lbl">Reseñas</div><div class="kpi-val" id="k-rev">–</div><div class="kpi-sub" id="k-rev-avg">★ –</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">SEO score</div><div class="kpi-val" id="k-seo">–</div><div class="kpi-sub" id="k-seo-sub">PageSpeed · mobile</div><div class="kpi-accent" id="k-seo-accent" style="background:var(--blue)"></div></div>
       </div>
 
       <div class="grid-main">
@@ -707,51 +708,26 @@ body.is-admin .admin-only-block{display:block}
         </div>
       </div>
 
-      <div class="grid-2" style="margin-bottom:16px">
-        <div class="card">
-          <div class="card-head"><span class="card-title">Rendimiento web — citrinobienestar.uy</span><button class="btn btn-outline btn-sm" onclick="loadPageSpeed()">🔍 Analizar</button></div>
-          <div class="card-body" id="pagespeed-data">
-            <div style="font-size:12px;color:var(--text2)">Analizá la velocidad y SEO técnico de tu sitio. Hacé clic en "Analizar" (usa Google PageSpeed API, sin costo).</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+          <span class="card-title">Rendimiento web — citrinobienestar.uy</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span id="ps-updated" style="font-size:11px;color:var(--text3)"></span>
+            <button class="btn btn-outline btn-sm" onclick="refreshPageSpeedNow()" id="btn-ps-refresh">↻ Actualizar</button>
           </div>
         </div>
-        <div class="card">
-          <div class="card-head"><span class="card-title">Conectar más fuentes</span></div>
-          <div class="card-body">
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
-                <div><div style="font-size:12px;font-weight:600">Google Search Console</div><div style="font-size:11px;color:var(--text3)">Clicks, posición, impresiones de búsqueda</div></div>
-                <span class="badge gray">Pendiente</span>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
-                <div><div style="font-size:12px;font-weight:600">Google My Business</div><div style="font-size:11px;color:var(--text3)">Reseñas automáticas, vistas del perfil</div></div>
-                <span class="badge gray">Pendiente</span>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
-                <div><div style="font-size:12px;font-weight:600">Google Analytics (GA4)</div><div style="font-size:11px;color:var(--text3)">Tráfico web, sesiones, conversiones</div></div>
-                <span class="badge gray">Pendiente</span>
-              </div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">Para conectar: vas a necesitar las credenciales de Google API. Pedíselas a Nico o configurá en Railway.</div>
-            </div>
-          </div>
+        <div class="card-body" id="pagespeed-data">
+          <div class="empty"><div class="empty-text">⏳ Cargando datos...</div></div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-head"><span class="card-title">Competidores en redes — Seguimiento manual</span></div>
-        <div class="card-body">
-          <div style="overflow-x:auto">
-          <table>
-            <thead><tr><th>Cuenta</th><th>Red</th><th>Seguidores (últ. check)</th><th>Registro actual</th><th>Diferencia</th><th>Último update</th></tr></thead>
-            <tbody id="listening-comp-table">
-              <tr><td>@esencial__spa</td><td>Instagram</td><td>23.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-esencial" onblur="saveCompCheck('esencial', this.value)"></td><td id="comp-diff-esencial" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
-              <tr><td>@sense_spa</td><td>Instagram</td><td>20.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-sense" onblur="saveCompCheck('sense', this.value)"></td><td id="comp-diff-sense" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
-              <tr><td>@bohosensegt</td><td>Instagram</td><td>16.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-boho" onblur="saveCompCheck('boho', this.value)"></td><td id="comp-diff-boho" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
-              <tr><td>@vita_recovery</td><td>Instagram</td><td>8.512</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-vita" onblur="saveCompCheck('vita', this.value)"></td><td id="comp-diff-vita" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
-              <tr><td>@browsjm</td><td>Instagram</td><td>–</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-brows" onblur="saveCompCheck('brows', this.value)"></td><td id="comp-diff-brows" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
-            </tbody>
-          </table>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px">Actualizá manualmente cada semana — anotá los seguidores que ves en cada perfil para trackear la evolución.</div>
+        <div class="card-head">
+          <span class="card-title">Análisis competitivo — IA</span>
+          <button class="btn btn-outline btn-sm" onclick="runCompAIAnalysis()" id="btn-comp-ai">🍋 Analizar con IA</button>
+        </div>
+        <div class="card-body" id="comp-ai-analysis">
+          <div style="font-size:12px;color:var(--text2)">Agregá competidores en la sección <strong>Competidores</strong> con sus URLs y luego hacé clic en "Analizar con IA" para ver posicionamiento relativo.</div>
         </div>
       </div>
     </div>
@@ -825,8 +801,33 @@ body.is-admin .admin-only-block{display:block}
     <!-- COMPETITORS -->
     <div class="page" id="page-competitors">
       <div class="grid-main">
-        <div><div class="sec-head"><div class="sec-title">Competidores</div><button class="btn btn-primary btn-sm" onclick="openModal('comp-modal')">+ Agregar</button></div><div id="competitors-list"></div></div>
-        <div class="card"><div class="card-head"><span class="card-title">Análisis</span></div><div class="card-body" id="comp-analysis" style="font-size:13px;color:var(--text2)">Agregá competidores para ver el análisis comparativo.</div></div>
+        <div>
+          <div class="sec-head">
+            <div class="sec-title">Competidores</div>
+            <div style="display:flex;gap:7px">
+              <button class="btn btn-outline btn-sm" onclick="analyzeAllCompWebSEO()" id="btn-analyze-all">🔍 Analizar webs</button>
+              <button class="btn btn-primary btn-sm" onclick="openModal('comp-modal')">+ Agregar</button>
+            </div>
+          </div>
+          <div id="competitors-list"></div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">🍋 Análisis competitivo IA</span>
+              <button class="btn btn-outline btn-sm" onclick="runCompAIAnalysis()" id="btn-comp-ai2">Generar</button>
+            </div>
+            <div class="card-body" id="comp-analysis" style="font-size:13px;color:var(--text2)">
+              <div class="empty"><div class="empty-text">Agregá competidores y hacé clic en "Generar"</div></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <div class="card-head"><span class="card-title">Comparativa web</span></div>
+            <div class="card-body" id="comp-web-compare" style="font-size:12px;color:var(--text2)">
+              <div class="empty"><div class="empty-text">Usá "Analizar webs" para ver scores</div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1221,7 +1222,8 @@ async function loadData() {
   if (d) { renderDashboard(d); renderCampaignsData(d); renderSocialData(d); }
   loadTaskBadge();
   loadTicketBadge();
-  loadAIInsights(); // Cargar insights previos si existen
+  loadAIInsights();
+  loadPageSpeed(); // Carga datos cacheados de PageSpeed (incluye KPI en dashboard)
 }
 
 async function refreshData() {
@@ -1262,30 +1264,112 @@ async function refreshListening() {
 }
 
 // ── PAGESPEED ─────────────────────────────────────────────
+function scoreColor(s) { return s >= 90 ? 'var(--green)' : s >= 50 ? 'var(--yellow)' : 'var(--red)'; }
+function scoreCircle(val, label) {
+  const c = scoreColor(val||0);
+  return `<div style="text-align:center">
+    <div style="width:64px;height:64px;border-radius:50%;border:4px solid ${c};display:flex;align-items:center;justify-content:center;margin:0 auto 6px;background:var(--bg2)">
+      <span style="font-size:18px;font-weight:700;color:${c}">${val||'–'}</span>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;line-height:1.3">${label}</div>
+  </div>`;
+}
+function sparkline(history, key) {
+  if (!history || history.length < 2) return '';
+  const vals = history.map(h => h.mobile?.scores?.[key] || 0);
+  const max = Math.max(...vals, 1), min = Math.min(...vals);
+  const W = 100, H = 28;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * W;
+    const y = H - ((v - min) / (max - min || 1)) * (H - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const last = vals[vals.length - 1];
+  const prev = vals[vals.length - 2];
+  const trend = last > prev ? '↑' : last < prev ? '↓' : '→';
+  const trendC = last > prev ? 'var(--green)' : last < prev ? 'var(--red)' : 'var(--text3)';
+  return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+    <svg width="${W}" height="${H}" style="overflow:visible"><polyline points="${pts}" fill="none" stroke="${scoreColor(last)}" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    <span style="font-size:11px;color:${trendC};font-weight:600">${trend} ${last}</span>
+  </div>`;
+}
+
 async function loadPageSpeed() {
   const el = document.getElementById('pagespeed-data');
-  if (el) el.innerHTML = '<div class="empty"><div class="empty-text">⏳ Analizando citrinobienestar.uy...</div></div>';
-  try {
-    const r = await api('GET', '/api/mkt/pagespeed');
-    if (!r || r.error) {
-      if (el) el.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">Error: ${r?.error || 'No se pudo analizar'}</div>`;
-      return;
-    }
-    const scores = r.categories || {};
-    const scoreColor = s => s >= 90 ? 'var(--green)' : s >= 50 ? 'var(--yellow)' : 'var(--red)';
-    if (el) el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;margin-bottom:14px">
-        ${Object.entries(scores).map(([k, v]) => `
-          <div style="text-align:center;padding:10px;background:var(--bg2);border-radius:8px">
-            <div style="font-size:24px;font-weight:700;color:${scoreColor(v)}">${v}</div>
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${k}</div>
-          </div>`).join('')}
-      </div>
-      <div style="font-size:11px;color:var(--text3)">Análisis Google PageSpeed · ${r.strategy || 'mobile'} · ${new Date().toLocaleDateString('es-UY')}</div>
-      ${r.opportunities?.length ? `<div style="margin-top:10px;font-size:12px;color:var(--text2)"><strong>Oportunidades de mejora:</strong><ul style="margin-top:6px;margin-left:16px">${r.opportunities.map(o => `<li style="margin-bottom:4px">${o}</li>`).join('')}</ul></div>` : ''}`;
-  } catch(e) {
-    if (el) el.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">Error: ${e.message}</div>`;
+  if (!el) return;
+  const d = await api('GET', '/api/mkt/pagespeed/data');
+  if (!d || !d.current) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text2)">No hay datos todavía. El cron corre a las 7am — o hacé clic en "Actualizar".</div>';
+    return;
   }
+  renderPageSpeedData(d);
+}
+function renderPageSpeedData(d) {
+  const el = document.getElementById('pagespeed-data');
+  if (!el || !d?.current) return;
+  const mob = d.current.mobile?.scores || {};
+  const desk = d.current.desktop?.scores || {};
+  const upd = d.current.updatedAt ? new Date(d.current.updatedAt).toLocaleDateString('es-UY') : '';
+  const psSub = document.getElementById('ps-updated');
+  if (psSub) psSub.textContent = upd ? `Actualizado: ${upd}` : '';
+
+  // Update dashboard KPI
+  const kSeo = document.getElementById('k-seo');
+  const kSeoSub = document.getElementById('k-seo-sub');
+  const kSeoAccent = document.getElementById('k-seo-accent');
+  if (kSeo) { kSeo.textContent = mob.seo || '–'; }
+  if (kSeoSub) kSeoSub.textContent = `Velocidad: ${mob.performance||'–'} · mobile`;
+  if (kSeoAccent) kSeoAccent.style.background = scoreColor(mob.seo||0);
+
+  const opps = d.current.mobile?.opportunities || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+      <div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📱 Mobile</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          ${scoreCircle(mob.seo,'SEO')}
+          ${scoreCircle(mob.performance,'Velocidad')}
+          ${scoreCircle(mob.accessibility,'Accesib.')}
+          ${scoreCircle(mob.bestPractices,'Prácticas')}
+        </div>
+      </div>
+      <div style="border-left:1px solid var(--border);padding-left:16px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🖥️ Desktop</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          ${scoreCircle(desk.seo,'SEO')}
+          ${scoreCircle(desk.performance,'Velocidad')}
+          ${scoreCircle(desk.accessibility,'Accesib.')}
+          ${scoreCircle(desk.bestPractices,'Prácticas')}
+        </div>
+      </div>
+    </div>
+    ${d.history?.length >= 2 ? `
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Tendencia (${d.history.length} días)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+        ${[['seo','SEO'],['performance','Velocidad'],['accessibility','Accesibilidad'],['bestPractices','Prácticas']].map(([k,l]) =>
+          `<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">${l}</div>${sparkline(d.history,k)}</div>`
+        ).join('')}
+      </div>
+    </div>` : ''}
+    ${opps.length ? `
+    <div style="border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Oportunidades de mejora</div>
+      ${opps.map(o => `<div style="display:flex;gap:8px;align-items:flex-start;padding:7px;background:var(--bg2);border-radius:6px;margin-bottom:6px;font-size:12px">
+        <span style="color:var(--yellow);font-size:14px">⚡</span>
+        <div><strong>${o.title}</strong>${o.impact ? `<span style="color:var(--text3)"> · ${o.impact}</span>` : ''}</div>
+      </div>`).join('')}
+    </div>` : ''}`;
+}
+
+async function refreshPageSpeedNow() {
+  const btn = document.getElementById('btn-ps-refresh');
+  if (btn) { btn.textContent = '⏳ Analizando...'; btn.disabled = true; }
+  toast('Analizando citrinobienestar.uy — puede tardar 30s...');
+  const r = await api('POST', '/api/mkt/pagespeed/refresh');
+  if (r?.ok) renderPageSpeedData(r.data);
+  else toast('Error al analizar');
+  if (btn) { btn.textContent = '↻ Actualizar'; btn.disabled = false; }
 }
 
 // ── REVIEWS SYNC ──────────────────────────────────────────
@@ -1293,15 +1377,24 @@ async function syncGoogleReviews() {
   const btn = document.getElementById('btn-rev-sync');
   if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
   try {
+    // Intentar con la nueva función de refresh (Places API)
     const r = await api('POST', '/api/mkt/reviews/sync-google');
     if (r?.ok) {
-      toast(`✓ ${r.count || 0} reseñas sincronizadas desde Google`);
+      toast(`✓ Reseñas sincronizadas desde Google`);
       loadReviews();
+    } else if (r?.error?.includes('GOOGLE_PLACE_ID') || r?.error?.includes('no configurado')) {
+      toast('Para activar: agregá GOOGLE_PLACE_ID y GOOGLE_API_KEY en Railway → Variables');
     } else {
-      toast(r?.error || 'Google My Business no configurado aún. Usá "+ Agregar" por ahora.');
+      toast(r?.error || 'Error al sincronizar');
     }
   } catch(e) { toast('Error: ' + e.message); }
   if (btn) { btn.textContent = '↻ Sync Google'; btn.disabled = false; }
+}
+
+async function loadReviews() {
+  const d = await api('GET','/api/mkt/reviews') || { reviews:[], summary:{} };
+  renderRevSummary(d.summary, d.reviews||[]);
+  renderRevList(d.reviews||[]);
 }
 
 // ── COMPETITOR TRACKING ───────────────────────────────────
@@ -1845,8 +1938,115 @@ async function deleteReview(id) { await api('DELETE','/api/mkt/reviews/'+id); lo
 // ── COMPETITORS ───────────────────────────────────────────
 async function loadCompetitors() {
   const items = await api('GET','/api/mkt/competitors') || [];
-  document.getElementById('competitors-list').innerHTML=items.length?items.map(c=>`<div class="comp-card"><div style="display:flex;justify-content:space-between"><div><div style="font-size:14px;font-weight:500">${c.name}</div><div style="font-size:11px;color:var(--gold)">${c.url||''}</div></div><button class="btn btn-danger btn-sm" onclick="deleteComp('${c.id}')">✕</button></div><div style="display:flex;gap:16px;margin:8px 0"><div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${fmt(c.igFollowers||0)}</strong> seg. IG</div><div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${c.googleRating||'–'} ⭐</strong> Google</div></div>${c.notes?`<div style="font-size:12px;color:var(--text2)">${c.notes}</div>`:''}<div style="margin-top:10px;display:flex;gap:7px"><input class="fi" style="flex:1;padding:6px 10px;font-size:12px" id="cu-${c.id}" placeholder="Agregar observación..."><button class="btn btn-outline btn-sm" onclick="updateComp('${c.id}')">+</button></div>${c.updates?.length?`<div style="font-size:11px;color:var(--text3);margin-top:6px">${fmtD(c.updates[0].at)}: ${c.updates[0].text}</div>`:''}</div>`).join(''):'<div class="empty"><div class="empty-icon">◐</div><div class="empty-text">Agregá tu primer competidor</div></div>';
+  document.getElementById('competitors-list').innerHTML = items.length ? items.map(c => {
+    const ws = c.webScores;
+    const webBadge = ws ? `<div style="display:flex;gap:8px;margin-top:6px">
+      <span class="badge" style="background:${scoreColor(ws.seo)};color:#fff;border:none">SEO ${ws.seo}</span>
+      <span class="badge" style="background:${scoreColor(ws.performance)};color:#fff;border:none">⚡ ${ws.performance}</span>
+      <span style="font-size:10px;color:var(--text3);align-self:center">${ws.analyzedAt ? new Date(ws.analyzedAt).toLocaleDateString('es-UY') : ''}</span>
+    </div>` : c.url ? `<button class="btn btn-outline btn-sm" style="margin-top:6px;font-size:11px" onclick="analyzeCompWeb('${c.id}')">🔍 Analizar web</button>` : '';
+    return `<div class="comp-card">
+      <div style="display:flex;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:500">${c.name}</div>
+          <div style="font-size:11px;color:var(--gold)">${c.url||''}</div>
+        </div>
+        <div style="display:flex;gap:5px;align-items:flex-start">
+          ${c.url ? `<button class="btn btn-outline btn-sm" onclick="analyzeCompWeb('${c.id}')" title="Re-analizar web">🔍</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteComp('${c.id}')">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin:8px 0">
+        <div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${fmt(c.igFollowers||0)}</strong> seg. IG</div>
+        <div style="font-size:12px;color:var(--text2)"><strong style="color:var(--text)">${c.googleRating||'–'} ⭐</strong> Google</div>
+      </div>
+      ${webBadge}
+      ${c.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px">${c.notes}</div>`:''}
+      <div style="margin-top:10px;display:flex;gap:7px">
+        <input class="fi" style="flex:1;padding:6px 10px;font-size:12px" id="cu-${c.id}" placeholder="Agregar observación...">
+        <button class="btn btn-outline btn-sm" onclick="updateComp('${c.id}')">+</button>
+      </div>
+      ${c.updates?.length?`<div style="font-size:11px;color:var(--text3);margin-top:6px">${fmtD(c.updates[0].at)}: ${c.updates[0].text}</div>`:''}
+    </div>`;
+  }).join('') : '<div class="empty"><div class="empty-icon">◐</div><div class="empty-text">Agregá tu primer competidor</div></div>';
+
+  // Load cached AI analysis
+  const cached = await api('GET', '/api/mkt/competitors/analysis');
+  if (cached) renderCompAnalysis(cached);
+
+  // Update compare table
+  updateCompWebCompare(items);
 }
+
+function updateCompWebCompare(items) {
+  const el = document.getElementById('comp-web-compare');
+  if (!el) return;
+  const withScores = items.filter(c => c.webScores);
+  if (!withScores.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Usá "Analizar webs" para ver scores</div></div>'; return; }
+  el.innerHTML = `<table style="width:100%;font-size:12px"><thead><tr style="color:var(--text3);font-size:10px"><th style="text-align:left;padding:4px 0">Competidor</th><th>SEO</th><th>Velocidad</th><th>IG</th></tr></thead><tbody>
+    ${withScores.sort((a,b)=>(b.webScores.seo||0)-(a.webScores.seo||0)).map(c=>`<tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 0;font-weight:500">${c.name}</td>
+      <td style="text-align:center;color:${scoreColor(c.webScores.seo)};font-weight:700">${c.webScores.seo}</td>
+      <td style="text-align:center;color:${scoreColor(c.webScores.performance)};font-weight:700">${c.webScores.performance}</td>
+      <td style="text-align:center;color:var(--text2)">${fmt(c.igFollowers||0)}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function analyzeCompWeb(id) {
+  toast('Analizando web del competidor...');
+  const r = await api('POST', `/api/mkt/competitors/${id}/analyze-web`);
+  if (r?.ok) { toast(`✓ Web analizada: SEO ${r.scores.seo} · Velocidad ${r.scores.performance}`); loadCompetitors(); }
+  else toast(r?.error || 'Error analizando web');
+}
+
+async function analyzeAllCompWebSEO() {
+  const btn = document.getElementById('btn-analyze-all');
+  if (btn) { btn.textContent = '⏳ Analizando...'; btn.disabled = true; }
+  const items = await api('GET','/api/mkt/competitors') || [];
+  const withUrl = items.filter(c => c.url);
+  if (!withUrl.length) { toast('Ningún competidor tiene URL cargada'); if (btn) { btn.textContent = '🔍 Analizar webs'; btn.disabled = false; } return; }
+  toast(`Analizando ${withUrl.length} webs — puede tardar unos segundos...`);
+  for (const c of withUrl) {
+    await api('POST', `/api/mkt/competitors/${c.id}/analyze-web`);
+  }
+  await loadCompetitors();
+  if (btn) { btn.textContent = '🔍 Analizar webs'; btn.disabled = false; }
+  toast('✓ Análisis web completado');
+}
+
+async function runCompAIAnalysis() {
+  const btns = ['btn-comp-ai','btn-comp-ai2'].map(id => document.getElementById(id)).filter(Boolean);
+  btns.forEach(b => { b.textContent = '⏳ Analizando...'; b.disabled = true; });
+  const r = await api('POST', '/api/mkt/competitors/analyze-ai');
+  if (r?.ok) { renderCompAnalysis(r.analysis); toast('✓ Análisis competitivo generado'); }
+  else toast(r?.error || 'Error generando análisis');
+  btns.forEach(b => { b.textContent = b.id === 'btn-comp-ai' ? '🍋 Analizar con IA' : 'Generar'; b.disabled = false; });
+}
+
+function renderCompAnalysis(a) {
+  const posColor = { lider:'var(--green)', competitivo:'var(--yellow)', desventaja:'var(--red)' };
+  const posLabel = { lider:'Líder del mercado', competitivo:'Posición competitiva', desventaja:'En desventaja' };
+  const html = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="padding:5px 12px;border-radius:20px;background:${posColor[a.posicion]||'var(--blue)'};color:#fff;font-size:12px;font-weight:600">${posLabel[a.posicion]||a.posicion}</div>
+      <span style="font-size:12px;color:var(--text2)">${a.resumen}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div><div style="font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Fortalezas</div>
+        ${(a.fortalezas||[]).map(f=>`<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border)">✓ ${f}</div>`).join('')}
+      </div>
+      <div><div style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Amenazas</div>
+        ${(a.amenazas||[]).map(x=>`<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border)">⚠ ${x}</div>`).join('')}
+      </div>
+    </div>
+    <div><div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Acciones recomendadas</div>
+      ${(a.acciones||[]).map((ac,i)=>`<div style="font-size:12px;color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border)">${i+1}. ${ac}</div>`).join('')}
+    </div>
+    ${a.generatedAt?`<div style="font-size:10px;color:var(--text3);margin-top:8px">Generado: ${new Date(a.generatedAt).toLocaleString('es-UY')}</div>`:''}`;
+  ['comp-analysis','comp-ai-analysis'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+}
+
 async function submitComp() { const n=document.getElementById('comp-name').value.trim(); if(!n){toast('Ingresá un nombre');return;} await api('POST','/api/mkt/competitors',{name:n,url:document.getElementById('comp-url').value,igFollowers:parseInt(document.getElementById('comp-ig').value)||0,googleRating:parseFloat(document.getElementById('comp-rating').value)||0,notes:document.getElementById('comp-notes').value}); closeModal('comp-modal'); ['comp-name','comp-url','comp-ig','comp-rating','comp-notes'].forEach(id=>document.getElementById(id).value=''); toast('✓ Competidor agregado'); loadCompetitors(); }
 async function updateComp(id) { const i=document.getElementById('cu-'+id); if(!i.value.trim())return; await api('PATCH','/api/mkt/competitors/'+id,{update:i.value}); toast('✓ Guardado'); loadCompetitors(); }
 async function deleteComp(id) { await api('DELETE','/api/mkt/competitors/'+id); loadCompetitors(); }
