@@ -1049,7 +1049,7 @@ async function initAuth() {
   // try session first
   const saved = sessionStorage.getItem('citrino_user');
   if (saved) {
-    try { applyUser(JSON.parse(saved)); return; } catch(e) {}
+    try { applyUser(JSON.parse(saved)); document.getElementById('login-screen').classList.add('hidden'); return; } catch(e) {}
   }
   // load Google client ID from server
   try {

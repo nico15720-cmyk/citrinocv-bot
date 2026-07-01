@@ -339,11 +339,95 @@ async function exportToSheets() {
   } catch(e) { console.warn('[Sheets] Error export:', e.message); }
 }
 
-// ── Cron: lunes 9am Montevideo (UTC-3 → 12:00 UTC) ──────────
-cron.schedule('0 12 * * 1', async () => {
+// ── PageSpeed + historial 30 días ────────────────────────────
+async function refreshPageSpeed() {
+  const url = 'https://citrinobienestar.uy';
+  function parsePS(psData, strategy) {
+    const cats = psData.lighthouseResult?.categories || {};
+    const audits = psData.lighthouseResult?.audits || {};
+    return {
+      strategy,
+      scores: {
+        performance: Math.round((cats.performance?.score || 0) * 100),
+        seo:         Math.round((cats.seo?.score || 0) * 100),
+        accessibility: Math.round((cats.accessibility?.score || 0) * 100),
+        bestPractices: Math.round((cats['best-practices']?.score || 0) * 100)
+      },
+      opportunities: Object.values(audits)
+        .filter(a => a.score !== null && a.score < 0.9 && a.details?.type === 'opportunity' && a.title)
+        .slice(0, 5)
+        .map(a => ({ title: a.title, impact: a.displayValue || '' }))
+    };
+  }
+  try {
+    const [mobRes, deskRes] = await Promise.all([
+      fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile`),
+      fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=desktop`)
+    ]);
+    const [mob, desk] = await Promise.all([mobRes.json(), deskRes.json()]);
+    const saved = readJSON('mkt-pagespeed.json', { current: null, history: [] });
+    const entry = {
+      date: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString(),
+      mobile: parsePS(mob, 'mobile'),
+      desktop: parsePS(desk, 'desktop')
+    };
+    saved.current = entry;
+    saved.history = (saved.history || []).filter(h => h.date !== entry.date);
+    saved.history.push(entry);
+    if (saved.history.length > 30) saved.history = saved.history.slice(-30);
+    writeJSON('mkt-pagespeed.json', saved);
+    console.log('[PageSpeed] Mobile:', entry.mobile.scores.performance, '| Desktop:', entry.desktop.scores.performance);
+  } catch(e) { console.warn('[PageSpeed] Error:', e.message); }
+}
+
+// ── Reviews: Google Places API (necesita GOOGLE_PLACE_ID + GOOGLE_API_KEY) ──
+async function refreshReviews() {
+  const placeId = process.env.GOOGLE_PLACE_ID;
+  const apiKey  = process.env.GOOGLE_API_KEY;
+  if (!placeId || !apiKey) {
+    console.log('[Reviews] GOOGLE_PLACE_ID o GOOGLE_API_KEY no configurados, saltando');
+    return;
+  }
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?` +
+      `place_id=${placeId}&fields=name,rating,user_ratings_total,reviews&language=es&key=${apiKey}`
+    );
+    const data = await res.json();
+    if (data.status !== 'OK') { console.warn('[Reviews] API status:', data.status); return; }
+    const place = data.result;
+    const existing = readJSON('mkt-reviews.json', { reviews: [], summary: {} });
+    const newReviews = (place.reviews || []).map(r => ({
+      id: `gpl_${r.author_name}_${r.time}`,
+      source: 'Google',
+      author: r.author_name,
+      rating: r.rating,
+      text: r.text,
+      date: new Date(r.time * 1000).toISOString(),
+      relative: r.relative_time_description
+    }));
+    const existingIds = new Set(existing.reviews.map(r => r.id));
+    const merged = [...newReviews.filter(r => !existingIds.has(r.id)), ...existing.reviews];
+    const total = merged.length;
+    const avg = total > 0 ? parseFloat((merged.reduce((s, r) => s + (r.rating || 0), 0) / total).toFixed(1)) : 0;
+    writeJSON('mkt-reviews.json', {
+      reviews: merged,
+      summary: { total, avg, googleRating: place.rating, googleTotal: place.user_ratings_total, lastSync: new Date().toISOString() }
+    });
+    console.log('[Reviews] Total:', merged.length, '| Rating Google:', place.rating);
+  } catch(e) { console.warn('[Reviews] Error:', e.message); }
+}
+
+// ── Cron: todos los días a las 7am Montevideo ─────────────────
+cron.schedule('0 7 * * *', async () => {
+  console.log('[CRON] Actualización diaria iniciada...');
   await refreshMetaData();
+  await refreshPageSpeed();
+  await refreshReviews();
   await generateAIInsights();
   await exportToSheets();
+  console.log('[CRON] Actualización diaria completa.');
 }, { timezone: 'America/Montevideo' });
 
 // ────────────────────────────────────────────────────────────
@@ -1069,6 +1153,30 @@ app.get('/api/mkt/social-listening', async (req, res) => {
   } catch(e) {
     res.json({ ok: false, error: e.message, hashtags: [] });
   }
+});
+
+// ── Refresh all manual ───────────────────────────────────────
+app.post('/api/mkt/refresh/all', async (req, res) => {
+  res.json({ ok: true, message: 'Actualización iniciada en segundo plano' });
+  // corre async sin bloquear la respuesta
+  (async () => {
+    await refreshMetaData();
+    await refreshPageSpeed();
+    await refreshReviews();
+    await generateAIInsights();
+    await exportToSheets();
+    console.log('[REFRESH/ALL] Completado');
+  })().catch(e => console.error('[REFRESH/ALL] Error:', e.message));
+});
+
+// ── PageSpeed cached ─────────────────────────────────────────
+app.get('/api/mkt/pagespeed/data', (req, res) => {
+  res.json(readJSON('mkt-pagespeed.json', { current: null, history: [] }));
+});
+
+app.post('/api/mkt/pagespeed/refresh', async (req, res) => {
+  await refreshPageSpeed();
+  res.json({ ok: true, data: readJSON('mkt-pagespeed.json') });
 });
 
 // ────────────────────────────────────────────────────────────
