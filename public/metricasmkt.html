@@ -376,7 +376,7 @@ body.is-admin .admin-only-block{display:block}
 </head>
 <body>
 <!-- LOGIN SCREEN -->
-<div id="login-screen">
+<div id="login-screen" class="hidden">
   <div class="login-box">
     <div class="login-logo">CITRINO</div>
     <div class="login-sub">Marketing Platform</div>
@@ -446,6 +446,7 @@ body.is-admin .admin-only-block{display:block}
       <button class="btn-refresh" onclick="refreshData()">↻ Actualizar</button>
       <button class="btn-refresh" id="btn-hist" onclick="loadHistorical()" style="background:rgba(0,120,80,0.12);border-color:rgba(0,180,100,0.3);color:#00b464;margin-left:6px" title="Carga todos los datos desde enero 2026">📥 Histórico</button>
       <button class="btn-refresh" onclick="exportSheets()" style="background:rgba(58,111,160,0.1);border-color:rgba(58,111,160,0.3);color:var(--blue);margin-left:6px" title="Exportar a Google Sheets">📊 Sheets</button>
+      <button class="btn-refresh btn-logout-topbar" onclick="logout()" title="Cerrar sesión" style="margin-left:6px;background:rgba(180,60,60,0.08);border-color:rgba(180,60,60,0.25);color:var(--red)">⏻</button>
     </div>
   </div>
   <div id="content">
@@ -1087,6 +1088,7 @@ async function handleGoogleLogin(response) {
     applyUser(u);
     document.getElementById('login-screen').classList.add('hidden');
     err.classList.remove('show');
+    loadData();
   } else {
     err.textContent = 'Tu email no tiene acceso. Pedile a Nico que te habilite.';
     err.classList.add('show');
@@ -1115,13 +1117,7 @@ function applyUser(u) {
 function logout() {
   sessionStorage.removeItem('citrino_user');
   window.google?.accounts.id.disableAutoSelect();
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.body.classList.remove('is-admin');
-  // re-render button
-  window.google?.accounts.id.renderButton(
-    document.getElementById('google-signin-btn'),
-    { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280 }
-  );
+  window.location.reload();
 }
 
 // whitelist management (admin panel)
