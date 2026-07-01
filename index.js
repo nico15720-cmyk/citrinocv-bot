@@ -672,6 +672,17 @@ app.get('/api/mkt/reports/quarterly', (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
+//  REDIRECTS — secciones indexadas por Google como URLs separadas
+// ────────────────────────────────────────────────────────────
+app.get('/contacto',  (req, res) => res.redirect(301, '/#contacto'));
+app.get('/servicios', (req, res) => res.redirect(301, '/#servicios'));
+app.get('/nosotros',  (req, res) => res.redirect(301, '/#nosotros'));
+app.get('/equipo',    (req, res) => res.redirect(301, '/#equipo'));
+app.get('/metodo',    (req, res) => res.redirect(301, '/#metodo'));
+app.get('/faq',       (req, res) => res.redirect(301, '/#faq'));
+app.get('/empresas',  (req, res) => res.redirect(301, '/empresas.html'));
+
+// ────────────────────────────────────────────────────────────
 //  WHATSAPP WEBHOOK (existente del bot)
 // ────────────────────────────────────────────────────────────
 app.get('/webhook', (req, res) => {
@@ -687,6 +698,13 @@ app.post('/webhook', (req, res) => {
   // El bot principal maneja los mensajes aquí
   // Este archivo puede extenderse con la lógica completa del bot
   res.sendStatus(200);
+});
+
+// ────────────────────────────────────────────────────────────
+//  CATCH-ALL — cualquier URL desconocida vuelve al index
+// ────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ────────────────────────────────────────────────────────────
