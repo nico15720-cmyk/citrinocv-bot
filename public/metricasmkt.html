@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Citrino · Marketing</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
   --bg: #F5EFE8;
@@ -238,6 +239,37 @@ tr:hover td{background:rgba(160,110,55,0.03)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
+/* ── LOGIN SCREEN ─────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center}
+#login-screen.hidden{display:none}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:90%;max-width:360px;box-shadow:0 24px 60px rgba(100,60,20,0.12)}
+.login-logo{font-family:var(--font);font-size:28px;color:var(--gold);letter-spacing:2px;text-align:center;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--text3);text-align:center;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:28px}
+.login-err{background:var(--redbg);color:var(--red);border-radius:7px;padding:8px 12px;font-size:12px;margin-bottom:14px;display:none}
+.login-err.show{display:block}
+
+/* ── TASK PRIORITY BORDERS ────────────────────────────── */
+.task-item.priority-high{border-left:3px solid var(--red)!important}
+.task-item.priority-normal{border-left:3px solid var(--gold)!important}
+.task-item.priority-low{border-left:3px solid var(--border)!important}
+.task-period-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bluebg);color:var(--blue);margin-top:4px}
+.task-period-badge.overdue{background:var(--redbg);color:var(--red)}
+.task-period-badge.done-period{background:var(--greenbg);color:var(--green)}
+.task-notes-preview{font-size:11px;color:var(--text3);margin-top:4px;font-style:italic;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── ADMIN ONLY visibility ────────────────────────────── */
+.admin-only{display:none}
+body.is-admin .admin-only{display:flex}
+body.is-admin .admin-only-block{display:block}
+.admin-only-block{display:none}
+
+/* ── TASK DETAIL MODAL ───────────────────────────────── */
+#task-detail-modal .modal{max-width:560px}
+.task-detail-notes{background:var(--bg2);border-radius:8px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;min-height:60px}
+.period-countdown{display:flex;align-items:center;gap:8px;background:var(--bluebg);border-radius:8px;padding:10px 14px;margin-top:10px}
+.period-countdown.overdue{background:var(--redbg)}
+.period-countdown.done-period{background:var(--greenbg)}
+
 /* SUGGESTIONS (brief items) */
 .suggestion-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
 .suggestion-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:5px}
@@ -343,6 +375,17 @@ tr:hover td{background:rgba(160,110,55,0.03)}
 </style>
 </head>
 <body>
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CITRINO</div>
+    <div class="login-sub">Marketing Platform</div>
+    <div class="login-err" id="login-err" style="text-align:center">Tu email no tiene acceso.<br>Pedile a Nico que te habilite.</div>
+    <div id="google-signin-btn" style="display:flex;justify-content:center;margin:8px 0 4px"></div>
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Ingresá con la cuenta Google habilitada por el admin.</p>
+  </div>
+</div>
+
 <div id="app">
 
 <!-- SIDEBAR -->
@@ -368,17 +411,20 @@ tr:hover td{background:rgba(160,110,55,0.03)}
     <div class="nav-group">Equipo</div>
     <div class="nav-item" onclick="nav('tickets')"><span class="nav-icon">◫</span> Tickets <span class="nav-badge" id="ticket-badge" style="display:none">0</span></div>
     <div class="nav-item" onclick="nav('notes')"><span class="nav-icon">◧</span> Notas</div>
+    <div class="nav-group admin-only-block">Config</div>
+    <div class="nav-item admin-only" onclick="nav('admin')" style="display:none"><span class="nav-icon">⚙</span> Admin</div>
   </nav>
   <div class="sidebar-bottom">
-    <div class="user-switcher" onclick="switchUser()">
+    <div class="user-switcher" onclick="logout()" style="cursor:pointer">
       <div class="user-row">
         <div class="user-dot" id="udot">N</div>
         <div class="user-info">
           <div class="user-nm" id="uname">Nico</div>
           <div class="user-rl" id="urole">Admin</div>
         </div>
+        <span style="font-size:16px;color:var(--text3);margin-left:auto">⏻</span>
       </div>
-      <div class="switch-hint">Clic para cambiar usuario</div>
+      <div class="switch-hint">Clic para cerrar sesión</div>
     </div>
   </div>
 </div>
@@ -512,10 +558,14 @@ tr:hover td{background:rgba(160,110,55,0.03)}
             <div class="card-body">
               <div class="fg" style="margin-bottom:10px"><label class="fl">Tarea</label><input class="fi" id="task-text" placeholder="Describí la tarea..."></div>
               <div class="form-row">
-                <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="task-priority"><option value="high">Alta</option><option value="normal" selected>Normal</option><option value="low">Baja</option></select></div>
+                <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="task-priority"><option value="high">🔴 Alta</option><option value="normal" selected>🟡 Normal</option><option value="low">⚪ Baja</option></select></div>
                 <div class="fg"><label class="fl">Asignada a</label><select class="fs" id="task-assign"><option value="nico">Nico</option><option value="lucia">Lucía</option></select></div>
               </div>
-              <div class="fg" style="margin-bottom:10px"><label class="fl">Categoría</label><select class="fs" id="task-cat"><option value="ads">Publicidad</option><option value="contenido">Contenido</option><option value="admin">Admin</option><option value="seo">SEO / Web</option><option value="otro">Otro</option></select></div>
+              <div class="form-row">
+                <div class="fg"><label class="fl">Categoría</label><select class="fs" id="task-cat"><option value="ads">Publicidad</option><option value="contenido">Contenido</option><option value="admin">Admin</option><option value="seo">SEO / Web</option><option value="campaña">Campaña</option><option value="otro">Otro</option></select></div>
+                <div class="fg"><label class="fl">Analizar en (días)</label><input class="fi" id="task-period" type="number" min="1" max="90" placeholder="ej: 7, 14, 30"></div>
+              </div>
+              <div class="fg" style="margin-bottom:12px"><label class="fl">Notas internas (opcional)</label><textarea class="ft" id="task-notes" rows="2" placeholder="Detalles, contexto, links..."></textarea></div>
               <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="createTask()">Crear tarea</button>
             </div>
           </div>
@@ -919,6 +969,68 @@ tr:hover td{background:rgba(160,110,55,0.03)}
   </div>
 </div>
 
+<!-- TASK DETAIL MODAL -->
+<div class="overlay" id="task-detail-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="tdm-title">Tarea</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap" id="tdm-meta"></div>
+    <div id="tdm-period-bar"></div>
+    <div style="margin-bottom:14px">
+      <label class="fl" style="margin-bottom:6px">Notas internas</label>
+      <div class="task-detail-notes" id="tdm-notes-view" style="cursor:pointer;min-height:50px" onclick="document.getElementById('tdm-notes-edit').style.display='block';this.style.display='none'">–</div>
+      <textarea class="ft" id="tdm-notes-edit" rows="4" style="display:none" placeholder="Agregá notas, links, contexto..."></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('task-detail-modal')">Cerrar</button>
+      <button class="btn btn-outline btn-sm" onclick="saveTaskNotes()">Guardar notas</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleTask(S._tdmId);closeModal('task-detail-modal')">Marcar completada</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div class="page" id="page-admin" style="display:none">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><span class="card-title">⚙ Prompt del motor IA</span><span class="ts">Solo Admin</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">Este es el prompt que usa Claude al generar los análisis automáticos. Podés editarlo y mejorar cómo analiza los datos de Citrino.</p>
+        <textarea class="ft" id="ai-prompt-editor" rows="12" style="font-size:12px;font-family:monospace"></textarea>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-ghost btn-sm" onclick="loadAIPrompt()">↺ Recargar</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAIPrompt()">Guardar prompt</button>
+        </div>
+        <div id="prompt-status" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">👥 Acceso por email</span><button class="btn btn-outline btn-sm" onclick="loadWhitelist()">↺</button></div>
+        <div class="card-body">
+          <div id="whitelist-list" style="margin-bottom:14px">Cargando...</div>
+          <div class="form-row" style="margin-bottom:8px">
+            <div class="fg"><label class="fl">Email Google</label><input class="fi" id="wl-email" placeholder="persona@gmail.com" type="email"></div>
+            <div class="fg"><label class="fl">Rol</label><select class="fs" id="wl-role"><option value="marketing">Marketing</option><option value="admin">Admin</option></select></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addToWhitelist()">+ Habilitar email</button>
+          <p style="font-size:11px;color:var(--text3);margin-top:10px">Solo los emails habilitados acá pueden entrar con Google Sign-In.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">🔄 Datos</span></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-outline btn-sm" style="justify-content:center" onclick="refreshData()">↻ Actualizar Meta ahora</button>
+            <button class="btn btn-outline btn-sm" style="justify-content:center;color:var(--green);border-color:rgba(61,122,74,0.3)" onclick="loadHistorical()">📥 Cargar histórico enero–hoy</button>
+            <button class="btn btn-outline btn-sm" style="justify-content:center;color:var(--blue);border-color:rgba(58,111,160,0.3)" onclick="exportSheets()">📊 Exportar a Google Sheets</button>
+            <button class="btn btn-outline btn-sm" style="justify-content:center;color:#8A60A0;border-color:rgba(138,96,160,0.3)" onclick="generateInsights()">🍋 Regenerar análisis IA</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -930,20 +1042,112 @@ const S = {
   charts: {}
 };
 
-// ── USER SWITCH ───────────────────────────────────────────
-const USERS = [
-  { name:'Nico', role:'Admin', key:'nico' },
-  { name:'Lucía', role:'Marketing', key:'lucia' }
-];
-function switchUser() {
-  const idx = USERS.findIndex(u => u.key === S.user.key);
-  S.user = USERS[(idx + 1) % USERS.length];
-  document.getElementById('uname').textContent = S.user.name;
-  document.getElementById('urole').textContent = S.user.role;
+// ── AUTH (Google Sign-In + whitelist) ─────────────────────
+let _googleClientId = null;
+
+async function initAuth() {
+  // try session first
+  const saved = sessionStorage.getItem('citrino_user');
+  if (saved) {
+    try { applyUser(JSON.parse(saved)); return; } catch(e) {}
+  }
+  // load Google client ID from server
+  try {
+    const cfg = await api('GET', '/api/mkt/auth/config');
+    _googleClientId = cfg?.clientId;
+  } catch(e) {}
+  if (!_googleClientId) {
+    // fallback: show "no configurado" message
+    document.getElementById('login-err').textContent = 'Google Sign-In no configurado. Contactá al admin.';
+    document.getElementById('login-err').classList.add('show');
+    document.getElementById('login-screen').classList.remove('hidden');
+    return;
+  }
+  // init Google Identity Services
+  window.google?.accounts.id.initialize({
+    client_id: _googleClientId,
+    callback: handleGoogleLogin,
+    auto_select: false
+  });
+  window.google?.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280 }
+  );
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+async function handleGoogleLogin(response) {
+  // response.credential is the JWT id_token
+  const r = await api('POST', '/api/mkt/auth', { credential: response.credential });
+  const err = document.getElementById('login-err');
+  if (r?.ok && r.user) {
+    const u = { name: r.user.name, role: r.user.role, key: r.user.role === 'admin' ? 'nico' : 'lucia', email: r.user.email };
+    sessionStorage.setItem('citrino_user', JSON.stringify(u));
+    applyUser(u);
+    document.getElementById('login-screen').classList.add('hidden');
+    err.classList.remove('show');
+  } else {
+    err.textContent = 'Tu email no tiene acceso. Pedile a Nico que te habilite.';
+    err.classList.add('show');
+  }
+}
+
+function applyUser(u) {
+  S.user = u;
+  document.getElementById('uname').textContent = u.name;
+  document.getElementById('urole').textContent = u.role === 'admin' ? 'Admin' : 'Marketing';
   const dot = document.getElementById('udot');
-  dot.textContent = S.user.name[0];
-  dot.className = 'user-dot ' + S.user.key;
-  toast('Usuario: ' + S.user.name);
+  dot.textContent = u.name[0];
+  dot.className = 'user-dot ' + (u.key || 'nico');
+  const isAdmin = u.role === 'admin' || u.role === 'Admin';
+  document.body.classList.toggle('is-admin', isAdmin);
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.admin-only-block').forEach(el => {
+    el.style.display = isAdmin ? 'block' : 'none';
+  });
+  const histBtn = document.getElementById('btn-hist');
+  if (histBtn) histBtn.style.display = isAdmin ? '' : 'none';
+}
+
+function logout() {
+  sessionStorage.removeItem('citrino_user');
+  window.google?.accounts.id.disableAutoSelect();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.body.classList.remove('is-admin');
+  // re-render button
+  window.google?.accounts.id.renderButton(
+    document.getElementById('google-signin-btn'),
+    { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 280 }
+  );
+}
+
+// whitelist management (admin panel)
+async function loadWhitelist() {
+  const r = await api('GET', '/api/mkt/auth/whitelist');
+  const list = r?.whitelist || [];
+  const el = document.getElementById('whitelist-list');
+  if (!el) return;
+  el.innerHTML = list.length ? list.map(u => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px">${u.email}</span>
+      <span class="badge ${u.role==='admin'?'gold':'blue'}">${u.role}</span>
+      ${u.email !== '${S.user.email}' ? `<button class="btn btn-danger btn-sm" onclick="removeFromWhitelist('${u.email}')">✕</button>` : ''}
+    </div>`).join('') : '<div style="color:var(--text3);font-size:13px">Sin emails habilitados</div>';
+}
+async function addToWhitelist() {
+  const email = document.getElementById('wl-email').value.trim().toLowerCase();
+  const role  = document.getElementById('wl-role').value;
+  if (!email || !email.includes('@')) { toast('Email inválido'); return; }
+  const r = await api('POST', '/api/mkt/auth/whitelist', { email, role });
+  if (r?.ok) { toast('✓ Email habilitado'); document.getElementById('wl-email').value = ''; loadWhitelist(); }
+  else toast('Error: ' + (r?.error || 'desconocido'));
+}
+async function removeFromWhitelist(email) {
+  if (!confirm('¿Quitar acceso a ' + email + '?')) return;
+  const r = await api('DELETE', '/api/mkt/auth/whitelist/' + encodeURIComponent(email));
+  if (r?.ok) { toast('Acceso removido'); loadWhitelist(); }
 }
 
 // ── SIDEBAR MOBILE ────────────────────────────────────────
@@ -960,18 +1164,30 @@ function closeSidebar() {
 
 
 // ── NAV ───────────────────────────────────────────────────
-const TITLES = { dashboard:'Dashboard', tasks:'Tareas', campaigns:'Campañas', social:'Redes Sociales', listening:'Social Listening', content:'Contenido & Drive', actions:'Acciones MKT', reviews:'Reseñas & SEO', competitors:'Competidores', reports:'Reportes', tickets:'Tickets', notes:'Notas' };
-function nav(p) {
+const TITLES = { dashboard:'Dashboard', tasks:'Tareas', campaigns:'Campañas', social:'Redes Sociales', listening:'Social Listening', content:'Contenido & Drive', actions:'Acciones MKT', reviews:'Reseñas & SEO', competitors:'Competidores', reports:'Reportes', tickets:'Tickets', notes:'Notas', admin:'Admin · Configuración' };
+function nav(p, pushState = true) {
+  const el = document.getElementById('page-' + p);
+  if (!el) return;
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-  document.getElementById('page-' + p).classList.add('active');
+  el.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(x => { if (x.getAttribute('onclick')?.includes("'" + p + "'")) x.classList.add('active'); });
   document.getElementById('page-title').textContent = TITLES[p] || p;
-  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')) };
+  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')), admin:() => { loadAIPrompt(); loadWhitelist(); } };
   if (loaders[p]) loaders[p]();
+  // history API — permite back/forward del browser
+  if (pushState) {
+    const url = '#' + p;
+    if (window.location.hash !== url) history.pushState({ page: p }, '', url);
+  }
   // close sidebar on mobile after nav
   if (window.innerWidth <= 768) closeSidebar();
 }
+// back/forward del navegador
+window.addEventListener('popstate', (e) => {
+  const p = e.state?.page || (window.location.hash.slice(1)) || 'dashboard';
+  nav(p, false);
+});
 
 // ── API ───────────────────────────────────────────────────
 async function api(method, path, body) {
@@ -1377,8 +1593,29 @@ function renderSocialData(d) {
 }
 
 // ── TASKS ─────────────────────────────────────────────────
+function taskPeriodInfo(t) {
+  if (!t.analysisDays || !t.createdAt) return null;
+  const start = new Date(t.createdAt);
+  const end = new Date(start.getTime() + t.analysisDays * 86400000);
+  const now = new Date();
+  const remaining = Math.ceil((end - now) / 86400000);
+  if (t.done) return { label: `Análisis completado · ${t.analysisDays}d`, cls: 'done-period' };
+  if (remaining <= 0) return { label: `⚠ Período vencido · analizar ahora`, cls: 'overdue' };
+  return { label: `⏱ ${remaining} días para analizar · vence ${fmtD(end.toISOString())}`, cls: '' };
+}
+
 async function loadTasks() {
-  const tasks = await api('GET', '/api/mkt/tasks') || [];
+  let tasks = await api('GET', '/api/mkt/tasks') || [];
+  // Marketing solo ve sus propias tareas (y las que le asignaron)
+  if (S.user.role !== 'Admin') {
+    tasks = tasks.filter(t => t.assignTo === S.user.key || t.createdBy === S.user.key);
+  }
+  // ordenar: alta prioridad primero, luego pendientes antes de completadas
+  tasks.sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const pOrder = { high: 0, normal: 1, low: 2 };
+    return (pOrder[a.priority] || 1) - (pOrder[b.priority] || 1);
+  });
   renderTasks(tasks);
   updateTaskBadge(tasks.filter(t => !t.done).length);
   renderTasksPreview(tasks);
@@ -1388,53 +1625,149 @@ function renderTasksPreview(tasks) {
   const pending = tasks.filter(t => !t.done).slice(0, 4);
   const el = document.getElementById('dash-tasks-preview');
   if (!pending.length) { el.innerHTML = '<div class="empty" style="padding:16px"><div class="empty-text">Sin tareas pendientes ✓</div></div>'; return; }
-  el.innerHTML = pending.map(t => `
-    <div class="task-item">
+  el.innerHTML = pending.map(t => {
+    const pi = taskPeriodInfo(t);
+    const prioColor = t.priority === 'high' ? 'var(--red)' : t.priority === 'low' ? 'var(--border)' : 'var(--gold)';
+    return `
+    <div class="task-item" style="border-left:3px solid ${prioColor};padding-left:10px">
       <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
-      <div style="flex:1">
+      <div style="flex:1" onclick="openTaskDetail('${t.id}')" style="cursor:pointer">
         <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
-        <div style="display:flex;gap:6px;margin-top:3px"><span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span><span style="font-size:10px;color:var(--text3)">${t.category || ''}</span></div>
+        <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
+          <span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>
+          <span style="font-size:10px;color:var(--text3)">${t.category || ''}</span>
+          ${pi ? `<span class="task-period-badge ${pi.cls}">${pi.label}</span>` : ''}
+        </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderTasks(tasks) {
   const list = document.getElementById('tasks-list');
   if (!list) return;
   const filtered = S.taskFilter === 'all' ? tasks : S.taskFilter === 'done' ? tasks.filter(t => t.done) : tasks.filter(t => !t.done);
-  const pending = tasks.filter(t => !t.done).length;
+  const pending = tasks.filter(t => !t.done);
+  const high = pending.filter(t => t.priority === 'high').length;
   const stats = document.getElementById('tasks-stats');
-  if (stats) stats.innerHTML = `Pendientes: <strong style="color:var(--gold)">${pending}</strong><br>Completadas: <strong style="color:var(--green)">${tasks.filter(t=>t.done).length}</strong><br>Total: <strong>${tasks.length}</strong>`;
+  if (stats) stats.innerHTML = `Pendientes: <strong style="color:var(--gold)">${pending.length}</strong>${high > 0 ? ` <span style="color:var(--red);font-size:11px">(${high} alta prioridad)</span>` : ''}<br>Completadas: <strong style="color:var(--green)">${tasks.filter(t=>t.done).length}</strong><br>Total: <strong>${tasks.length}</strong>`;
   if (!filtered.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">☐</div><div class="empty-text">Sin tareas en esta categoría</div></div>'; return; }
-  list.innerHTML = filtered.map(t => `
-    <div class="task-item" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)">
-      <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
+  list.innerHTML = filtered.map(t => {
+    const pi = taskPeriodInfo(t);
+    const prioColor = t.priority === 'high' ? 'var(--red)' : t.priority === 'low' ? 'var(--border)' : 'var(--gold)';
+    const prioBadge = t.priority === 'high' ? '🔴 Alta' : t.priority === 'low' ? '⚪ Baja' : '🟡 Normal';
+    return `
+    <div class="task-item priority-${t.priority}" style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${prioColor};border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer" onclick="openTaskDetail('${t.id}')">
+      <div class="task-cb ${t.done ? 'done' : ''}" onclick="event.stopPropagation();toggleTask('${t.id}')"></div>
       <div style="flex:1">
         <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
-        <div style="display:flex;gap:8px;margin-top:5px;align-items:center">
+        ${t.notes ? `<div class="task-notes-preview">${t.notes.replace(/\n/g,' ')}</div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap">
           <span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>
-          <span class="badge ${t.priority === 'high' ? 'red' : t.priority === 'low' ? 'gray' : 'yellow'}" style="font-size:10px">${t.priority}</span>
+          <span class="badge ${t.priority === 'high' ? 'red' : t.priority === 'low' ? 'gray' : 'yellow'}" style="font-size:10px">${prioBadge}</span>
           <span style="font-size:11px;color:var(--text3)">${t.category || ''}</span>
           <span style="font-size:11px;color:var(--text3);margin-left:auto">${fmtD(t.createdAt)}</span>
         </div>
+        ${pi ? `<div class="task-period-badge ${pi.cls}" style="margin-top:6px;display:inline-flex">${pi.label}</div>` : ''}
       </div>
-      <button class="btn btn-danger btn-sm" style="margin-left:8px" onclick="deleteTask('${t.id}')">✕</button>
-    </div>`).join('');
+      <button class="btn btn-danger btn-sm" style="margin-left:8px;flex-shrink:0" onclick="event.stopPropagation();deleteTask('${t.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// task detail modal
+let _currentTasksCache = [];
+async function openTaskDetail(id) {
+  let tasks = _currentTasksCache.length ? _currentTasksCache : (await api('GET', '/api/mkt/tasks') || []);
+  _currentTasksCache = tasks;
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  S._tdmId = id;
+  document.getElementById('tdm-title').textContent = t.text;
+  const prioBadge = t.priority === 'high' ? '<span class="badge red">🔴 Alta</span>' : t.priority === 'low' ? '<span class="badge gray">⚪ Baja</span>' : '<span class="badge yellow">🟡 Normal</span>';
+  const assignBadge = `<span class="task-author ${t.assignTo || 'nico'}" style="display:inline-block">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>`;
+  const catBadge = t.category ? `<span class="badge gray">${t.category}</span>` : '';
+  const doneBadge = t.done ? '<span class="badge green">✓ Completada</span>' : '<span class="badge yellow">Pendiente</span>';
+  document.getElementById('tdm-meta').innerHTML = prioBadge + assignBadge + catBadge + doneBadge;
+  const pi = taskPeriodInfo(t);
+  const periodBar = pi ? `<div class="period-countdown ${pi.cls}" style="margin-bottom:14px"><span style="font-size:13px">${pi.label}</span></div>` : '';
+  document.getElementById('tdm-period-bar').innerHTML = periodBar;
+  const notesView = document.getElementById('tdm-notes-view');
+  const notesEdit = document.getElementById('tdm-notes-edit');
+  notesView.textContent = t.notes || '– Sin notas. Clic para agregar –';
+  notesView.style.display = 'block';
+  notesEdit.value = t.notes || '';
+  notesEdit.style.display = 'none';
+  // hide "marcar completada" if already done
+  const completeBtn = document.querySelector('#task-detail-modal .btn-primary');
+  if (completeBtn) completeBtn.style.display = t.done ? 'none' : '';
+  openModal('task-detail-modal');
+}
+async function saveTaskNotes() {
+  const notes = document.getElementById('tdm-notes-edit').value;
+  await api('PATCH', '/api/mkt/tasks/' + S._tdmId, { notes });
+  _currentTasksCache = [];
+  toast('✓ Notas guardadas');
+  closeModal('task-detail-modal');
+  loadTasks();
 }
 
 function filterTasks(f, el) { S.taskFilter = f; document.querySelectorAll('#page-tasks .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); loadTasks(); }
 async function createTask() {
   const text = document.getElementById('task-text').value.trim();
   if (!text) { toast('Escribí la tarea'); return; }
-  await api('POST', '/api/mkt/tasks', { text, priority: document.getElementById('task-priority').value, assignTo: document.getElementById('task-assign').value, category: document.getElementById('task-cat').value, createdBy: S.user.key });
+  const periodDays = parseInt(document.getElementById('task-period').value) || null;
+  await api('POST', '/api/mkt/tasks', {
+    text,
+    priority: document.getElementById('task-priority').value.replace(/[^a-z]/g,''),
+    assignTo: document.getElementById('task-assign').value,
+    category: document.getElementById('task-cat').value,
+    createdBy: S.user.key,
+    notes: document.getElementById('task-notes').value.trim() || null,
+    analysisDays: periodDays
+  });
   document.getElementById('task-text').value = '';
+  document.getElementById('task-notes').value = '';
+  document.getElementById('task-period').value = '';
+  _currentTasksCache = [];
   toast('✓ Tarea creada');
   loadTasks();
 }
-async function toggleTask(id) { await api('PATCH', '/api/mkt/tasks/' + id, { toggle: true }); loadTasks(); }
-async function deleteTask(id) { await api('DELETE', '/api/mkt/tasks/' + id); loadTasks(); }
+async function toggleTask(id) {
+  await api('PATCH', '/api/mkt/tasks/' + id, { toggle: true });
+  _currentTasksCache = [];
+  loadTasks();
+}
+async function deleteTask(id) {
+  if (!confirm('¿Eliminar esta tarea?')) return;
+  await api('DELETE', '/api/mkt/tasks/' + id);
+  _currentTasksCache = [];
+  loadTasks();
+}
 async function loadTaskBadge() { const t = await api('GET', '/api/mkt/tasks') || []; updateTaskBadge(t.filter(x => !x.done).length); }
 function updateTaskBadge(n) { const b = document.getElementById('task-badge'); b.style.display = n > 0 ? 'inline-block' : 'none'; b.textContent = n; }
+
+// ── ADMIN ─────────────────────────────────────────────────
+const DEFAULT_AI_PROMPT = `Sos el analista de marketing de Citrino Centro de Bienestar (Montevideo, Uruguay).
+Analizás los datos semanales de campañas Meta Ads, Instagram y Facebook.
+Respondé SIEMPRE con JSON válido: { "estado": "bien|atencion|critico", "resumen": "...", "insights": ["...","...","..."], "acciones": ["...","..."], "alerta": "..." }
+Sé específico con números y contexto del negocio. Máx 600 tokens.`;
+
+async function loadAIPrompt() {
+  const r = await api('GET', '/api/mkt/admin/prompt');
+  const prompt = r?.prompt || DEFAULT_AI_PROMPT;
+  document.getElementById('ai-prompt-editor').value = prompt;
+  document.getElementById('prompt-status').textContent = r?.updatedAt ? `Última edición: ${fmtD(r.updatedAt)}` : 'Usando prompt por defecto';
+}
+async function saveAIPrompt() {
+  const prompt = document.getElementById('ai-prompt-editor').value.trim();
+  if (!prompt) { toast('El prompt no puede estar vacío'); return; }
+  const r = await api('POST', '/api/mkt/admin/prompt', { prompt });
+  if (r?.ok) {
+    toast('✓ Prompt guardado');
+    document.getElementById('prompt-status').textContent = 'Guardado · ' + new Date().toLocaleTimeString('es-UY');
+  } else toast('Error al guardar');
+}
 
 // ── CONTENT ───────────────────────────────────────────────
 async function loadContent() { const items = await api('GET', '/api/mkt/content') || []; renderContent(items); }
@@ -1577,8 +1910,26 @@ async function loadWeeklyAnalysis() {
 
 // ── INIT ──────────────────────────────────────────────────
 document.getElementById('rev-date').value = new Date().toISOString().split('T')[0];
-loadData();
-setInterval(() => { loadTaskBadge(); loadTicketBadge(); }, 90000);
+// navegar a la sección del hash si existe (ej: citrinobienestar.uy/mkt#tasks)
+(function initNav() {
+  const hash = window.location.hash.slice(1);
+  const validPages = Object.keys(TITLES);
+  if (hash && validPages.includes(hash)) {
+    nav(hash, true);
+  } else {
+    history.replaceState({ page: 'dashboard' }, '', '#dashboard');
+  }
+})();
+// auth + data load
+// Google GSI puede demorar, esperamos a que cargue
+if (document.readyState === 'complete') {
+  initAuth().then(() => { if (sessionStorage.getItem('citrino_user')) loadData(); });
+} else {
+  window.addEventListener('load', () => {
+    initAuth().then(() => { if (sessionStorage.getItem('citrino_user')) loadData(); });
+  });
+}
+setInterval(() => { if (sessionStorage.getItem('citrino_user')) { loadTaskBadge(); loadTicketBadge(); } }, 90000);
 </script>
 </body>
 </html>

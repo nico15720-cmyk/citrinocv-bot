@@ -251,7 +251,20 @@ async function generateAIInsights() {
   allWeeks.sort((a, b) => a.weekOf > b.weekOf ? 1 : -1);
   const last4 = allWeeks.slice(-4).map(w => ({ weekOf: w.weekOf, cpl: w.meta?.cpl || 0, leads: w.meta?.leads || 0, spend: w.meta?.spend || 0 }));
 
-  const prompt = `Sos el analista de marketing de Citrino Centro Integral de Bienestar, un centro de masajes terapéuticos en Montevideo, Uruguay.
+  // Usar prompt editable si existe
+  const customPromptData = readJSON('mkt-ai-prompt.json', { prompt: null });
+  const basePrompt = customPromptData.prompt || `Sos el analista de marketing de Citrino Centro Integral de Bienestar, un centro de masajes terapéuticos en Montevideo, Uruguay.
+
+Respondé en español con este formato JSON exacto (sin markdown, solo JSON):
+{
+  "estado": "bien|atencion|critico",
+  "resumen": "Una oración de estado general (máx 20 palabras)",
+  "insights": ["Insight 1 (máx 15 palabras)", "Insight 2", "Insight 3"],
+  "acciones": ["Acción concreta 1 (máx 12 palabras)", "Acción 2"],
+  "alerta": "Una alerta si existe, null si todo bien"
+}`;
+
+  const prompt = `${basePrompt}
 
 DATOS DE ESTA SEMANA:
 - CPL (costo por contacto): $U ${m.cpl || 'sin datos'}
@@ -266,23 +279,7 @@ TENDENCIA ÚLTIMAS 4 SEMANAS:
 ${last4.map(w => `  ${w.weekOf}: ${w.leads} contactos, CPL $U ${w.cpl}`).join('\n') || '  Sin datos históricos aún'}
 
 OBJETIVO: CPL ≤ $U 47 para mediados de agosto 2026
-ACCIONES RECIENTES: ${actions.slice(0,3).map(a => a.title || a.description).join(', ') || 'Ninguna registrada'}
-
-Respondé en español con este formato JSON exacto (sin markdown, solo JSON):
-{
-  "estado": "bien|atencion|critico",
-  "resumen": "Una oración de estado general (máx 20 palabras)",
-  "insights": [
-    "Insight específico 1 basado en los datos (máx 15 palabras)",
-    "Insight específico 2",
-    "Insight específico 3"
-  ],
-  "acciones": [
-    "Acción concreta 1 para esta semana (máx 12 palabras)",
-    "Acción concreta 2"
-  ],
-  "alerta": "Una alerta o punto de atención si existe, null si todo bien"
-}`;
+ACCIONES RECIENTES: ${actions.slice(0,3).map(a => a.title || a.description).join(', ') || 'Ninguna registrada'}`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -359,6 +356,76 @@ app.get('/', (req, res) => {
 });
 app.get('/mkt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'metricasmkt.html')));
 app.get('/metricasmkt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'metricasmkt.html')));
+
+// ────────────────────────────────────────────────────────────
+//  API: AUTH (Google Sign-In + whitelist)
+// ────────────────────────────────────────────────────────────
+const ADMIN_EMAIL = 'nicolas.nirodriguez@gmail.com';
+
+app.get('/api/mkt/auth/config', (req, res) => {
+  res.json({ clientId: process.env.GOOGLE_CLIENT_ID || null });
+});
+
+app.post('/api/mkt/auth', async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ ok: false, error: 'No credential' });
+  try {
+    // verify with Google tokeninfo API
+    const vr = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    const info = await vr.json();
+    if (info.error || !info.email_verified) return res.json({ ok: false, error: 'Token invalid' });
+    // verificar que el token es para esta app
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (clientId && info.aud !== clientId) return res.json({ ok: false, error: 'Invalid audience' });
+    const email = info.email.toLowerCase();
+    // check whitelist
+    const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
+    const found = wl.whitelist.find(u => u.email.toLowerCase() === email);
+    if (!found) return res.json({ ok: false, error: 'Email not whitelisted' });
+    res.json({ ok: true, user: { email: found.email, role: found.role, name: found.name || info.name || email.split('@')[0] } });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/mkt/auth/whitelist', (req, res) => {
+  const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
+  res.json(wl);
+});
+
+app.post('/api/mkt/auth/whitelist', (req, res) => {
+  const { email, role, name } = req.body;
+  if (!email) return res.status(400).json({ ok: false, error: 'Email required' });
+  const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
+  const exists = wl.whitelist.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (exists) return res.json({ ok: false, error: 'Email already in whitelist' });
+  wl.whitelist.push({ email: email.toLowerCase(), role: role || 'marketing', name: name || email.split('@')[0] });
+  writeJSON('mkt-auth.json', wl);
+  res.json({ ok: true });
+});
+
+app.delete('/api/mkt/auth/whitelist/:email', (req, res) => {
+  const email = decodeURIComponent(req.params.email).toLowerCase();
+  if (email === ADMIN_EMAIL) return res.json({ ok: false, error: 'Cannot remove admin' });
+  const wl = readJSON('mkt-auth.json', { whitelist: [] });
+  wl.whitelist = wl.whitelist.filter(u => u.email.toLowerCase() !== email);
+  writeJSON('mkt-auth.json', wl);
+  res.json({ ok: true });
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: ADMIN (prompt IA editable)
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/admin/prompt', (req, res) => {
+  res.json(readJSON('mkt-ai-prompt.json', { prompt: null, updatedAt: null }));
+});
+
+app.post('/api/mkt/admin/prompt', (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ ok: false });
+  writeJSON('mkt-ai-prompt.json', { prompt, updatedAt: new Date().toISOString() });
+  res.json({ ok: true });
+});
 
 // ────────────────────────────────────────────────────────────
 //  API: MÉTRICAS PRINCIPALES
