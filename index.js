@@ -103,6 +103,27 @@ async function refreshMetaData() {
 
   if (!token) { console.warn('[MKT] META_ACCESS_TOKEN no configurado'); return; }
 
+  // Helper: extrae leads/conversaciones de cualquier tipo de campaña Meta
+  function extractLeads(actions) {
+    if (!actions) return 0;
+    // Cubre: leads form, pixel, WhatsApp/Messenger conversations, clicks a mensaje
+    const leadTypes = [
+      'lead',
+      'offsite_conversion.fb_pixel_lead',
+      'onsite_conversion.messaging_conversation_started_7d',
+      'onsite_conversion.messaging_first_reply',
+      'onsite_conversion.total_messaging_connection',
+      'contact',
+      'omni_initiated_checkout',
+      'whatsapp_api_connection'
+    ];
+    let total = 0;
+    for (const a of actions) {
+      if (leadTypes.includes(a.action_type)) total += parseInt(a.value || 0);
+    }
+    return total;
+  }
+
   try {
     // ── Meta Ads: campañas activas ───
     const since = new Date(); since.setDate(since.getDate() - 7);
@@ -127,10 +148,7 @@ async function refreshMetaData() {
           spend = parseFloat(ins.spend || 0);
           reach = parseInt(ins.reach || 0);
           impressions = parseInt(ins.impressions || 0);
-          if (ins.actions) {
-            const leadAction = ins.actions.find(a => a.action_type === 'lead' || a.action_type === 'offsite_conversion.fb_pixel_lead');
-            if (leadAction) leads = parseInt(leadAction.value || 0);
-          }
+          leads = extractLeads(ins.actions);
           cpl = leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0;
         }
         totalSpend += spend;
@@ -238,6 +256,139 @@ app.get('/api/mkt/data', (req, res) => {
 app.post('/api/mkt/refresh', async (req, res) => {
   await refreshMetaData();
   res.json({ ok: true, data: readJSON('mkt-data.json') });
+});
+
+// ── Carga histórica: desde una fecha hasta hoy, semana a semana ──────────────
+app.post('/api/mkt/refresh-historical', async (req, res) => {
+  const token = process.env.META_ACCESS_TOKEN;
+  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_2070126230586031';
+  const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
+  const fbPageId = process.env.FACEBOOK_PAGE_ID || '109950823921393';
+  const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
+
+  if (!token) return res.status(500).json({ error: 'META_ACCESS_TOKEN no configurado' });
+
+  const since = req.body.since || '2026-01-01';
+  const until = new Date().toISOString().split('T')[0];
+
+  function extractLeads(actions) {
+    if (!actions) return 0;
+    const leadTypes = [
+      'lead','offsite_conversion.fb_pixel_lead',
+      'onsite_conversion.messaging_conversation_started_7d',
+      'onsite_conversion.messaging_first_reply',
+      'onsite_conversion.total_messaging_connection',
+      'contact','omni_initiated_checkout','whatsapp_api_connection'
+    ];
+    let total = 0;
+    for (const a of actions) { if (leadTypes.includes(a.action_type)) total += parseInt(a.value || 0); }
+    return total;
+  }
+
+  try {
+    res.setHeader('Content-Type', 'application/json');
+
+    // Obtener todos los insights de Meta Ads por semana (una sola llamada API)
+    const timeRange = JSON.stringify({ since, until });
+    const insightsUrl = `https://graph.facebook.com/v18.0/${adAccountId}/insights?` +
+      `fields=campaign_name,spend,impressions,reach,actions,cost_per_action_type,date_start,date_stop&` +
+      `time_range=${encodeURIComponent(timeRange)}&time_increment=7&level=campaign&` +
+      `access_token=${token}&limit=500`;
+
+    const insRes = await fetch(insightsUrl);
+    const insData = await insRes.json();
+
+    if (insData.error) {
+      return res.json({ ok: false, error: insData.error.message, raw: insData });
+    }
+
+    const mktData = readJSON('mkt-data.json', { currentWeek: {}, byMonth: {}, updatedAt: null });
+    if (!mktData.byMonth) mktData.byMonth = {};
+
+    // Agrupar por semana (date_start)
+    const byWeek = {};
+    for (const row of (insData.data || [])) {
+      const weekKey = row.date_start;
+      if (!byWeek[weekKey]) byWeek[weekKey] = { spend: 0, leads: 0, reach: 0, impressions: 0, campaigns: [] };
+      const spend = parseFloat(row.spend || 0);
+      const leads = extractLeads(row.actions);
+      const reach = parseInt(row.reach || 0);
+      const impressions = parseInt(row.impressions || 0);
+      byWeek[weekKey].spend += spend;
+      byWeek[weekKey].leads += leads;
+      byWeek[weekKey].reach += reach;
+      byWeek[weekKey].impressions += impressions;
+      byWeek[weekKey].campaigns.push({
+        name: row.campaign_name, spend, leads, reach, impressions,
+        cpl: leads > 0 ? parseFloat((spend / leads).toFixed(2)) : 0
+      });
+    }
+
+    // Obtener Instagram insights histórico (max 90 días que permite la API)
+    let igFollowers = 0, igMediaCount = 0;
+    try {
+      const igBasic = await fetch(`https://graph.facebook.com/v18.0/${igBusinessId}?fields=followers_count,media_count&access_token=${igToken}`);
+      const igD = await igBasic.json();
+      igFollowers = igD.followers_count || 0;
+      igMediaCount = igD.media_count || 0;
+    } catch(e) { console.warn('[HIST] IG básico error:', e.message); }
+
+    // Obtener FB fans actuales
+    let fbFans = 0;
+    try {
+      const fbBasic = await fetch(`https://graph.facebook.com/v18.0/${fbPageId}?fields=fan_count&access_token=${igToken}`);
+      const fbD = await fbBasic.json();
+      fbFans = fbD.fan_count || 0;
+    } catch(e) { console.warn('[HIST] FB básico error:', e.message); }
+
+    // Guardar cada semana en byMonth
+    let weeksStored = 0;
+    for (const [weekOf, wData] of Object.entries(byWeek)) {
+      const monthKey = weekOf.substring(0, 7);
+      if (!mktData.byMonth[monthKey]) mktData.byMonth[monthKey] = { weeks: [] };
+      const weekRecord = {
+        weekOf,
+        updatedAt: new Date().toISOString(),
+        meta: {
+          spend: wData.spend,
+          leads: wData.leads,
+          cpl: wData.leads > 0 ? parseFloat((wData.spend / wData.leads).toFixed(2)) : 0,
+          reach: wData.reach,
+          impressions: wData.impressions
+        },
+        campaigns: wData.campaigns,
+        instagram: { followers: igFollowers, reach: 0, impressions: 0, mediaCount: igMediaCount },
+        facebook: { fans: fbFans, reach: 0, impressions: 0 }
+      };
+      const existIdx = mktData.byMonth[monthKey].weeks.findIndex(w => w.weekOf === weekOf);
+      if (existIdx >= 0) mktData.byMonth[monthKey].weeks[existIdx] = weekRecord;
+      else mktData.byMonth[monthKey].weeks.push(weekRecord);
+      weeksStored++;
+    }
+
+    mktData.updatedAt = new Date().toISOString();
+    writeJSON('mkt-data.json', mktData);
+
+    // Calcular totales del período
+    let totalSpend = 0, totalLeads = 0;
+    for (const w of Object.values(byWeek)) { totalSpend += w.spend; totalLeads += w.leads; }
+
+    console.log(`[HIST] Datos históricos cargados: ${weeksStored} semanas, ${since} → ${until}`);
+    res.json({
+      ok: true,
+      weeksStored,
+      period: { since, until },
+      totals: {
+        spend: parseFloat(totalSpend.toFixed(2)),
+        leads: totalLeads,
+        cpl: totalLeads > 0 ? parseFloat((totalSpend / totalLeads).toFixed(2)) : 0
+      },
+      message: `Cargadas ${weeksStored} semanas desde ${since} hasta ${until}`
+    });
+  } catch (e) {
+    console.error('[HIST] Error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ────────────────────────────────────────────────────────────
