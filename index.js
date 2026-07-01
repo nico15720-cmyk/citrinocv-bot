@@ -1298,20 +1298,27 @@ app.get('/api/mkt/pagespeed', async (req, res) => {
 //  API: REVIEWS SYNC (Google My Business — placeholder hasta configurar)
 // ────────────────────────────────────────────────────────────
 app.post('/api/mkt/reviews/sync-google', async (req, res) => {
-  const gmb = process.env.GOOGLE_BUSINESS_ACCOUNT_ID;
-  if (!gmb) {
+  const placeId = process.env.GOOGLE_PLACE_ID;
+  const apiKey  = process.env.GOOGLE_API_KEY;
+  if (!placeId || !apiKey) {
     return res.json({
       ok: false,
-      error: 'Google My Business no configurado. Agregá GOOGLE_BUSINESS_ACCOUNT_ID en Railway para activar la sincronización automática.',
+      error: 'Configurá GOOGLE_PLACE_ID y GOOGLE_API_KEY en Railway → Variables para activar la sincronización automática de reseñas.',
       setupInstructions: [
-        '1. Activá Google Business Profile API en Google Cloud Console',
-        '2. Agregá la cuenta de servicio como admin de tu negocio en Google',
-        '3. Agregá GOOGLE_BUSINESS_ACCOUNT_ID en las variables de Railway'
+        '1. En Google Cloud Console, activá la API "Places API"',
+        '2. Creá una API Key y copiala',
+        '3. Buscá tu Place ID en: https://developers.google.com/maps/documentation/places/web-service/place-id',
+        '4. Agregá en Railway → Variables: GOOGLE_PLACE_ID=ChIJ... y GOOGLE_API_KEY=AIza...'
       ]
     });
   }
-  // Cuando esté configurado, aquí va la lógica de sync con Google Business Profile API
-  res.json({ ok: false, error: 'En construcción — credenciales pendientes' });
+  try {
+    await refreshReviews();
+    const data = readJSON('mkt-reviews.json', { reviews: [], summary: {} });
+    res.json({ ok: true, summary: data.summary, count: data.reviews?.length || 0 });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
 // ────────────────────────────────────────────────────────────

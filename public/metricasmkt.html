@@ -463,11 +463,13 @@ body.is-admin .admin-only-block{display:block}
         </div>
         <span style="font-size:11px;color:var(--text3)" id="dash-period-label"></span>
       </div>
+      <!-- ALERTAS DINÁMICAS -->
+      <div id="dash-alerts" style="display:none;margin-bottom:14px"></div>
       <div class="kpi-row">
         <div class="kpi"><div class="kpi-lbl">Costo por contacto</div><div class="kpi-val" id="k-cpl">$U –</div><div class="kpi-sub">Objetivo: $U 47</div><div class="kpi-badge up" id="k-cpl-badge">–</div><div class="kpi-accent" style="background:var(--red)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Contactos período</div><div class="kpi-val" id="k-leads">–</div><div class="kpi-sub" id="k-leads-sub">Meta Ads · todas las campañas</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Inversión período</div><div class="kpi-val" id="k-spend">$U –</div><div class="kpi-sub" id="k-spend-sub">Meta Ads</div><div class="kpi-accent" style="background:var(--yellow)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Alcance pagado</div><div class="kpi-val" id="k-reach">–</div><div class="kpi-sub">Meta Ads (todas las redes)</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Contactos</div><div class="kpi-val" id="k-leads">–</div><div class="kpi-sub" id="k-leads-sub">Meta Ads</div><div class="kpi-badge ok" id="k-leads-badge" style="display:none"></div><div class="kpi-accent" style="background:var(--gold)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Inversión</div><div class="kpi-val" id="k-spend">$U –</div><div class="kpi-sub" id="k-spend-sub">Meta Ads</div><div class="kpi-badge ok" id="k-spend-badge" style="display:none"></div><div class="kpi-accent" style="background:var(--yellow)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Alcance pagado</div><div class="kpi-val" id="k-reach">–</div><div class="kpi-sub" id="k-reach-sub">Meta Ads</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
         <div class="kpi"><div class="kpi-lbl">Seguidores IG</div><div class="kpi-val" id="k-ig">–</div><div class="kpi-sub">Instagram orgánico</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
         <div class="kpi"><div class="kpi-lbl">Reseñas</div><div class="kpi-val" id="k-rev">–</div><div class="kpi-sub" id="k-rev-avg">★ –</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
         <div class="kpi"><div class="kpi-lbl">SEO score</div><div class="kpi-val" id="k-seo">–</div><div class="kpi-sub" id="k-seo-sub">PageSpeed · mobile</div><div class="kpi-accent" id="k-seo-accent" style="background:var(--blue)"></div></div>
@@ -1212,10 +1214,105 @@ const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n || 0);
 const fmtD = s => s ? new Date(s).toLocaleDateString('es-UY', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '–';
 const fmtM = n => '$U ' + parseFloat(n || 0).toLocaleString('es-UY', { minimumFractionDigits:0, maximumFractionDigits:0 });
 
+// ── MONTH TOTALS + GROWTH BADGES ──────────────────────────
+function computeMonthTotals(d) {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthData = d.byMonth?.[monthKey];
+  if (!monthData?.weeks?.length) return null;
+  let spend = 0, leads = 0, reach = 0;
+  monthData.weeks.forEach(w => {
+    spend += w.meta?.spend || 0;
+    leads += w.meta?.leads || 0;
+    reach += w.meta?.reach || 0;
+  });
+  return { spend, leads, reach, cpl: leads > 0 ? parseFloat((spend/leads).toFixed(2)) : 0, weeks: monthData.weeks.length };
+}
+
+function computePrevWeek(d) {
+  const allWeeks = [];
+  Object.values(d.byMonth || {}).forEach(mo => allWeeks.push(...(mo.weeks || [])));
+  allWeeks.sort((a, b) => a.weekOf > b.weekOf ? 1 : -1);
+  return allWeeks.length >= 2 ? allWeeks[allWeeks.length - 2] : null;
+}
+
+function growthBadge(curr, prev, key, invertColors) {
+  if (!prev?.meta) return '';
+  const pv = prev.meta[key] || 0;
+  const cv = (curr && typeof curr === 'object' ? curr[key] : curr) || 0;
+  if (!pv || !cv) return '';
+  const pct = Math.round((cv - pv) / pv * 100);
+  const up = pct >= 0;
+  const good = invertColors ? !up : up; // para CPL: bajar es bueno
+  const color = good ? 'var(--green)' : 'var(--red)';
+  return `<span style="font-size:10px;color:${color};font-weight:600;display:inline-block;margin-left:4px">${up?'↑':'↓'}${Math.abs(pct)}%</span>`;
+}
+
+// ── ALERTAS DEL DASHBOARD ─────────────────────────────────
+async function checkAlerts(d) {
+  const el = document.getElementById('dash-alerts');
+  if (!el) return;
+  const alerts = [];
+
+  // 1. Sin datos / datos muy desactualizados
+  if (!d?.updatedAt) {
+    alerts.push(`<div style="padding:10px 14px;background:var(--bluebg);border-left:3px solid var(--blue);border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
+      <span>📡 <strong>Sin datos de Meta Ads</strong> — actualizá para ver métricas reales</span>
+      <button class="btn btn-outline btn-sm" onclick="refreshData()">↻ Cargar datos ahora</button>
+    </div>`);
+  } else {
+    const daysSince = (Date.now() - new Date(d.updatedAt).getTime()) / 86400000;
+    if (daysSince >= 7) {
+      alerts.push(`<div style="padding:10px 14px;background:var(--yellowbg);border-left:3px solid var(--yellow);border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
+        <span>⏰ Datos con <strong>${Math.round(daysSince)} días</strong> sin actualizar</span>
+        <button class="btn btn-outline btn-sm" onclick="refreshData()">↻ Actualizar</button>
+      </div>`);
+    }
+  }
+
+  // 2. Tareas con análisis vencido
+  try {
+    const tasks = await api('GET', '/api/mkt/tasks') || [];
+    const now = Date.now();
+    const overdue = tasks.filter(t => !t.done && t.analysisDays && t.createdAt &&
+      (now - new Date(t.createdAt).getTime()) / 86400000 >= t.analysisDays);
+    if (overdue.length) {
+      const first = overdue[0].text.length > 40 ? overdue[0].text.substring(0,38)+'…' : overdue[0].text;
+      alerts.push(`<div style="padding:10px 14px;background:var(--redbg);border-left:3px solid var(--red);border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text2);cursor:pointer" onclick="nav('tasks')">
+        <span>⚠️ <strong>${overdue.length} análisis vencido${overdue.length>1?'s':''}</strong> — "${first}"${overdue.length>1?` y ${overdue.length-1} más`:''}</span>
+        <span style="color:var(--red);font-weight:500">→ Ver tareas</span>
+      </div>`);
+    }
+
+    // 3. Tareas pendientes +7 días sin período de análisis configurado
+    const old7 = tasks.filter(t => !t.done && !t.analysisDays && t.createdAt &&
+      (now - new Date(t.createdAt).getTime()) / 86400000 >= 7);
+    if (old7.length >= 2) {
+      alerts.push(`<div style="padding:10px 14px;background:var(--goldbg);border-left:3px solid var(--gold);border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer" onclick="nav('tasks')">
+        📋 <strong>${old7.length} tareas</strong> llevan +7 días pendientes — ¿las pudiste revisar?
+      </div>`);
+    }
+  } catch(e) {}
+
+  el.innerHTML = alerts.length ? `<div style="display:flex;flex-direction:column;gap:8px">${alerts.join('')}</div>` : '';
+  el.style.display = alerts.length ? 'block' : 'none';
+}
+
 // ── LOAD DATA ─────────────────────────────────────────────
 async function loadData() {
+  // Indicador de carga en KPIs
+  ['k-leads','k-spend','k-reach','k-ig'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.textContent === '–') el.textContent = '…';
+  });
+
   const d = await api('GET', '/api/mkt/data');
-  if (d) { renderDashboard(d); renderCampaignsData(d); renderSocialData(d); }
+  if (d) {
+    renderDashboard(d);
+    renderCampaignsData(d);
+    renderSocialData(d);
+    checkAlerts(d);
+  }
   loadTaskBadge();
   loadTicketBadge();
   loadAIInsights();
@@ -1518,7 +1615,9 @@ function changeDashMonth(val) {
   api('GET', '/api/mkt/data').then(d => {
     if (!d) return;
     if (val === 'current') {
-      renderDashboardData(d.currentWeek || {}, d, 'semana actual');
+      const prevWeek = computePrevWeek(d);
+      const monthTotals = computeMonthTotals(d);
+      renderDashboardData(d.currentWeek || {}, d, 'semana actual', prevWeek, monthTotals);
     } else {
       const bm = d.byMonth?.[val];
       if (!bm) return;
@@ -1540,26 +1639,36 @@ function changeDashMonth(val) {
         instagram: { followers: igFollowers },
         facebook: bm.weeks[bm.weeks.length-1]?.facebook || {}
       };
-      renderDashboardData(synth, d, label.charAt(0).toUpperCase() + label.slice(1));
+      renderDashboardData(synth, d, label.charAt(0).toUpperCase() + label.slice(1), null, null);
     }
   });
 }
 
 function renderDashboard(d) {
   populateMonthSelect(d);
-  renderDashboardData(d.currentWeek || {}, d, 'semana actual');
+  const prevWeek = computePrevWeek(d);
+  const monthTotals = computeMonthTotals(d);
+  renderDashboardData(d.currentWeek || {}, d, 'semana actual', prevWeek, monthTotals);
   if (d.updatedAt) document.getElementById('last-ts').textContent = 'Act. ' + fmtD(d.updatedAt);
+  // Reviews KPI — prioriza datos de Google
   api('GET', '/api/mkt/reviews').then(rv => {
     if (!rv) return;
-    document.getElementById('k-rev').textContent = rv.summary?.total || 0;
-    document.getElementById('k-rev-avg').textContent = '★ ' + (rv.summary?.avg || '–');
+    const total = rv.summary?.googleTotal || rv.summary?.total || 0;
+    const avg = rv.summary?.googleRating || rv.summary?.avg || 0;
+    document.getElementById('k-rev').textContent = total || '–';
+    document.getElementById('k-rev-avg').textContent = avg ? '★ ' + parseFloat(avg).toFixed(1) : '★ –';
   });
   buildCplChart(d);
   loadTasks();
 }
 
-function renderDashboardData(w, d, periodLabel) {
+function renderDashboardData(w, d, periodLabel, prevWeek, monthTotals) {
   const m = w.meta || {}, ig = w.instagram || {};
+  // fallback: compute if not passed
+  if (prevWeek === undefined) prevWeek = computePrevWeek(d);
+  if (monthTotals === undefined) monthTotals = computeMonthTotals(d);
+
+  // CPL
   const cpl = m.leads > 0 ? m.cpl : (m.spend > 0 ? 0 : 59);
   const cplFmt = m.leads > 0 ? fmtM(cpl) : (m.spend > 0 ? '–' : '$U 59*');
   document.getElementById('k-cpl').textContent = cplFmt;
@@ -1569,14 +1678,38 @@ function renderDashboardData(w, d, periodLabel) {
     cplBadge.textContent = diff > 0 ? `↑ ${diff}% sobre óptimo` : `↓ ${Math.abs(diff)}% bajo óptimo`;
     cplBadge.className = 'kpi-badge ' + (diff > 0 ? 'warn' : 'up');
   }
-  document.getElementById('k-leads').textContent = m.leads != null ? fmt(m.leads) : '–';
-  document.getElementById('k-leads-sub').textContent = 'Meta Ads · ' + (periodLabel || 'período');
-  document.getElementById('k-spend').textContent = m.spend > 0 ? fmtM(m.spend * 56) : '–'; // USD to UYU approx
-  document.getElementById('k-spend-sub').textContent = periodLabel || 'período';
-  document.getElementById('k-reach').textContent = m.reach > 0 ? fmt(m.reach) : '–';
+
+  // CONTACTOS — semana + mes
+  const leadsVal = m.leads != null ? fmt(m.leads) : '–';
+  document.getElementById('k-leads').textContent = leadsVal;
+  const leadsGrow = growthBadge(m, prevWeek, 'leads', false);
+  const monthLeadsTxt = monthTotals?.leads > 0 ? ` · mes: <strong>${fmt(monthTotals.leads)}</strong>` : '';
+  document.getElementById('k-leads-sub').innerHTML = `sem · ${periodLabel || ''}${monthLeadsTxt}${leadsGrow}`;
+  const leadsB = document.getElementById('k-leads-badge');
+  if (leadsB) leadsB.style.display = 'none';
+
+  // INVERSIÓN — semana + mes
+  document.getElementById('k-spend').textContent = m.spend > 0 ? fmtM(m.spend * 56) : '–';
+  const spendGrow = growthBadge(m, prevWeek, 'spend', false);
+  const monthSpendTxt = monthTotals?.spend > 0 ? ` · mes: <strong>${fmtM(monthTotals.spend * 56)}</strong>` : '';
+  document.getElementById('k-spend-sub').innerHTML = `sem${monthSpendTxt}${spendGrow}`;
+
+  // ALCANCE
+  const reachVal = m.reach != null ? fmt(m.reach) : '–';
+  document.getElementById('k-reach').textContent = reachVal;
+  const reachGrow = growthBadge(m, prevWeek, 'reach', false);
+  const monthReachTxt = monthTotals?.reach > 0 ? ` · mes: <strong>${fmt(monthTotals.reach)}</strong>` : '';
+  const reachSub = document.getElementById('k-reach-sub');
+  if (reachSub) reachSub.innerHTML = `sem${monthReachTxt}${reachGrow}`;
+
+  // IG
   document.getElementById('k-ig').textContent = ig.followers ? fmt(ig.followers) : '–';
+
+  // Label período
   const label = document.getElementById('dash-period-label');
   if (label) label.textContent = periodLabel ? 'Mostrando: ' + periodLabel : '';
+
+  // Barra objetivo
   const contactos = m.leads || 0, target = 100;
   const pct = Math.min(100, Math.round(contactos / target * 100));
   document.getElementById('obj-label').textContent = contactos + ' / ' + target + ' contactos';
