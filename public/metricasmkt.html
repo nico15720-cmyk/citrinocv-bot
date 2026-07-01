@@ -397,6 +397,7 @@ tr:hover td{background:rgba(160,110,55,0.03)}
     <div class="topbar-right">
       <span class="ts" id="last-ts">–</span>
       <button class="btn-refresh" onclick="refreshData()">↻ Actualizar</button>
+      <button class="btn-refresh" id="btn-hist" onclick="loadHistorical()" style="background:rgba(0,120,80,0.12);border-color:rgba(0,180,100,0.3);color:#00b464;margin-left:6px" title="Carga todos los datos desde enero 2026">📥 Histórico</button>
     </div>
   </div>
   <div id="content">
@@ -884,6 +885,31 @@ async function refreshData() {
   if (r) { const d = r.data || r; renderDashboard(d); renderCampaignsData(d); renderSocialData(d); toast('✓ Datos actualizados'); }
   else toast('Error al actualizar');
   document.querySelector('.btn-refresh').textContent = '↻ Actualizar';
+}
+
+async function loadHistorical() {
+  const btn = document.getElementById('btn-hist');
+  btn.textContent = '⏳ Cargando histórico...';
+  btn.disabled = true;
+  toast('Cargando datos desde enero 2026, puede demorar ~15s...');
+  try {
+    const r = await fetch('/api/mkt/refresh-historical', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ since: '2026-01-01' })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      toast(`✓ ${data.message} | Spend total: $U ${Math.round((data.totals?.spend||0)*56)} | Leads: ${data.totals?.leads||0}`);
+      // Recargar dashboard con datos frescos
+      const fresh = await api('GET', '/api/mkt/data');
+      if (fresh) { renderDashboard(fresh); renderCampaignsData(fresh); renderSocialData(fresh); }
+    } else {
+      toast('Error: ' + (data.error || 'Algo falló'));
+    }
+  } catch(e) { toast('Error de conexión: ' + e.message); }
+  btn.textContent = '📥 Histórico';
+  btn.disabled = false;
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────
