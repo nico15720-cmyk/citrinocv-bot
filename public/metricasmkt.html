@@ -357,6 +357,7 @@ tr:hover td{background:rgba(160,110,55,0.03)}
     <div class="nav-item" onclick="nav('tasks')"><span class="nav-icon">☐</span> Tareas <span class="nav-badge" id="task-badge" style="display:none">0</span></div>
     <div class="nav-item" onclick="nav('campaigns')"><span class="nav-icon">◎</span> Campañas</div>
     <div class="nav-item" onclick="nav('social')"><span class="nav-icon">◉</span> Redes Sociales</div>
+    <div class="nav-item" onclick="nav('listening')"><span class="nav-icon">◎</span> Social Listening</div>
     <div class="nav-group">Contenido</div>
     <div class="nav-item" onclick="nav('content')"><span class="nav-icon">▦</span> Contenido & Drive</div>
     <div class="nav-item" onclick="nav('actions')"><span class="nav-icon">◈</span> Acciones MKT</div>
@@ -398,17 +399,29 @@ tr:hover td{background:rgba(160,110,55,0.03)}
       <span class="ts" id="last-ts">–</span>
       <button class="btn-refresh" onclick="refreshData()">↻ Actualizar</button>
       <button class="btn-refresh" id="btn-hist" onclick="loadHistorical()" style="background:rgba(0,120,80,0.12);border-color:rgba(0,180,100,0.3);color:#00b464;margin-left:6px" title="Carga todos los datos desde enero 2026">📥 Histórico</button>
+      <button class="btn-refresh" onclick="exportSheets()" style="background:rgba(58,111,160,0.1);border-color:rgba(58,111,160,0.3);color:var(--blue);margin-left:6px" title="Exportar a Google Sheets">📊 Sheets</button>
     </div>
   </div>
   <div id="content">
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+      <!-- Selector de período -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Período</span>
+          <select id="month-select" class="fs" style="font-size:12px;padding:5px 10px;min-width:140px;border-radius:7px" onchange="changeDashMonth(this.value)">
+            <option value="current">Esta semana (actual)</option>
+          </select>
+        </div>
+        <span style="font-size:11px;color:var(--text3)" id="dash-period-label"></span>
+      </div>
       <div class="kpi-row">
-        <div class="kpi"><div class="kpi-lbl">CPL actual</div><div class="kpi-val" id="k-cpl">$U 59</div><div class="kpi-sub">Objetivo: $U 47</div><div class="kpi-badge up" id="k-cpl-badge">↑ 25% sobre óptimo</div><div class="kpi-accent" style="background:var(--red)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Inversión / día</div><div class="kpi-val">$U 300</div><div class="kpi-sub">3 campañas activas</div><div class="kpi-badge warn">Fragmentado</div><div class="kpi-accent" style="background:var(--yellow)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Leads semana</div><div class="kpi-val" id="k-leads">0</div><div class="kpi-sub">Meta Ads</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Seguidores IG</div><div class="kpi-val" id="k-ig">–</div><div class="kpi-sub">Instagram</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Costo por contacto</div><div class="kpi-val" id="k-cpl">$U –</div><div class="kpi-sub">Objetivo: $U 47</div><div class="kpi-badge up" id="k-cpl-badge">–</div><div class="kpi-accent" style="background:var(--red)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Contactos período</div><div class="kpi-val" id="k-leads">–</div><div class="kpi-sub" id="k-leads-sub">Meta Ads · todas las campañas</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Inversión período</div><div class="kpi-val" id="k-spend">$U –</div><div class="kpi-sub" id="k-spend-sub">Meta Ads</div><div class="kpi-accent" style="background:var(--yellow)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Alcance pagado</div><div class="kpi-val" id="k-reach">–</div><div class="kpi-sub">Meta Ads (todas las redes)</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Seguidores IG</div><div class="kpi-val" id="k-ig">–</div><div class="kpi-sub">Instagram orgánico</div><div class="kpi-accent" style="background:var(--blue)"></div></div>
         <div class="kpi"><div class="kpi-lbl">Reseñas</div><div class="kpi-val" id="k-rev">–</div><div class="kpi-sub" id="k-rev-avg">★ –</div><div class="kpi-accent" style="background:var(--gold)"></div></div>
       </div>
 
@@ -418,7 +431,7 @@ tr:hover td{background:rgba(160,110,55,0.03)}
           <div class="card">
             <div class="card-head"><span class="card-title">Objetivo — mediados de agosto</span><span class="badge gold">CPL ≤ $U 47</span></div>
             <div class="card-body">
-              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px"><span id="obj-label">0 / 100 leads</span><span id="obj-pct">0%</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px"><span id="obj-label">0 / 100 contactos</span><span id="obj-pct">0%</span></div>
               <div class="prog-wrap"><div class="prog-fill" id="obj-bar" style="width:0%"></div></div>
               <div style="font-size:11px;color:var(--text3);margin-top:8px" id="obj-days"></div>
             </div>
@@ -432,6 +445,20 @@ tr:hover td{background:rgba(160,110,55,0.03)}
 
         <!-- Right: Brief + Tasks -->
         <div>
+          <!-- AI Insights -->
+          <div class="card" style="margin-bottom:16px" id="ai-insights-card">
+            <div class="card-head">
+              <span class="card-title">🍋 Análisis IA · Claude</span>
+              <div style="display:flex;gap:6px">
+                <span id="ai-status-badge" class="badge gray">–</span>
+                <button class="btn btn-outline btn-sm" onclick="generateInsights()" id="btn-ai">Generar</button>
+              </div>
+            </div>
+            <div class="card-body" id="ai-insights-body">
+              <div class="empty" style="padding:12px"><div class="empty-text">Hacé clic en "Generar" para análisis automático con Claude IA</div></div>
+            </div>
+          </div>
+
           <!-- Sugerencias del brief -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-head"><span class="card-title">Brief Julio 2026</span><span class="badge green">Activo</span></div>
@@ -506,7 +533,7 @@ tr:hover td{background:rgba(160,110,55,0.03)}
         <div class="card-head"><span class="card-title">Campañas activas</span><span class="ts" id="camp-ts">–</span></div>
         <div class="card-body np">
           <table>
-            <thead><tr><th>Campaña</th><th>Estado</th><th>Contactos</th><th>CPL</th><th>Inversión</th><th>Alcance</th></tr></thead>
+            <thead><tr><th>Campaña</th><th>Estado</th><th>Contactos</th><th>Costo/contacto</th><th>Inversión</th><th>Alcance pagado</th></tr></thead>
             <tbody id="camp-tbody">
               <tr><td>Masajes Junio</td><td><span class="badge green">Activa</span></td><td>60</td><td><span class="badge red">$U 67,83</span></td><td>$U 4.069</td><td>6.460</td></tr>
               <tr><td>Masajes-Mensajes</td><td><span class="badge green">Activa</span></td><td>41</td><td><span class="badge yellow">$U 52,03</span></td><td>$U 2.133</td><td>3.882</td></tr>
@@ -547,20 +574,34 @@ tr:hover td{background:rgba(160,110,55,0.03)}
 
     <!-- SOCIAL -->
     <div class="page" id="page-social">
+      <!-- Fila 1: Alcance pagado Meta Ads -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><span class="card-title">Meta Ads — Alcance & Impresiones pagadas</span><span class="badge gold">Publicidad</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px">
+            <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Alcance semana</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ads-reach">–</div><div style="font-size:11px;color:var(--text3)">personas únicas</div></div>
+            <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Impresiones</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ads-impressions">–</div><div style="font-size:11px;color:var(--text3)">vistas totales</div></div>
+            <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Contactos semana</div><div style="font-family:var(--font);font-size:26px;color:var(--gold)" id="ads-leads">–</div><div style="font-size:11px;color:var(--text3)">mensajes/leads</div></div>
+            <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Inversión semana</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ads-spend">–</div><div style="font-size:11px;color:var(--text3)">$U (aprox.)</div></div>
+            <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Frecuencia media</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ads-freq">–</div><div style="font-size:11px;color:var(--text3)">impresiones/persona</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Fila 2: Orgánico IG + FB -->
       <div class="grid-2" style="margin-bottom:16px">
         <div class="card">
-          <div class="card-head"><span class="card-title">Instagram</span></div>
+          <div class="card-head"><span class="card-title">Instagram Orgánico</span><span class="badge blue">Orgánico</span></div>
           <div class="card-body">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Seguidores</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-followers">–</div></div>
-              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Posts semana</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-posts">–</div></div>
+              <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Posts totales</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-posts">–</div></div>
               <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Alcance semanal</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-reach">–</div></div>
               <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Impresiones</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="ig-impressions">–</div></div>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-head"><span class="card-title">Facebook</span></div>
+          <div class="card-head"><span class="card-title">Facebook Orgánico</span><span class="badge blue">Orgánico</span></div>
           <div class="card-body">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Fans</div><div style="font-family:var(--font);font-size:26px;color:var(--text)" id="fb-fans">–</div></div>
@@ -584,6 +625,84 @@ tr:hover td{background:rgba(160,110,55,0.03)}
       <div class="card">
         <div class="card-head"><span class="card-title">Evolución de seguidores</span></div>
         <div class="card-body"><div class="chart-wrap"><canvas id="chart-social"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- SOCIAL LISTENING -->
+    <div class="page" id="page-listening">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Hashtags monitoreados</span>
+            <button class="btn btn-primary btn-sm" onclick="refreshListening()">↻ Actualizar</button>
+          </div>
+          <div class="card-body" id="listening-hashtags">
+            <div style="display:grid;gap:10px" id="hashtag-grid">
+              <div class="empty"><div class="empty-text">Hacé clic en "Actualizar" para cargar datos</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Menciones de marca</span></div>
+          <div class="card-body" id="listening-mentions">
+            <div style="font-size:12px;color:var(--text2);line-height:1.8">
+              <div style="margin-bottom:10px"><strong>@citrino_bienestar</strong> — Mencioná tu cuenta en cada post para rastrear UGC</div>
+              <div style="background:var(--bg2);border-radius:8px;padding:12px;margin-bottom:8px">
+                <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">¿Cómo activar UGC?</div>
+                <div style="font-size:12px;color:var(--text2)">Pedile a tus clientes que etiqueten <strong>@citrino_bienestar</strong> en sus stories después de la sesión. Cada etiqueta aparece en tu bandeja de menciones de Instagram.</div>
+              </div>
+              <div id="mentions-list"><div class="empty" style="padding:8px"><div class="empty-text">Sin menciones registradas</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-head"><span class="card-title">Rendimiento web — citrinobienestar.uy</span><button class="btn btn-outline btn-sm" onclick="loadPageSpeed()">🔍 Analizar</button></div>
+          <div class="card-body" id="pagespeed-data">
+            <div style="font-size:12px;color:var(--text2)">Analizá la velocidad y SEO técnico de tu sitio. Hacé clic en "Analizar" (usa Google PageSpeed API, sin costo).</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Conectar más fuentes</span></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
+                <div><div style="font-size:12px;font-weight:600">Google Search Console</div><div style="font-size:11px;color:var(--text3)">Clicks, posición, impresiones de búsqueda</div></div>
+                <span class="badge gray">Pendiente</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
+                <div><div style="font-size:12px;font-weight:600">Google My Business</div><div style="font-size:11px;color:var(--text3)">Reseñas automáticas, vistas del perfil</div></div>
+                <span class="badge gray">Pendiente</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px">
+                <div><div style="font-size:12px;font-weight:600">Google Analytics (GA4)</div><div style="font-size:11px;color:var(--text3)">Tráfico web, sesiones, conversiones</div></div>
+                <span class="badge gray">Pendiente</span>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">Para conectar: vas a necesitar las credenciales de Google API. Pedíselas a Nico o configurá en Railway.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">Competidores en redes — Seguimiento manual</span></div>
+        <div class="card-body">
+          <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Cuenta</th><th>Red</th><th>Seguidores (últ. check)</th><th>Registro actual</th><th>Diferencia</th><th>Último update</th></tr></thead>
+            <tbody id="listening-comp-table">
+              <tr><td>@esencial__spa</td><td>Instagram</td><td>23.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-esencial" onblur="saveCompCheck('esencial', this.value)"></td><td id="comp-diff-esencial" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
+              <tr><td>@sense_spa</td><td>Instagram</td><td>20.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-sense" onblur="saveCompCheck('sense', this.value)"></td><td id="comp-diff-sense" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
+              <tr><td>@bohosensegt</td><td>Instagram</td><td>16.000</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-boho" onblur="saveCompCheck('boho', this.value)"></td><td id="comp-diff-boho" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
+              <tr><td>@vita_recovery</td><td>Instagram</td><td>8.512</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-vita" onblur="saveCompCheck('vita', this.value)"></td><td id="comp-diff-vita" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
+              <tr><td>@browsjm</td><td>Instagram</td><td>–</td><td><input class="fi" style="width:90px;font-size:12px;padding:3px 6px" placeholder="Nuevo…" id="comp-brows" onblur="saveCompCheck('brows', this.value)"></td><td id="comp-diff-brows" style="color:var(--text3)">–</td><td style="font-size:11px;color:var(--text3)">Jul 2026</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px">Actualizá manualmente cada semana — anotá los seguidores que ves en cada perfil para trackear la evolución.</div>
+        </div>
       </div>
     </div>
 
@@ -639,7 +758,16 @@ tr:hover td{background:rgba(160,110,55,0.03)}
         <div style="min-width:190px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Impacto SEO/GEO</div><div id="rev-seo" style="font-size:12px;color:var(--text2);line-height:1.8">–</div></div>
       </div>
       <div class="grid-main">
-        <div><div class="sec-head"><div class="sec-title">Reseñas registradas</div><button class="btn btn-primary btn-sm" onclick="openModal('review-modal')">+ Agregar</button></div><div id="reviews-list"></div></div>
+        <div>
+          <div class="sec-head">
+            <div class="sec-title">Reseñas registradas</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="syncGoogleReviews()" id="btn-rev-sync" title="Sincronizar desde Google My Business (requiere configurar API)">↻ Sync Google</button>
+              <button class="btn btn-primary btn-sm" onclick="openModal('review-modal')">+ Agregar</button>
+            </div>
+          </div>
+          <div id="reviews-list"></div>
+        </div>
         <div class="card"><div class="card-head"><span class="card-title">Consejos</span></div><div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.9"><div style="margin-bottom:8px">★ Respondé todas en &lt;24h</div><div style="margin-bottom:8px">★ Pedí reseña después de cada sesión</div><div style="margin-bottom:8px">★ +4.5⭐ mejora ranking Google Maps</div><div style="margin-bottom:8px">★ Palabras clave en reseñas → SEO local</div><div>★ Responder críticas muestra profesionalismo</div></div></div>
       </div>
     </div>
@@ -832,7 +960,7 @@ function closeSidebar() {
 
 
 // ── NAV ───────────────────────────────────────────────────
-const TITLES = { dashboard:'Dashboard', tasks:'Tareas', campaigns:'Campañas', social:'Redes Sociales', content:'Contenido & Drive', actions:'Acciones MKT', reviews:'Reseñas & SEO', competitors:'Competidores', reports:'Reportes', tickets:'Tickets', notes:'Notas' };
+const TITLES = { dashboard:'Dashboard', tasks:'Tareas', campaigns:'Campañas', social:'Redes Sociales', listening:'Social Listening', content:'Contenido & Drive', actions:'Acciones MKT', reviews:'Reseñas & SEO', competitors:'Competidores', reports:'Reportes', tickets:'Tickets', notes:'Notas' };
 function nav(p) {
   document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
@@ -877,6 +1005,7 @@ async function loadData() {
   if (d) { renderDashboard(d); renderCampaignsData(d); renderSocialData(d); }
   loadTaskBadge();
   loadTicketBadge();
+  loadAIInsights(); // Cargar insights previos si existen
 }
 
 async function refreshData() {
@@ -885,6 +1014,152 @@ async function refreshData() {
   if (r) { const d = r.data || r; renderDashboard(d); renderCampaignsData(d); renderSocialData(d); toast('✓ Datos actualizados'); }
   else toast('Error al actualizar');
   document.querySelector('.btn-refresh').textContent = '↻ Actualizar';
+}
+
+// ── SOCIAL LISTENING ──────────────────────────────────────
+const HASHTAGS_TO_MONITOR = ['CitrinoBienestar','masajesMontevideo','masajesUruguay','bienestarUruguay','masajes'];
+
+async function refreshListening() {
+  const grid = document.getElementById('hashtag-grid');
+  if (grid) grid.innerHTML = '<div class="empty"><div class="empty-text">⏳ Consultando hashtags...</div></div>';
+  try {
+    const r = await api('GET', '/api/mkt/social-listening');
+    if (!r || r.error) {
+      if (grid) grid.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:8px">${r?.error || 'Error al cargar. Verificá el token de Instagram.'}</div>`;
+      return;
+    }
+    if (grid && r.hashtags) {
+      grid.innerHTML = r.hashtags.map(h => `
+        <div style="background:var(--bg2);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600">#${h.tag}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${h.posts > 0 ? fmt(h.posts) + ' posts recientes' : 'Sin datos disponibles'}</div>
+          </div>
+          <div style="text-align:right">
+            ${h.posts > 0 ? `<span class="badge green">Activo</span>` : `<span class="badge gray">–</span>`}
+          </div>
+        </div>`).join('');
+    }
+  } catch(e) {
+    if (grid) grid.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:8px">Error: ${e.message}</div>`;
+  }
+}
+
+// ── PAGESPEED ─────────────────────────────────────────────
+async function loadPageSpeed() {
+  const el = document.getElementById('pagespeed-data');
+  if (el) el.innerHTML = '<div class="empty"><div class="empty-text">⏳ Analizando citrinobienestar.uy...</div></div>';
+  try {
+    const r = await api('GET', '/api/mkt/pagespeed');
+    if (!r || r.error) {
+      if (el) el.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">Error: ${r?.error || 'No se pudo analizar'}</div>`;
+      return;
+    }
+    const scores = r.categories || {};
+    const scoreColor = s => s >= 90 ? 'var(--green)' : s >= 50 ? 'var(--yellow)' : 'var(--red)';
+    if (el) el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;margin-bottom:14px">
+        ${Object.entries(scores).map(([k, v]) => `
+          <div style="text-align:center;padding:10px;background:var(--bg2);border-radius:8px">
+            <div style="font-size:24px;font-weight:700;color:${scoreColor(v)}">${v}</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:3px">${k}</div>
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text3)">Análisis Google PageSpeed · ${r.strategy || 'mobile'} · ${new Date().toLocaleDateString('es-UY')}</div>
+      ${r.opportunities?.length ? `<div style="margin-top:10px;font-size:12px;color:var(--text2)"><strong>Oportunidades de mejora:</strong><ul style="margin-top:6px;margin-left:16px">${r.opportunities.map(o => `<li style="margin-bottom:4px">${o}</li>`).join('')}</ul></div>` : ''}`;
+  } catch(e) {
+    if (el) el.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">Error: ${e.message}</div>`;
+  }
+}
+
+// ── REVIEWS SYNC ──────────────────────────────────────────
+async function syncGoogleReviews() {
+  const btn = document.getElementById('btn-rev-sync');
+  if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
+  try {
+    const r = await api('POST', '/api/mkt/reviews/sync-google');
+    if (r?.ok) {
+      toast(`✓ ${r.count || 0} reseñas sincronizadas desde Google`);
+      loadReviews();
+    } else {
+      toast(r?.error || 'Google My Business no configurado aún. Usá "+ Agregar" por ahora.');
+    }
+  } catch(e) { toast('Error: ' + e.message); }
+  if (btn) { btn.textContent = '↻ Sync Google'; btn.disabled = false; }
+}
+
+// ── COMPETITOR TRACKING ───────────────────────────────────
+function saveCompCheck(key, val) {
+  if (!val || isNaN(parseInt(val))) return;
+  const nums = { esencial: 23000, sense: 20000, boho: 16000, vita: 8512, brows: 0 };
+  const base = nums[key] || 0;
+  const current = parseInt(val.replace(/\D/g,''));
+  if (base > 0 && current) {
+    const diff = current - base;
+    const el = document.getElementById('comp-diff-' + key);
+    if (el) {
+      el.textContent = (diff >= 0 ? '+' : '') + fmt(diff);
+      el.style.color = diff >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+  }
+  toast('✓ Guardado localmente');
+}
+
+// ── AI INSIGHTS ───────────────────────────────────────────
+async function loadAIInsights() {
+  const r = await api('GET', '/api/mkt/ai-insights');
+  if (r?.resumen) renderAIInsights(r);
+}
+
+function renderAIInsights(ins) {
+  const badge = document.getElementById('ai-status-badge');
+  const body = document.getElementById('ai-insights-body');
+  if (!ins || !ins.resumen) return;
+  const colores = { bien: 'green', atencion: 'yellow', critico: 'red' };
+  const iconos = { bien: '✅', atencion: '⚠️', critico: '🔴' };
+  if (badge) {
+    badge.textContent = (iconos[ins.estado] || '') + ' ' + (ins.estado || '–');
+    badge.className = 'badge ' + (colores[ins.estado] || 'gray');
+  }
+  if (!body) return;
+  body.innerHTML = `
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;padding:10px;background:var(--bg2);border-radius:8px">${ins.resumen}</div>
+    ${ins.insights?.length ? `<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">Observaciones</div>${ins.insights.map(i => `<div style="display:flex;gap:8px;font-size:12px;color:var(--text2);margin-bottom:5px"><span style="color:var(--gold);flex-shrink:0">◈</span>${i}</div>`).join('')}</div>` : ''}
+    ${ins.acciones?.length ? `<div style="margin-bottom:12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">Acciones esta semana</div>${ins.acciones.map(a => `<div style="display:flex;gap:8px;font-size:12px;color:var(--text);margin-bottom:5px;padding:6px 8px;background:var(--greenbg);border-radius:6px"><span style="color:var(--green);flex-shrink:0">→</span>${a}</div>`).join('')}</div>` : ''}
+    ${ins.alerta ? `<div style="padding:8px 10px;background:var(--yellowbg);border-radius:8px;border-left:3px solid var(--yellow);font-size:12px;color:var(--text2)"><strong>⚠️ Atención:</strong> ${ins.alerta}</div>` : ''}
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;text-align:right">Generado: ${ins.generatedAt ? fmtD(ins.generatedAt) : '–'}</div>`;
+}
+
+async function generateInsights() {
+  const btn = document.getElementById('btn-ai');
+  const body = document.getElementById('ai-insights-body');
+  if (btn) { btn.textContent = '⏳...'; btn.disabled = true; }
+  if (body) body.innerHTML = '<div class="empty" style="padding:12px"><div class="empty-text">Consultando Claude IA...</div></div>';
+  try {
+    const r = await fetch('/api/mkt/ai-insights', { method: 'POST', headers: {'Content-Type':'application/json'} });
+    const data = await r.json();
+    if (data.ok && data.insights) {
+      renderAIInsights(data.insights);
+      toast('✓ Análisis IA generado');
+    } else {
+      if (body) body.innerHTML = `<div style="font-size:12px;color:var(--red);padding:8px">${data.error || 'Error al generar análisis'}</div>`;
+      toast('Error: ' + (data.error || 'Revisá ANTHROPIC_API_KEY en Railway'));
+    }
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+  if (btn) { btn.textContent = 'Generar'; btn.disabled = false; }
+}
+
+// ── SHEETS EXPORT ─────────────────────────────────────────
+async function exportSheets() {
+  toast('Exportando a Google Sheets...');
+  try {
+    const r = await fetch('/api/mkt/sheets-export', { method: 'POST', headers: {'Content-Type':'application/json'} });
+    const data = await r.json();
+    if (data.ok) toast(`✓ ${data.message}`);
+    else toast('Error Sheets: ' + (data.error || 'Verificá GOOGLE_SHEETS_ID'));
+  } catch(e) { toast('Error: ' + e.message); }
 }
 
 async function loadHistorical() {
@@ -913,27 +1188,97 @@ async function loadHistorical() {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────
+function populateMonthSelect(d) {
+  const sel = document.getElementById('month-select');
+  if (!sel) return;
+  // Guardar opción actual
+  const cur = sel.value;
+  // Limpiar y repoblar
+  sel.innerHTML = '<option value="current">Esta semana (actual)</option>';
+  const bm = d.byMonth || {};
+  const months = Object.keys(bm).sort().reverse();
+  months.forEach(m => {
+    const wks = bm[m]?.weeks?.length || 0;
+    const [y, mo] = m.split('-');
+    const label = new Date(parseInt(y), parseInt(mo)-1, 1).toLocaleDateString('es-UY', { month:'long', year:'numeric' });
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = label.charAt(0).toUpperCase() + label.slice(1) + ` (${wks} sem.)`;
+    sel.appendChild(opt);
+  });
+  if (cur && cur !== 'current') sel.value = cur;
+}
+
+function changeDashMonth(val) {
+  api('GET', '/api/mkt/data').then(d => {
+    if (!d) return;
+    if (val === 'current') {
+      renderDashboardData(d.currentWeek || {}, d, 'semana actual');
+    } else {
+      const bm = d.byMonth?.[val];
+      if (!bm) return;
+      // Agregar semanas del mes
+      let totalSpend = 0, totalLeads = 0, totalReach = 0, totalImpressions = 0;
+      let igFollowers = 0;
+      bm.weeks.forEach(w => {
+        totalSpend += w.meta?.spend || 0;
+        totalLeads += w.meta?.leads || 0;
+        totalReach += w.meta?.reach || 0;
+        totalImpressions += w.meta?.impressions || 0;
+        if (w.instagram?.followers > igFollowers) igFollowers = w.instagram.followers;
+      });
+      const [y, mo] = val.split('-');
+      const label = new Date(parseInt(y), parseInt(mo)-1, 1).toLocaleDateString('es-UY', { month:'long', year:'numeric' });
+      const synth = {
+        meta: { spend: totalSpend, leads: totalLeads, reach: totalReach, impressions: totalImpressions,
+          cpl: totalLeads > 0 ? parseFloat((totalSpend/totalLeads).toFixed(2)) : 0 },
+        instagram: { followers: igFollowers },
+        facebook: bm.weeks[bm.weeks.length-1]?.facebook || {}
+      };
+      renderDashboardData(synth, d, label.charAt(0).toUpperCase() + label.slice(1));
+    }
+  });
+}
+
 function renderDashboard(d) {
-  const w = d.currentWeek || {}, m = w.meta || {}, ig = w.instagram || {};
-  const cpl = m.leads > 0 ? m.cpl : 59;
-  document.getElementById('k-cpl').textContent = fmtM(cpl);
-  document.getElementById('k-leads').textContent = m.leads || 0;
-  document.getElementById('k-ig').textContent = ig.followers ? fmt(ig.followers) : '–';
+  populateMonthSelect(d);
+  renderDashboardData(d.currentWeek || {}, d, 'semana actual');
   if (d.updatedAt) document.getElementById('last-ts').textContent = 'Act. ' + fmtD(d.updatedAt);
   api('GET', '/api/mkt/reviews').then(rv => {
     if (!rv) return;
     document.getElementById('k-rev').textContent = rv.summary?.total || 0;
     document.getElementById('k-rev-avg').textContent = '★ ' + (rv.summary?.avg || '–');
   });
-  const leads = m.leads || 0, target = 100;
-  const pct = Math.min(100, Math.round(leads / target * 100));
-  document.getElementById('obj-label').textContent = leads + ' / ' + target + ' leads';
+  buildCplChart(d);
+  loadTasks();
+}
+
+function renderDashboardData(w, d, periodLabel) {
+  const m = w.meta || {}, ig = w.instagram || {};
+  const cpl = m.leads > 0 ? m.cpl : (m.spend > 0 ? 0 : 59);
+  const cplFmt = m.leads > 0 ? fmtM(cpl) : (m.spend > 0 ? '–' : '$U 59*');
+  document.getElementById('k-cpl').textContent = cplFmt;
+  const cplBadge = document.getElementById('k-cpl-badge');
+  if (m.leads > 0 && cpl) {
+    const diff = Math.round(((cpl - 47) / 47) * 100);
+    cplBadge.textContent = diff > 0 ? `↑ ${diff}% sobre óptimo` : `↓ ${Math.abs(diff)}% bajo óptimo`;
+    cplBadge.className = 'kpi-badge ' + (diff > 0 ? 'warn' : 'up');
+  }
+  document.getElementById('k-leads').textContent = m.leads != null ? fmt(m.leads) : '–';
+  document.getElementById('k-leads-sub').textContent = 'Meta Ads · ' + (periodLabel || 'período');
+  document.getElementById('k-spend').textContent = m.spend > 0 ? fmtM(m.spend * 56) : '–'; // USD to UYU approx
+  document.getElementById('k-spend-sub').textContent = periodLabel || 'período';
+  document.getElementById('k-reach').textContent = m.reach > 0 ? fmt(m.reach) : '–';
+  document.getElementById('k-ig').textContent = ig.followers ? fmt(ig.followers) : '–';
+  const label = document.getElementById('dash-period-label');
+  if (label) label.textContent = periodLabel ? 'Mostrando: ' + periodLabel : '';
+  const contactos = m.leads || 0, target = 100;
+  const pct = Math.min(100, Math.round(contactos / target * 100));
+  document.getElementById('obj-label').textContent = contactos + ' / ' + target + ' contactos';
   document.getElementById('obj-pct').textContent = pct + '%';
   document.getElementById('obj-bar').style.width = pct + '%';
   const days = Math.max(0, Math.round((new Date(new Date().getFullYear(), 7, 15) - new Date()) / 86400000));
   document.getElementById('obj-days').textContent = days + ' días hasta mediados de agosto';
-  buildCplChart(d);
-  loadTasks();
 }
 
 function buildCplChart(d) {
@@ -960,7 +1305,8 @@ function renderCampaignsData(d) {
   const tbody = document.getElementById('camp-tbody');
   tbody.innerHTML = camps.map(c => {
     const cls = c.cpl > 55 ? 'red' : c.cpl > 47 ? 'yellow' : 'green';
-    return `<tr><td>${c.name}</td><td><span class="badge ${c.status==='ACTIVE'?'green':'gray'}">${c.status}</span></td><td>${c.leads}</td><td><span class="badge ${cls}">${c.leads > 0 ? fmtM(c.cpl) : '–'}</span></td><td>${fmtM(c.spend)}</td><td>${fmt(c.reach)}</td></tr>`;
+    const contactos = c.leads || 0;
+    return `<tr><td>${c.name}</td><td><span class="badge ${c.status==='ACTIVE'?'green':'gray'}">${c.status}</span></td><td><strong>${fmt(contactos)}</strong></td><td><span class="badge ${cls}">${contactos > 0 ? fmtM(c.cpl) : '–'}</span></td><td>${fmtM(c.spend * 56)}</td><td>${fmt(c.reach)}</td></tr>`;
   }).join('');
   buildCampaignsChart(camps);
 }
@@ -1003,7 +1349,15 @@ function buildCampaignsChart(camps) {
 
 // ── SOCIAL ────────────────────────────────────────────────
 function renderSocialData(d) {
-  const w = d.currentWeek || {}, ig = w.instagram || {}, fb = w.facebook || {};
+  const w = d.currentWeek || {}, ig = w.instagram || {}, fb = w.facebook || {}, m = w.meta || {};
+  // Paid Meta Ads
+  document.getElementById('ads-reach').textContent = fmt(m.reach || 0);
+  document.getElementById('ads-impressions').textContent = fmt(m.impressions || 0);
+  document.getElementById('ads-leads').textContent = fmt(m.leads || 0);
+  document.getElementById('ads-spend').textContent = m.spend > 0 ? fmtM(m.spend * 56) : '–';
+  const freq = (m.reach > 0 && m.impressions > 0) ? (m.impressions / m.reach).toFixed(1) : '–';
+  document.getElementById('ads-freq').textContent = freq;
+  // Organic
   document.getElementById('ig-followers').textContent = fmt(ig.followers || 0);
   document.getElementById('ig-posts').textContent = ig.mediaCount || 0;
   document.getElementById('ig-reach').textContent = fmt(ig.reach || 0);

@@ -232,8 +232,122 @@ async function refreshMetaData() {
   } catch (e) { console.error('[MKT] Error refresh:', e.message); }
 }
 
+// ── AI Insights con Claude ────────────────────────────────────
+async function generateAIInsights() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) { console.warn('[AI] ANTHROPIC_API_KEY no configurado'); return null; }
+
+  const mktData = readJSON('mkt-data.json', {});
+  const reviews = readJSON('mkt-reviews.json', { reviews: [], summary: {} });
+  const actions = readJSON('mkt-actions.json', []).slice(0, 5);
+  const w = mktData.currentWeek || {};
+  const m = w.meta || {};
+  const ig = w.instagram || {};
+  const fb = w.facebook || {};
+
+  // Calcular tendencia CPL (últimas 4 semanas)
+  const allWeeks = [];
+  Object.values(mktData.byMonth || {}).forEach(mo => allWeeks.push(...(mo.weeks || [])));
+  allWeeks.sort((a, b) => a.weekOf > b.weekOf ? 1 : -1);
+  const last4 = allWeeks.slice(-4).map(w => ({ weekOf: w.weekOf, cpl: w.meta?.cpl || 0, leads: w.meta?.leads || 0, spend: w.meta?.spend || 0 }));
+
+  const prompt = `Sos el analista de marketing de Citrino Centro Integral de Bienestar, un centro de masajes terapéuticos en Montevideo, Uruguay.
+
+DATOS DE ESTA SEMANA:
+- CPL (costo por contacto): $U ${m.cpl || 'sin datos'}
+- Contactos generados: ${m.leads || 0}
+- Inversión: USD ${m.spend || 0} (~$U ${Math.round((m.spend || 0) * 56)})
+- Alcance Meta Ads: ${m.reach || 0} personas
+- Seguidores IG: ${ig.followers || 0}
+- Fans FB: ${fb.fans || 0}
+- Reseñas totales: ${reviews.summary?.total || 0} (promedio ${reviews.summary?.avg || '–'})
+
+TENDENCIA ÚLTIMAS 4 SEMANAS:
+${last4.map(w => `  ${w.weekOf}: ${w.leads} contactos, CPL $U ${w.cpl}`).join('\n') || '  Sin datos históricos aún'}
+
+OBJETIVO: CPL ≤ $U 47 para mediados de agosto 2026
+ACCIONES RECIENTES: ${actions.slice(0,3).map(a => a.title || a.description).join(', ') || 'Ninguna registrada'}
+
+Respondé en español con este formato JSON exacto (sin markdown, solo JSON):
+{
+  "estado": "bien|atencion|critico",
+  "resumen": "Una oración de estado general (máx 20 palabras)",
+  "insights": [
+    "Insight específico 1 basado en los datos (máx 15 palabras)",
+    "Insight específico 2",
+    "Insight específico 3"
+  ],
+  "acciones": [
+    "Acción concreta 1 para esta semana (máx 12 palabras)",
+    "Acción concreta 2"
+  ],
+  "alerta": "Una alerta o punto de atención si existe, null si todo bien"
+}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    if (data.error) { console.warn('[AI] Error API:', data.error.message); return null; }
+    const text = data.content?.[0]?.text || '';
+    const insights = JSON.parse(text.trim());
+    insights.generatedAt = new Date().toISOString();
+    writeJSON('ai-insights.json', insights);
+    console.log('[AI] Insights generados:', insights.estado);
+    return insights;
+  } catch(e) {
+    console.error('[AI] Error:', e.message);
+    return null;
+  }
+}
+
+// ── Google Sheets export ──────────────────────────────────────
+async function exportToSheets() {
+  const sheetsId = process.env.GOOGLE_SHEETS_ID;
+  if (!sheetsId) return;
+  try {
+    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '{}');
+    const auth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const mktData = readJSON('mkt-data.json', {});
+    const allWeeks = [];
+    Object.values(mktData.byMonth || {}).forEach(mo => allWeeks.push(...(mo.weeks || [])));
+    allWeeks.sort((a, b) => a.weekOf > b.weekOf ? 1 : -1);
+    const rows = [
+      ['Semana', 'Contactos', 'CPL ($U)', 'Inversión (USD)', 'Alcance', 'Impresiones', 'Seguidores IG', 'Fans FB'],
+      ...allWeeks.map(w => [
+        w.weekOf, w.meta?.leads || 0, w.meta?.cpl || 0, w.meta?.spend || 0,
+        w.meta?.reach || 0, w.meta?.impressions || 0,
+        w.instagram?.followers || 0, w.facebook?.fans || 0
+      ])
+    ];
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetsId,
+      range: 'Métricas!A1',
+      valueInputOption: 'RAW',
+      requestBody: { values: rows }
+    });
+    console.log('[Sheets] Datos exportados:', allWeeks.length, 'semanas');
+  } catch(e) { console.warn('[Sheets] Error export:', e.message); }
+}
+
 // ── Cron: lunes 9am Montevideo (UTC-3 → 12:00 UTC) ──────────
-cron.schedule('0 12 * * 1', refreshMetaData, { timezone: 'America/Montevideo' });
+cron.schedule('0 12 * * 1', async () => {
+  await refreshMetaData();
+  await generateAIInsights();
+  await exportToSheets();
+}, { timezone: 'America/Montevideo' });
 
 // ────────────────────────────────────────────────────────────
 //  RUTAS ESTÁTICAS
@@ -256,6 +370,29 @@ app.get('/api/mkt/data', (req, res) => {
 app.post('/api/mkt/refresh', async (req, res) => {
   await refreshMetaData();
   res.json({ ok: true, data: readJSON('mkt-data.json') });
+});
+
+// ── AI Insights ──────────────────────────────────────────────
+app.get('/api/mkt/ai-insights', (req, res) => {
+  res.json(readJSON('ai-insights.json', { estado: null, resumen: null, insights: [], acciones: [], generatedAt: null }));
+});
+
+app.post('/api/mkt/ai-insights', async (req, res) => {
+  const insights = await generateAIInsights();
+  if (insights) res.json({ ok: true, insights });
+  else res.json({ ok: false, error: 'No se pudo generar análisis. Verificá ANTHROPIC_API_KEY en Railway.' });
+});
+
+// ── Sheets Export ────────────────────────────────────────────
+app.post('/api/mkt/sheets-export', async (req, res) => {
+  try {
+    await exportToSheets();
+    const mktData = readJSON('mkt-data.json', {});
+    const weeks = Object.values(mktData.byMonth || {}).reduce((acc, mo) => acc + (mo.weeks?.length || 0), 0);
+    res.json({ ok: true, weeks, sheetsId: process.env.GOOGLE_SHEETS_ID, message: `${weeks} semanas exportadas a Google Sheets` });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
 // ── Carga histórica: desde una fecha hasta hoy, semana a semana ──────────────
@@ -820,6 +957,102 @@ app.get('/api/mkt/reports/quarterly', (req, res) => {
     total: { spend: totalSpend, leads: totalLeads, cpl: totalLeads > 0 ? parseFloat((totalSpend/totalLeads).toFixed(2)) : 0 },
     byMonth, generatedAt: new Date().toISOString()
   });
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: SOCIAL LISTENING (Instagram Hashtag Search)
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/social-listening', async (req, res) => {
+  const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
+  const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
+  const HASHTAGS = ['CitrinoBienestar', 'masajesMontevideo', 'masajesUruguay', 'bienestarUruguay', 'masajes'];
+
+  if (!igToken) return res.json({ error: 'Token de Instagram no configurado', hashtags: [] });
+
+  try {
+    const results = [];
+    for (const tag of HASHTAGS) {
+      try {
+        // 1. Buscar ID del hashtag
+        const searchRes = await fetch(
+          `https://graph.facebook.com/v18.0/ig_hashtag_search?` +
+          `user_id=${igBusinessId}&q=${encodeURIComponent(tag)}&access_token=${igToken}`
+        );
+        const searchData = await searchRes.json();
+        if (searchData.error || !searchData.data?.[0]?.id) {
+          results.push({ tag, posts: 0, id: null });
+          continue;
+        }
+        const hashtagId = searchData.data[0].id;
+        // 2. Contar posts recientes (top_media)
+        const mediaRes = await fetch(
+          `https://graph.facebook.com/v18.0/${hashtagId}/top_media?` +
+          `user_id=${igBusinessId}&fields=id,media_type,timestamp&access_token=${igToken}&limit=50`
+        );
+        const mediaData = await mediaRes.json();
+        const postCount = mediaData.data?.length || 0;
+        results.push({ tag, posts: postCount, id: hashtagId });
+      } catch(e) {
+        results.push({ tag, posts: 0, error: e.message });
+      }
+      // Rate limit: esperar 200ms entre llamadas
+      await new Promise(r => setTimeout(r, 200));
+    }
+    res.json({ ok: true, hashtags: results, updatedAt: new Date().toISOString() });
+  } catch(e) {
+    res.json({ ok: false, error: e.message, hashtags: [] });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: PAGESPEED (Google PageSpeed Insights - sin auth)
+// ────────────────────────────────────────────────────────────
+app.get('/api/mkt/pagespeed', async (req, res) => {
+  const url = req.query.url || 'https://citrinobienestar.uy';
+  const strategy = req.query.strategy || 'mobile';
+  try {
+    const psRes = await fetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?` +
+      `url=${encodeURIComponent(url)}&strategy=${strategy}`
+    );
+    const psData = await psRes.json();
+    if (psData.error) return res.json({ error: psData.error.message });
+    const cats = psData.lighthouseResult?.categories || {};
+    const categories = {};
+    if (cats.performance) categories['Velocidad'] = Math.round((cats.performance.score || 0) * 100);
+    if (cats.seo) categories['SEO'] = Math.round((cats.seo.score || 0) * 100);
+    if (cats.accessibility) categories['Accesibilidad'] = Math.round((cats.accessibility.score || 0) * 100);
+    if (cats['best-practices']) categories['Buenas prácticas'] = Math.round((cats['best-practices'].score || 0) * 100);
+    // Top oportunidades
+    const audits = psData.lighthouseResult?.audits || {};
+    const opportunities = Object.values(audits)
+      .filter(a => a.score !== null && a.score < 0.9 && a.details?.type === 'opportunity' && a.title)
+      .slice(0, 4)
+      .map(a => a.title);
+    res.json({ ok: true, url, strategy, categories, opportunities, analyzedAt: new Date().toISOString() });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+//  API: REVIEWS SYNC (Google My Business — placeholder hasta configurar)
+// ────────────────────────────────────────────────────────────
+app.post('/api/mkt/reviews/sync-google', async (req, res) => {
+  const gmb = process.env.GOOGLE_BUSINESS_ACCOUNT_ID;
+  if (!gmb) {
+    return res.json({
+      ok: false,
+      error: 'Google My Business no configurado. Agregá GOOGLE_BUSINESS_ACCOUNT_ID en Railway para activar la sincronización automática.',
+      setupInstructions: [
+        '1. Activá Google Business Profile API en Google Cloud Console',
+        '2. Agregá la cuenta de servicio como admin de tu negocio en Google',
+        '3. Agregá GOOGLE_BUSINESS_ACCOUNT_ID en las variables de Railway'
+      ]
+    });
+  }
+  // Cuando esté configurado, aquí va la lógica de sync con Google Business Profile API
+  res.json({ ok: false, error: 'En construcción — credenciales pendientes' });
 });
 
 // ────────────────────────────────────────────────────────────
