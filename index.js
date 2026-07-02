@@ -570,7 +570,7 @@ app.get('/api/mkt/status', (req, res) => {
       metaLastUpdated: mktData.updatedAt || null,
       reviewsCount: reviewsData.reviews?.length || 0,
       reviewsRating: reviewsData.summary?.googleRating || reviewsData.summary?.avg || null,
-      reviewsLastUpdated: reviewsData.summary?.lastUpdated || null,
+      reviewsLastUpdated: reviewsData.summary?.lastSync || reviewsData.summary?.lastUpdated || null,
     }
   });
 });
@@ -1415,6 +1415,23 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`[CITRINO] Servidor corriendo en puerto ${PORT}`);
   console.log(`[CITRINO] Dashboard MKT: /mkt`);
+
+  // Auto-refresh al startup: carga datos de Meta + Reviews si no hay datos recientes
+  setTimeout(async () => {
+    const existing = readJSON('mkt-data.json', {});
+    const hoursSince = existing.updatedAt
+      ? (Date.now() - new Date(existing.updatedAt).getTime()) / 3600000
+      : Infinity;
+    if (hoursSince > 2) {
+      console.log('[STARTUP] Datos desactualizados o ausentes, iniciando refresh...');
+      await refreshMetaData();
+      await refreshReviews();
+      await generateAIInsights();
+      console.log('[STARTUP] Refresh completo.');
+    } else {
+      console.log('[STARTUP] Datos recientes (< 2h), skip refresh.');
+    }
+  }, 15000); // 15s de delay para que Railway termine el routing
 });
 
 module.exports = app;

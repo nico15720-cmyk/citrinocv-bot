@@ -219,6 +219,8 @@ tr:hover td{background:rgba(160,110,55,0.03)}
 /* TOAST */
 #toast{position:fixed;bottom:20px;right:20px;z-index:200;background:var(--text);color:var(--bg);border-radius:8px;padding:10px 16px;font-size:13px;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
 #toast.show{opacity:1;transform:translateY(0)}
+#toast.toast-error{background:var(--red)!important;color:#fff}
+#toast.toast-warn{background:var(--yellow)!important;color:#fff}
 
 /* COMP */
 .comp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
@@ -1058,7 +1060,7 @@ let _googleClientId = null;
 
 async function initAuth() {
   // try session first
-  const saved = sessionStorage.getItem('citrino_user');
+  const saved = localStorage.getItem('citrino_user');
   if (saved) {
     try { applyUser(JSON.parse(saved)); document.getElementById('login-screen').classList.add('hidden'); return; } catch(e) {}
   }
@@ -1078,7 +1080,7 @@ async function initAuth() {
   window.google?.accounts.id.initialize({
     client_id: _googleClientId,
     callback: handleGoogleLogin,
-    auto_select: false
+    auto_select: true
   });
   window.google?.accounts.id.renderButton(
     document.getElementById('google-signin-btn'),
@@ -1093,7 +1095,7 @@ async function handleGoogleLogin(response) {
   const err = document.getElementById('login-err');
   if (r?.ok && r.user) {
     const u = { name: r.user.name, role: r.user.role, key: r.user.role === 'admin' ? 'nico' : 'lucia', email: r.user.email };
-    sessionStorage.setItem('citrino_user', JSON.stringify(u));
+    localStorage.setItem('citrino_user', JSON.stringify(u));
     applyUser(u);
     document.getElementById('login-screen').classList.add('hidden');
     err.classList.remove('show');
@@ -1124,7 +1126,7 @@ function applyUser(u) {
 }
 
 function logout() {
-  sessionStorage.removeItem('citrino_user');
+  localStorage.removeItem('citrino_user');
   window.google?.accounts.id.disableAutoSelect();
   window.location.reload();
 }
@@ -1139,7 +1141,7 @@ async function loadWhitelist() {
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px">${u.email}</span>
       <span class="badge ${u.role==='admin'?'gold':'blue'}">${u.role}</span>
-      ${u.email !== '${S.user.email}' ? `<button class="btn btn-danger btn-sm" onclick="removeFromWhitelist('${u.email}')">✕</button>` : ''}
+      ${u.email !== S.user.email ? `<button class="btn btn-danger btn-sm" onclick="removeFromWhitelist('${u.email}')">✕</button>` : ''}
     </div>`).join('') : '<div style="color:var(--text3);font-size:13px">Sin emails habilitados</div>';
 }
 async function addToWhitelist() {
@@ -1205,10 +1207,12 @@ async function api(method, path, body) {
 }
 
 // ── TOAST ─────────────────────────────────────────────────
-function toast(msg) {
+function toast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' toast-error' : type === 'warn' ? ' toast-warn' : '');
+  clearTimeout(t._toastTimer);
+  t._toastTimer = setTimeout(() => t.classList.remove('show'), type === 'error' ? 4000 : 2500);
 }
 
 // ── MODAL ─────────────────────────────────────────────────
@@ -1327,21 +1331,27 @@ async function loadData() {
 }
 
 async function refreshData() {
-  document.querySelector('.btn-refresh').textContent = '↻ Actualizando...';
-  const r = await api('POST', '/api/mkt/refresh');
-  if (r) {
-    const d = r.data || r;
-    renderDashboard(d); renderCampaignsData(d); renderSocialData(d); checkAlerts(d);
-    if (r.metaError) {
-      toast('⚠ Meta: ' + r.metaError, 'error');
+  const btn = document.querySelector('.btn-refresh');
+  if (btn) btn.textContent = '↻ Actualizando...';
+  try {
+    const r = await api('POST', '/api/mkt/refresh');
+    if (r) {
+      const d = r.data || r;
+      renderDashboard(d); renderCampaignsData(d); renderSocialData(d); checkAlerts(d);
+      if (r.metaError) {
+        toast('⚠ Meta: ' + r.metaError, 'error');
+      } else {
+        toast('✓ Datos actualizados');
+      }
+      if (r.reviewsError) toast('⚠ Reviews: ' + r.reviewsError, 'warn');
     } else {
-      toast('✓ Datos actualizados');
+      toast('Error al actualizar — revisá los logs en Railway', 'error');
     }
-    if (r.reviewsError) toast('⚠ Reviews: ' + r.reviewsError, 'warn');
-  } else {
-    toast('Error al actualizar datos');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    if (btn) btn.textContent = '↻ Actualizar';
   }
-  document.querySelector('.btn-refresh').textContent = '↻ Actualizar';
 }
 
 // ── SOCIAL LISTENING ──────────────────────────────────────
@@ -1499,12 +1509,6 @@ async function syncGoogleReviews() {
     }
   } catch(e) { toast('Error: ' + e.message); }
   if (btn) { btn.textContent = '↻ Sync Google'; btn.disabled = false; }
-}
-
-async function loadReviews() {
-  const d = await api('GET','/api/mkt/reviews') || { reviews:[], summary:{} };
-  renderRevSummary(d.summary, d.reviews||[]);
-  renderRevList(d.reviews||[]);
 }
 
 // ── COMPETITOR TRACKING ───────────────────────────────────
@@ -2309,13 +2313,13 @@ document.getElementById('rev-date').value = new Date().toISOString().split('T')[
 // auth + data load
 // Google GSI puede demorar, esperamos a que cargue
 if (document.readyState === 'complete') {
-  initAuth().then(() => { if (sessionStorage.getItem('citrino_user')) loadData(); });
+  initAuth().then(() => { if (localStorage.getItem('citrino_user')) loadData(); });
 } else {
   window.addEventListener('load', () => {
-    initAuth().then(() => { if (sessionStorage.getItem('citrino_user')) loadData(); });
+    initAuth().then(() => { if (localStorage.getItem('citrino_user')) loadData(); });
   });
 }
-setInterval(() => { if (sessionStorage.getItem('citrino_user')) { loadTaskBadge(); loadTicketBadge(); } }, 90000);
+setInterval(() => { if (localStorage.getItem('citrino_user')) { loadTaskBadge(); loadTicketBadge(); } }, 90000);
 </script>
 </body>
 </html>
