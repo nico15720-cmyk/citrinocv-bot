@@ -16,7 +16,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ── Middlewares ──────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // same-origin / Railway healthcheck
+    const ok = /citrinobienestar\.uy$/.test(origin) ||
+               /railway\.app$/.test(origin) ||
+               /localhost/.test(origin);
+    cb(ok ? null : new Error('CORS blocked'), ok);
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -42,6 +51,86 @@ function readJSON(file, def = {}) {
 function writeJSON(file, data) {
   fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
 }
+
+// ── Seguridad ──────────────────────────────────────────────────
+const crypto = require('crypto');
+
+// Sanitizar strings para evitar XSS en datos guardados
+function sanitize(v) {
+  if (typeof v !== 'string') return v;
+  return v.replace(/[<>"'`]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;','`':'&#x60;'}[c]));
+}
+
+// Rate limiter en memoria (se resetea al reiniciar el servidor)
+const _rl = {};
+function checkRateLimit(key, limit, windowMs) {
+  const now = Date.now();
+  if (!_rl[key]) _rl[key] = [];
+  _rl[key] = _rl[key].filter(t => now - t < windowMs);
+  if (_rl[key].length >= limit) return false;
+  _rl[key].push(now);
+  return true;
+}
+function rlMiddleware(limit, windowMs) {
+  return (req, res, next) => {
+    const key = (req.ip || 'anon') + '|' + req.path;
+    if (!checkRateLimit(key, limit, windowMs))
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Esperá un momento.' });
+    next();
+  };
+}
+
+// Sesiones server-side con tokens aleatorios
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 días
+function generateSession(email, role) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const sessions = readJSON('mkt-sessions.json', {});
+  const now = Date.now();
+  // Limpiar sesiones expiradas
+  for (const t of Object.keys(sessions)) {
+    if (now - sessions[t].createdAt > SESSION_TTL) delete sessions[t];
+  }
+  sessions[token] = { email, role, createdAt: now };
+  writeJSON('mkt-sessions.json', sessions);
+  return token;
+}
+
+function requireAuth(req, res, next) {
+  const auth = req.headers['authorization'];
+  if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  const token = auth.slice(7);
+  const sessions = readJSON('mkt-sessions.json', {});
+  const session = sessions[token];
+  if (!session) return res.status(401).json({ error: 'Sesión inválida' });
+  if (Date.now() - session.createdAt > SESSION_TTL) {
+    delete sessions[token];
+    writeJSON('mkt-sessions.json', sessions);
+    return res.status(401).json({ error: 'Sesión expirada, iniciá sesión nuevamente' });
+  }
+  req.user = session;
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Acceso restringido a administradores' });
+    next();
+  });
+}
+
+// ── Middleware global: /api/mkt/* requiere auth SALVO login/config/logout ──
+const MKT_PUBLIC = new Set(['/auth', '/auth/config', '/auth/logout']);
+app.use('/api/mkt', (req, res, next) => {
+  if (MKT_PUBLIC.has(req.path)) return next();
+  // Webhook externo del reporte semanal: acepta secret en header
+  if (req.path === '/weekly-report' && req.method === 'POST') {
+    const webhookSecret = process.env.WEEKLY_REPORT_SECRET;
+    const provided = req.headers['x-report-secret'];
+    if (webhookSecret && provided === webhookSecret) return next();
+    // Si no tiene secret válido, cae al requireAuth normal
+  }
+  requireAuth(req, res, next);
+});
 
 // ── Google Drive client ──────────────────────────────────────
 function getDriveClient() {
@@ -480,18 +569,35 @@ app.post('/api/mkt/auth', async (req, res) => {
     const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
     const found = wl.whitelist.find(u => u.email.toLowerCase() === email);
     if (!found) return res.json({ ok: false, error: 'Email not whitelisted' });
-    res.json({ ok: true, user: { email: found.email, role: found.role, name: found.name || info.name || email.split('@')[0] } });
+    const token = generateSession(found.email, found.role);
+    res.json({ ok: true, token, user: { email: found.email, role: found.role, name: found.name || info.name || email.split('@')[0] } });
   } catch(e) {
     res.json({ ok: false, error: e.message });
   }
 });
 
-app.get('/api/mkt/auth/whitelist', (req, res) => {
+// Logout — no require auth (puede estar expirado)
+app.post('/api/mkt/auth/logout', (req, res) => {
+  const token = (req.headers['authorization'] || '').slice(7);
+  if (token) {
+    const sessions = readJSON('mkt-sessions.json', {});
+    delete sessions[token];
+    writeJSON('mkt-sessions.json', sessions);
+  }
+  res.json({ ok: true });
+});
+
+// Validar sesión activa
+app.get('/api/mkt/auth/me', requireAuth, (req, res) => {
+  res.json({ ok: true, user: req.user });
+});
+
+app.get('/api/mkt/auth/whitelist', requireAdmin, (req, res) => {
   const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
   res.json(wl);
 });
 
-app.post('/api/mkt/auth/whitelist', (req, res) => {
+app.post('/api/mkt/auth/whitelist', requireAdmin, (req, res) => {
   const { email, role, name } = req.body;
   if (!email) return res.status(400).json({ ok: false, error: 'Email required' });
   const wl = readJSON('mkt-auth.json', { whitelist: [{ email: ADMIN_EMAIL, role: 'admin', name: 'Nico' }] });
@@ -502,7 +608,7 @@ app.post('/api/mkt/auth/whitelist', (req, res) => {
   res.json({ ok: true });
 });
 
-app.delete('/api/mkt/auth/whitelist/:email', (req, res) => {
+app.delete('/api/mkt/auth/whitelist/:email', requireAdmin, (req, res) => {
   const email = decodeURIComponent(req.params.email).toLowerCase();
   if (email === ADMIN_EMAIL) return res.json({ ok: false, error: 'Cannot remove admin' });
   const wl = readJSON('mkt-auth.json', { whitelist: [] });
@@ -514,11 +620,11 @@ app.delete('/api/mkt/auth/whitelist/:email', (req, res) => {
 // ────────────────────────────────────────────────────────────
 //  API: ADMIN (prompt IA editable)
 // ────────────────────────────────────────────────────────────
-app.get('/api/mkt/admin/prompt', (req, res) => {
+app.get('/api/mkt/admin/prompt', requireAdmin, (req, res) => {
   res.json(readJSON('mkt-ai-prompt.json', { prompt: null, updatedAt: null }));
 });
 
-app.post('/api/mkt/admin/prompt', (req, res) => {
+app.post('/api/mkt/admin/prompt', requireAdmin, (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ ok: false });
   writeJSON('mkt-ai-prompt.json', { prompt, updatedAt: new Date().toISOString() });
@@ -532,7 +638,7 @@ app.get('/api/mkt/data', (req, res) => {
   res.json(readJSON('mkt-data.json', { currentWeek: {}, byMonth: {}, updatedAt: null }));
 });
 
-app.post('/api/mkt/refresh', async (req, res) => {
+app.post('/api/mkt/refresh', rlMiddleware(10, 60 * 60 * 1000), async (req, res) => {
   const metaResult = await refreshMetaData();
   let reviewsResult = { ok: true, skipped: true };
   if (process.env.GOOGLE_PLACE_ID && process.env.GOOGLE_API_KEY) {
@@ -549,7 +655,7 @@ app.post('/api/mkt/refresh', async (req, res) => {
 });
 
 // ── System Status ────────────────────────────────────────────
-app.get('/api/mkt/status', (req, res) => {
+app.get('/api/mkt/status', requireAdmin, (req, res) => {
   const has = (k) => !!process.env[k];
   const mask = (k) => process.env[k] ? process.env[k].substring(0, 6) + '...' : null;
   const mktData = readJSON('mkt-data.json', {});
@@ -580,14 +686,14 @@ app.get('/api/mkt/ai-insights', (req, res) => {
   res.json(readJSON('ai-insights.json', { estado: null, resumen: null, insights: [], acciones: [], generatedAt: null }));
 });
 
-app.post('/api/mkt/ai-insights', async (req, res) => {
+app.post('/api/mkt/ai-insights', requireAdmin, rlMiddleware(5, 60 * 60 * 1000), async (req, res) => {
   const insights = await generateAIInsights();
   if (insights) res.json({ ok: true, insights });
   else res.json({ ok: false, error: 'No se pudo generar análisis. Verificá ANTHROPIC_API_KEY en Railway.' });
 });
 
 // ── Sheets Export ────────────────────────────────────────────
-app.post('/api/mkt/sheets-export', async (req, res) => {
+app.post('/api/mkt/sheets-export', requireAdmin, async (req, res) => {
   try {
     await exportToSheets();
     const mktData = readJSON('mkt-data.json', {});
@@ -599,7 +705,7 @@ app.post('/api/mkt/sheets-export', async (req, res) => {
 });
 
 // ── Carga histórica: desde una fecha hasta hoy, semana a semana ──────────────
-app.post('/api/mkt/refresh-historical', async (req, res) => {
+app.post('/api/mkt/refresh-historical', requireAdmin, rlMiddleware(2, 60 * 60 * 1000), async (req, res) => {
   const token = process.env.META_ACCESS_TOKEN;
   const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_1723279761186492';
   const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
@@ -823,6 +929,7 @@ app.delete('/api/mkt/tasks/:id', (req, res) => {
 });
 
 // ── API: reporte externo (recibe JSON del análisis semanal de Cowork) ──
+// Auth: sesión Bearer normal, o X-Report-Secret para llamadas externas
 app.post('/api/mkt/weekly-report', (req, res) => {
   const report = { ...req.body, receivedAt: new Date().toISOString() };
   writeJSON('weekly-report.json', report);

@@ -556,6 +556,9 @@ body.is-admin .admin-only-block{display:block}
             <div class="tab" onclick="filterTasks('pending',this)">Pendientes</div>
             <div class="tab" onclick="filterTasks('done',this)">Completadas</div>
           </div>
+          <div style="margin:10px 0 12px">
+            <input class="fi" id="task-search" placeholder="🔍 Buscar tareas..." oninput="_applyTaskSearch()" style="width:100%;box-sizing:border-box;font-size:13px">
+          </div>
           <div id="tasks-list"></div>
         </div>
         <div>
@@ -569,6 +572,9 @@ body.is-admin .admin-only-block{display:block}
               </div>
               <div class="form-row">
                 <div class="fg"><label class="fl">Categoría</label><select class="fs" id="task-cat"><option value="ads">Publicidad</option><option value="contenido">Contenido</option><option value="admin">Admin</option><option value="seo">SEO / Web</option><option value="campaña">Campaña</option><option value="otro">Otro</option></select></div>
+                <div class="fg"><label class="fl">Fecha límite</label><input class="fi" id="task-duedate" type="date"></div>
+              </div>
+              <div class="form-row">
                 <div class="fg"><label class="fl">Analizar en (días)</label><input class="fi" id="task-period" type="number" min="1" max="90" placeholder="ej: 7, 14, 30"></div>
               </div>
               <div class="fg" style="margin-bottom:12px"><label class="fl">Notas internas (opcional)</label><textarea class="ft" id="task-notes" rows="2" placeholder="Detalles, contexto, links..."></textarea></div>
@@ -1046,6 +1052,18 @@ body.is-admin .admin-only-block{display:block}
 
 <div id="toast"></div>
 
+<!-- ── Custom Confirm Modal ─────────────────────────────── -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)_confirmResolve(false)">
+  <div style="background:var(--card);border-radius:14px;padding:28px 28px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:340px;width:90%;text-align:center">
+    <div id="confirm-icon" style="font-size:32px;margin-bottom:12px">⚠️</div>
+    <div id="confirm-msg" style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:22px;line-height:1.5"></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-outline" style="min-width:90px" onclick="_confirmResolve(false)">Cancelar</button>
+      <button id="confirm-ok-btn" class="btn btn-danger" style="min-width:90px" onclick="_confirmResolve(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── STATE ─────────────────────────────────────────────────
 const S = {
@@ -1059,11 +1077,19 @@ const S = {
 let _googleClientId = null;
 
 async function initAuth() {
-  // try session first
-  const saved = localStorage.getItem('citrino_user');
-  if (saved) {
-    try { applyUser(JSON.parse(saved)); document.getElementById('login-screen').classList.add('hidden'); return; } catch(e) {}
+  // Restaurar sesión solo si hay AMBOS: datos de usuario Y token de sesión
+  const savedUser = localStorage.getItem('citrino_user');
+  const savedSess = localStorage.getItem('citrino_session');
+  if (savedUser && savedSess) {
+    try {
+      applyUser(JSON.parse(savedUser));
+      document.getElementById('login-screen').classList.add('hidden');
+      return;
+    } catch(e) {}
   }
+  // Limpiar datos huérfanos
+  localStorage.removeItem('citrino_user');
+  localStorage.removeItem('citrino_session');
   // load Google client ID from server
   try {
     const cfg = await api('GET', '/api/mkt/auth/config');
@@ -1094,6 +1120,8 @@ async function handleGoogleLogin(response) {
   const r = await api('POST', '/api/mkt/auth', { credential: response.credential });
   const err = document.getElementById('login-err');
   if (r?.ok && r.user) {
+    // Guardar token de sesión server-side
+    if (r.token) localStorage.setItem('citrino_session', JSON.stringify({ token: r.token }));
     const u = { name: r.user.name, role: r.user.role, key: r.user.role === 'admin' ? 'nico' : 'lucia', email: r.user.email };
     localStorage.setItem('citrino_user', JSON.stringify(u));
     applyUser(u);
@@ -1101,7 +1129,7 @@ async function handleGoogleLogin(response) {
     err.classList.remove('show');
     loadData();
   } else {
-    err.textContent = 'Tu email no tiene acceso. Pedile a Nico que te habilite.';
+    err.textContent = r?.error || 'Tu email no tiene acceso. Pedile a Nico que te habilite.';
     err.classList.add('show');
   }
 }
@@ -1126,7 +1154,10 @@ function applyUser(u) {
 }
 
 function logout() {
+  // Invalidar token en servidor (fire-and-forget)
+  api('POST', '/api/mkt/auth/logout');
   localStorage.removeItem('citrino_user');
+  localStorage.removeItem('citrino_session');
   window.google?.accounts.id.disableAutoSelect();
   window.location.reload();
 }
@@ -1153,7 +1184,7 @@ async function addToWhitelist() {
   else toast('Error: ' + (r?.error || 'desconocido'));
 }
 async function removeFromWhitelist(email) {
-  if (!confirm('¿Quitar acceso a ' + email + '?')) return;
+  if (!await customConfirm('¿Quitar acceso a ' + email + '?', '🔒', 'Quitar acceso')) return;
   const r = await api('DELETE', '/api/mkt/auth/whitelist/' + encodeURIComponent(email));
   if (r?.ok) { toast('Acceso removido'); loadWhitelist(); }
 }
@@ -1201,9 +1232,46 @@ window.addEventListener('popstate', (e) => {
 async function api(method, path, body) {
   try {
     const o = { method, headers: { 'Content-Type': 'application/json' } };
+    // Adjuntar token de sesión en cada llamada
+    try {
+      const sess = localStorage.getItem('citrino_session');
+      if (sess) {
+        const { token } = JSON.parse(sess);
+        if (token) o.headers['Authorization'] = 'Bearer ' + token;
+      }
+    } catch {}
     if (body) o.body = JSON.stringify(body);
-    return await (await fetch(path, o)).json();
+    const r = await fetch(path, o);
+    // Sesión expirada → logout automático
+    if (r.status === 401) {
+      localStorage.removeItem('citrino_user');
+      localStorage.removeItem('citrino_session');
+      toast('Sesión expirada — iniciá sesión de nuevo', 'error');
+      setTimeout(() => window.location.reload(), 1800);
+      return null;
+    }
+    return await r.json();
   } catch(e) { return null; }
+}
+
+// ── CONFIRM MODAL ─────────────────────────────────────────
+let _confirmResolve = null;
+function customConfirm(msg, icon = '⚠️', okLabel = 'Confirmar', danger = true) {
+  return new Promise(resolve => {
+    _confirmResolve = (v) => {
+      const el = document.getElementById('confirm-modal');
+      el.style.display = 'none';
+      _confirmResolve = null;
+      resolve(v);
+    };
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-icon').textContent = icon;
+    const okBtn = document.getElementById('confirm-ok-btn');
+    okBtn.textContent = okLabel;
+    okBtn.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+    const el = document.getElementById('confirm-modal');
+    el.style.display = 'flex';
+  });
 }
 
 // ── TOAST ─────────────────────────────────────────────────
@@ -1860,12 +1928,22 @@ async function loadTasks() {
   if (S.user.role !== 'admin') {
     tasks = tasks.filter(t => t.assignTo === S.user.key || t.createdBy === S.user.key);
   }
-  // ordenar: alta prioridad primero, luego pendientes antes de completadas
+  // ordenar: vencidas primero, luego alta prioridad, luego por fecha límite
   tasks.sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    // vencidas con fecha límite al tope
+    const aOverdue = a.dueDate && !a.done && new Date(a.dueDate) < new Date();
+    const bOverdue = b.dueDate && !b.done && new Date(b.dueDate) < new Date();
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
     const pOrder = { high: 0, normal: 1, low: 2 };
-    return (pOrder[a.priority] || 1) - (pOrder[b.priority] || 1);
+    if ((pOrder[a.priority]||1) !== (pOrder[b.priority]||1)) return (pOrder[a.priority]||1) - (pOrder[b.priority]||1);
+    // por fecha límite ascendente
+    if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+    if (a.dueDate) return -1;
+    if (b.dueDate) return 1;
+    return 0;
   });
+  _allTasksCache = tasks;
   renderTasks(tasks);
   updateTaskBadge(tasks.filter(t => !t.done).length);
   renderTasksPreview(tasks);
@@ -1896,18 +1974,32 @@ function renderTasksPreview(tasks) {
 function renderTasks(tasks) {
   const list = document.getElementById('tasks-list');
   if (!list) return;
-  const filtered = S.taskFilter === 'all' ? tasks : S.taskFilter === 'done' ? tasks.filter(t => t.done) : tasks.filter(t => !t.done);
+  // Filtro por tab
+  let filtered = S.taskFilter === 'all' ? tasks : S.taskFilter === 'done' ? tasks.filter(t => t.done) : tasks.filter(t => !t.done);
+  // Filtro por búsqueda
+  const query = (document.getElementById('task-search')?.value || '').toLowerCase().trim();
+  if (query) {
+    filtered = filtered.filter(t =>
+      (t.text||'').toLowerCase().includes(query) ||
+      (t.notes||'').toLowerCase().includes(query) ||
+      (t.category||'').toLowerCase().includes(query) ||
+      (t.assignTo||'').toLowerCase().includes(query)
+    );
+  }
   const pending = tasks.filter(t => !t.done);
   const high = pending.filter(t => t.priority === 'high').length;
+  const overdue = pending.filter(t => t.dueDate && new Date(t.dueDate) < new Date()).length;
   const stats = document.getElementById('tasks-stats');
-  if (stats) stats.innerHTML = `Pendientes: <strong style="color:var(--gold)">${pending.length}</strong>${high > 0 ? ` <span style="color:var(--red);font-size:11px">(${high} alta prioridad)</span>` : ''}<br>Completadas: <strong style="color:var(--green)">${tasks.filter(t=>t.done).length}</strong><br>Total: <strong>${tasks.length}</strong>`;
-  if (!filtered.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">☐</div><div class="empty-text">Sin tareas en esta categoría</div></div>'; return; }
+  if (stats) stats.innerHTML = `Pendientes: <strong style="color:var(--gold)">${pending.length}</strong>${high > 0 ? ` <span style="color:var(--red);font-size:11px">(${high} alta prioridad)</span>` : ''}${overdue > 0 ? ` <span style="color:var(--red);font-size:11px">· ${overdue} vencidas</span>` : ''}<br>Completadas: <strong style="color:var(--green)">${tasks.filter(t=>t.done).length}</strong><br>Total: <strong>${tasks.length}</strong>`;
+  if (!filtered.length) { list.innerHTML = query ? '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sin resultados para esa búsqueda</div></div>' : '<div class="empty"><div class="empty-icon">☐</div><div class="empty-text">Sin tareas en esta categoría</div></div>'; return; }
   list.innerHTML = filtered.map(t => {
     const pi = taskPeriodInfo(t);
     const prioColor = t.priority === 'high' ? 'var(--red)' : t.priority === 'low' ? 'var(--border)' : 'var(--gold)';
     const prioBadge = t.priority === 'high' ? '🔴 Alta' : t.priority === 'low' ? '⚪ Baja' : '🟡 Normal';
+    const isOverdue = t.dueDate && !t.done && new Date(t.dueDate) < new Date();
+    const dueBadge = t.dueDate ? `<span style="font-size:10px;padding:2px 6px;border-radius:10px;background:${isOverdue ? 'rgba(239,68,68,.12)' : 'rgba(0,0,0,.05)'};color:${isOverdue ? 'var(--red)' : 'var(--text3)'};font-weight:${isOverdue?'600':'400'}">${isOverdue ? '⚠ vence ' : '📅 '} ${t.dueDate}</span>` : '';
     return `
-    <div class="task-item priority-${t.priority}" style="background:var(--card);border:1px solid var(--border);border-left:3px solid ${prioColor};border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer" onclick="openTaskDetail('${t.id}')">
+    <div class="task-item priority-${t.priority}" style="background:var(--card);border:1px solid ${isOverdue?'var(--red)':'var(--border)'};border-left:3px solid ${prioColor};border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer" onclick="openTaskDetail('${t.id}')">
       <div class="task-cb ${t.done ? 'done' : ''}" onclick="event.stopPropagation();toggleTask('${t.id}')"></div>
       <div style="flex:1">
         <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
@@ -1916,6 +2008,7 @@ function renderTasks(tasks) {
           <span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>
           <span class="badge ${t.priority === 'high' ? 'red' : t.priority === 'low' ? 'gray' : 'yellow'}" style="font-size:10px">${prioBadge}</span>
           <span style="font-size:11px;color:var(--text3)">${t.category || ''}</span>
+          ${dueBadge}
           <span style="font-size:11px;color:var(--text3);margin-left:auto">${fmtD(t.createdAt)}</span>
         </div>
         ${pi ? `<div class="task-period-badge ${pi.cls}" style="margin-top:6px;display:inline-flex">${pi.label}</div>` : ''}
@@ -1938,7 +2031,9 @@ async function openTaskDetail(id) {
   const assignBadge = `<span class="task-author ${t.assignTo || 'nico'}" style="display:inline-block">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>`;
   const catBadge = t.category ? `<span class="badge gray">${t.category}</span>` : '';
   const doneBadge = t.done ? '<span class="badge green">✓ Completada</span>' : '<span class="badge yellow">Pendiente</span>';
-  document.getElementById('tdm-meta').innerHTML = prioBadge + assignBadge + catBadge + doneBadge;
+  const isOverdue = t.dueDate && !t.done && new Date(t.dueDate) < new Date();
+  const dueBadge = t.dueDate ? `<span class="badge ${isOverdue ? 'red' : 'gray'}">${isOverdue ? '⚠ Vence ' : '📅 '}${t.dueDate}</span>` : '';
+  document.getElementById('tdm-meta').innerHTML = prioBadge + assignBadge + catBadge + doneBadge + dueBadge;
   const pi = taskPeriodInfo(t);
   const periodBar = pi ? `<div class="period-countdown ${pi.cls}" style="margin-bottom:14px"><span style="font-size:13px">${pi.label}</span></div>` : '';
   document.getElementById('tdm-period-bar').innerHTML = periodBar;
@@ -1962,11 +2057,14 @@ async function saveTaskNotes() {
   loadTasks();
 }
 
-function filterTasks(f, el) { S.taskFilter = f; document.querySelectorAll('#page-tasks .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); loadTasks(); }
+function filterTasks(f, el) { S.taskFilter = f; document.querySelectorAll('#page-tasks .tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); renderTasks(_allTasksCache); }
+let _allTasksCache = [];
+function _applyTaskSearch() { renderTasks(_allTasksCache); }
 async function createTask() {
   const text = document.getElementById('task-text').value.trim();
   if (!text) { toast('Escribí la tarea'); return; }
   const periodDays = parseInt(document.getElementById('task-period').value) || null;
+  const dueDate = document.getElementById('task-duedate').value || null;
   await api('POST', '/api/mkt/tasks', {
     text,
     priority: document.getElementById('task-priority').value.replace(/[^a-z]/g,''),
@@ -1974,11 +2072,13 @@ async function createTask() {
     category: document.getElementById('task-cat').value,
     createdBy: S.user.key,
     notes: document.getElementById('task-notes').value.trim() || null,
-    analysisDays: periodDays
+    analysisDays: periodDays,
+    dueDate
   });
   document.getElementById('task-text').value = '';
   document.getElementById('task-notes').value = '';
   document.getElementById('task-period').value = '';
+  document.getElementById('task-duedate').value = '';
   _currentTasksCache = [];
   toast('✓ Tarea creada');
   loadTasks();
@@ -1989,7 +2089,7 @@ async function toggleTask(id) {
   loadTasks();
 }
 async function deleteTask(id) {
-  if (!confirm('¿Eliminar esta tarea?')) return;
+  if (!await customConfirm('¿Eliminar esta tarea? Esta acción no se puede deshacer.', '🗑️', 'Eliminar')) return;
   await api('DELETE', '/api/mkt/tasks/' + id);
   _currentTasksCache = [];
   loadTasks();
