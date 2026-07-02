@@ -1181,7 +1181,7 @@ function nav(p, pushState = true) {
   el.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(x => { if (x.getAttribute('onclick')?.includes("'" + p + "'")) x.classList.add('active'); });
   document.getElementById('page-title').textContent = TITLES[p] || p;
-  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')), admin:() => { loadAIPrompt(); loadWhitelist(); loadSystemStatus(); } };
+  const loaders = { tasks:loadTasks, reviews:loadReviews, competitors:loadCompetitors, tickets:loadTickets, notes:loadNotes, actions:loadActions, content:loadContent, listening:refreshListening, reports:() => loadReport('weekly', document.querySelector('#page-reports .tab')), admin:() => { loadAIPrompt(); loadWhitelist(); loadSystemStatus(); } };
   if (loaders[p]) loaders[p]();
   // history API — permite back/forward del browser
   if (pushState) {
@@ -1229,7 +1229,13 @@ const fmtM = n => '$U ' + parseFloat(n || 0).toLocaleString('es-UY', { minimumFr
 function computeMonthTotals(d) {
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthData = d.byMonth?.[monthKey];
+  let monthData = d.byMonth?.[monthKey];
+  // Fallback al mes anterior cuando el mes actual aún no tiene datos (inicio de mes)
+  if (!monthData?.weeks?.length && now.getDate() <= 7) {
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+    monthData = d.byMonth?.[prevKey];
+  }
   if (!monthData?.weeks?.length) return null;
   let spend = 0, leads = 0, reach = 0;
   monthData.weeks.forEach(w => {
@@ -1691,11 +1697,12 @@ function renderDashboardData(w, d, periodLabel, prevWeek, monthTotals) {
 
   // CPL
   const cpl = m.leads > 0 ? m.cpl : (m.spend > 0 ? 0 : 59);
-  const cplFmt = m.leads > 0 ? fmtM(cpl) : (m.spend > 0 ? '–' : '$U 59*');
+  const cplFmt = m.leads > 0 ? fmtM(cpl * 56) : (m.spend > 0 ? '–' : '$U 3.304*');
   document.getElementById('k-cpl').textContent = cplFmt;
   const cplBadge = document.getElementById('k-cpl-badge');
   if (m.leads > 0 && cpl) {
-    const diff = Math.round(((cpl - 47) / 47) * 100);
+    const optUSD = 47; // CPL óptimo en USD (~$U 2.632)
+    const diff = Math.round(((cpl - optUSD) / optUSD) * 100);
     cplBadge.textContent = diff > 0 ? `↑ ${diff}% sobre óptimo` : `↓ ${Math.abs(diff)}% bajo óptimo`;
     cplBadge.className = 'kpi-badge ' + (diff > 0 ? 'warn' : 'up');
   }
@@ -1765,7 +1772,7 @@ function renderCampaignsData(d) {
   tbody.innerHTML = camps.map(c => {
     const cls = c.cpl > 55 ? 'red' : c.cpl > 47 ? 'yellow' : 'green';
     const contactos = c.leads || 0;
-    return `<tr><td>${c.name}</td><td><span class="badge ${c.status==='ACTIVE'?'green':'gray'}">${c.status}</span></td><td><strong>${fmt(contactos)}</strong></td><td><span class="badge ${cls}">${contactos > 0 ? fmtM(c.cpl) : '–'}</span></td><td>${fmtM(c.spend * 56)}</td><td>${fmt(c.reach)}</td></tr>`;
+    return `<tr><td>${c.name}</td><td><span class="badge ${c.status==='ACTIVE'?'green':'gray'}">${c.status}</span></td><td><strong>${fmt(contactos)}</strong></td><td><span class="badge ${cls}">${contactos > 0 ? fmtM(c.cpl * 56) : '–'}</span></td><td>${fmtM(c.spend * 56)}</td><td>${fmt(c.reach)}</td></tr>`;
   }).join('');
   buildCampaignsChart(camps);
 }
@@ -1850,7 +1857,7 @@ function taskPeriodInfo(t) {
 async function loadTasks() {
   let tasks = await api('GET', '/api/mkt/tasks') || [];
   // Marketing solo ve sus propias tareas (y las que le asignaron)
-  if (S.user.role !== 'Admin') {
+  if (S.user.role !== 'admin') {
     tasks = tasks.filter(t => t.assignTo === S.user.key || t.createdBy === S.user.key);
   }
   // ordenar: alta prioridad primero, luego pendientes antes de completadas
@@ -1874,7 +1881,7 @@ function renderTasksPreview(tasks) {
     return `
     <div class="task-item" style="border-left:3px solid ${prioColor};padding-left:10px">
       <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
-      <div style="flex:1" onclick="openTaskDetail('${t.id}')" style="cursor:pointer">
+      <div style="flex:1;cursor:pointer" onclick="openTaskDetail('${t.id}')">
         <div class="task-text ${t.done ? 'done' : ''}">${t.text}</div>
         <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
           <span class="task-author ${t.assignTo || 'nico'}">${t.assignTo === 'lucia' ? 'Lucía' : 'Nico'}</span>
@@ -2269,9 +2276,9 @@ async function loadReport(type, el) {
   if (type === 'analysis') { loadWeeklyAnalysis(); return; }
   const rc = document.getElementById('report-content');
   const now = new Date(); let d;
-  if (type==='weekly') { d=await api('GET','/api/mkt/reports/weekly'); const m=d?.data?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Semanal</span><span class="ts">${fmtD(d?.generatedAt)}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">${[['Inversión',fmtM(m.spend)],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl):'–'],['Alcance',fmt(m.reach||0)]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
-  else if (type==='monthly') { const month=now.toISOString().substring(0,7); d=await api('GET','/api/mkt/reports/monthly?month='+month); const m=d?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Mensual — ${month}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">${[['Inversión',fmtM(m.spend)],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl):'–'],['Notas',d?.notes||0],['Acciones',d?.actions||0],['Tickets',d?.tickets||0]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
-  else { const qN=type.replace('q',''); d=await api('GET',`/api/mkt/reports/quarterly?q=${qN}&year=${now.getFullYear()}`); const t=d?.total||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte ${d?.quarter} ${d?.year}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">${[['Inversión total',fmtM(t.spend)],['Leads totales',t.leads||0],['CPL promedio',t.leads>0?fmtM(t.cpl):'–']].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div>${(d?.months||[]).map(m=>{const md=d?.byMonth[m]||{};return`<div style="display:flex;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px;margin-bottom:8px;font-size:13px"><span style="font-weight:500">${m}</span><span style="color:var(--text2)">${fmtM(md.spend)} · ${md.leads||0} leads</span></div>`;}).join('')}</div></div>`; }
+  if (type==='weekly') { d=await api('GET','/api/mkt/reports/weekly'); const m=d?.data?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Semanal</span><span class="ts">${fmtD(d?.generatedAt)}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">${[['Inversión',m.spend>0?fmtM(m.spend*56):'–'],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl*56):'–'],['Alcance',fmt(m.reach||0)]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
+  else if (type==='monthly') { const month = now.getDate() <= 7 ? new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().substring(0,7) : now.toISOString().substring(0,7); d=await api('GET','/api/mkt/reports/monthly?month='+month); const m=d?.meta||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte Mensual — ${month}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">${[['Inversión',m.spend>0?fmtM(m.spend*56):'–'],['Leads',m.leads||0],['CPL',m.leads>0?fmtM(m.cpl*56):'–'],['Notas',d?.notes||0],['Acciones',d?.actions||0],['Tickets',d?.tickets||0]].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div></div></div>`; }
+  else { const qN=type.replace('q',''); d=await api('GET',`/api/mkt/reports/quarterly?q=${qN}&year=${now.getFullYear()}`); const t=d?.total||{}; rc.innerHTML=`<div class="card"><div class="card-head"><span class="card-title">Reporte ${d?.quarter} ${d?.year}</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">${[['Inversión total',t.spend>0?fmtM(t.spend*56):'–'],['Leads totales',t.leads||0],['CPL promedio',t.leads>0?fmtM(t.cpl*56):'–']].map(([l,v])=>`<div style="text-align:center;padding:14px;background:var(--bg2);border-radius:8px"><div style="font-family:var(--font);font-size:22px;color:var(--text)">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-top:4px">${l}</div></div>`).join('')}</div>${(d?.months||[]).map(m=>{const md=d?.byMonth[m]||{};return`<div style="display:flex;justify-content:space-between;padding:10px;background:var(--bg2);border-radius:8px;margin-bottom:8px;font-size:13px"><span style="font-weight:500">${m}</span><span style="color:var(--text2)">${md.spend>0?fmtM(md.spend*56):'–'} · ${md.leads||0} leads</span></div>`;}).join('')}</div></div>`; }
 }
 
 // ── WEEKLY ANALYSIS (from Cowork scheduled task) ──────────
