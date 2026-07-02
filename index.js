@@ -94,7 +94,7 @@ async function notifyWhatsApp(to, message) {
 // ────────────────────────────────────────────────────────────
 async function refreshMetaData() {
   const token = process.env.META_ACCESS_TOKEN;
-  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_2070126230586031';
+  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_1723279761186492';
   const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
   const fbPageId = process.env.FACEBOOK_PAGE_ID || '109950823921393';
   const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
@@ -601,7 +601,7 @@ app.post('/api/mkt/sheets-export', async (req, res) => {
 // ── Carga histórica: desde una fecha hasta hoy, semana a semana ──────────────
 app.post('/api/mkt/refresh-historical', async (req, res) => {
   const token = process.env.META_ACCESS_TOKEN;
-  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_2070126230586031';
+  const adAccountId = process.env.META_AD_ACCOUNT_ID || 'act_1723279761186492';
   const igBusinessId = process.env.META_IG_BUSINESS_ID || process.env.INSTAGRAM_PAGE_ID || '17841442372105492';
   const fbPageId = process.env.FACEBOOK_PAGE_ID || '109950823921393';
   const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
